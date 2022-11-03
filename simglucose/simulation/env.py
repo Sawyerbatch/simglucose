@@ -20,7 +20,7 @@ except ImportError:
         return _Step(observation, reward, done, kwargs)
 
 
-Observation = namedtuple('Observation', ['CGM']) # inserire derivata
+Observation = namedtuple('Observation', ['CGM', 'dCGM']) # inserire derivata
 logger = logging.getLogger(__name__)
 
 
@@ -60,9 +60,9 @@ class T1DSimEnv(object):
         # next observation
         BG = self.patient.observation.Gsub
         CGM = self.sensor.measure(self.patient)
-        # aggiungere valore per derivata
+        # aggiungere valore per derivata?
 
-        return CHO, insulin, BG, CGM # aggiungere valore per derivata
+        return CHO, insulin, BG, CGM # aggiungere valore per derivata?
 
     def step(self, action, reward_fun=risk_diff):
         '''
@@ -72,16 +72,18 @@ class T1DSimEnv(object):
         insulin = 0.0
         BG = 0.0
         CGM = 0.0
+        dCGM = 0.0
         # aggiungere valore per derivata
         
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
             tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action)
+            # aggiungere valore per derivata
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
             BG += tmp_BG / self.sample_time
             CGM += tmp_CGM / self.sample_time
-            # dCGM = tmp_CGM / self.sample_time
+            dCGM = tmp_CGM / self.sample_time # aggiungere derivata
 
         # Compute risk index
         horizon = 1
@@ -95,7 +97,7 @@ class T1DSimEnv(object):
         self.time_hist.append(self.time)
         self.BG_hist.append(BG)
         self.CGM_hist.append(CGM)
-        # self.dCGM_hist.append(dCGM)
+        # self.dCGM_hist.append(dCGM) # aggiungere derivata?
         self.risk_hist.append(risk)
         self.LBGI_hist.append(LBGI)
         self.HBGI_hist.append(HBGI)
@@ -105,7 +107,7 @@ class T1DSimEnv(object):
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350
-        obs = Observation(CGM=CGM) # aggiungere derivata
+        obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
 
         return Step(observation=obs,
                     reward=reward,
@@ -130,8 +132,8 @@ class T1DSimEnv(object):
         CGM = self.sensor.measure(self.patient)
         self.time_hist = [self.scenario.start_time]
         self.BG_hist = [BG]
-        self.CGM_hist = [CGM]
-        # self.dCGM_hist = [dCGM]
+        self.CGM_hist = [CGM] 
+        # self.dCGM_hist = [dCGM] # aggiungere derivata?
         self.risk_hist = [risk]
         self.LBGI_hist = [LBGI]
         self.HBGI_hist = [HBGI]
@@ -145,8 +147,8 @@ class T1DSimEnv(object):
         self.scenario.reset()
         self._reset()
         CGM = self.sensor.measure(self.patient)
-        # dCGM = 0
-        obs = Observation(CGM=CGM) #aggiungere derivata
+        dCGM = 0
+        obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
         return Step(observation=obs,
                     reward=0,
                     done=False,
