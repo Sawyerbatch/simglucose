@@ -3,8 +3,10 @@ import pkg_resources
 import logging
 import numpy as np
 
-INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
-    'simglucose', 'params/pump_params.csv')
+INSULIN_PUMP_PARA_FILE = 'C:/GitHub/simglucose/simglucose/params/pump_params.csv'
+# INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
+#     'simglucose', 'params/pump_params.csv')
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +37,7 @@ class InsulinPump(object):
                        ) * self._params['inc_basal']
         bas = bas / self.U2PMOL     # convert from pmol/min to U/min
         bas = min(bas, self._params['max_basal'])
+        print(self._params['max_basal'])
         bas = max(bas, self._params['min_basal'])
         return bas
 
