@@ -3,13 +3,13 @@ import pkg_resources
 import logging
 import numpy as np
 
-# INSULIN_PUMP_PARA_FILE = 'C:/GitHub/simglucose/simglucose/params/pump_params.csv'
+
 INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/pump_params.csv')
 
 logger = logging.getLogger(__name__)
 
-
+# gestione boli e basale
 class InsulinPump(object):
     U2PMOL = 6000
 

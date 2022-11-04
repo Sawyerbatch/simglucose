@@ -138,7 +138,7 @@ def pick_cgm_seed():
     return seed
 
 
-def pick_insulin_pump():
+def pick_insulin_pump(): # aggiunta pompa nuova: dobbiamo prendere i semi interi
     pump_params = pd.read_csv(INSULIN_PUMP_PARA_FILE)
     pump_names = list(pump_params['Name'].values)
     while True:
@@ -165,9 +165,9 @@ def pick_insulin_pump():
 
 def pick_scenario(start_time=None):
     while True:
-        print('Select scnenario:')
-        print('[1] Random Scnenario')
-        print('[2] Custom Scnenario')
+        print('Select scenario:')
+        print('[1] Random Scenario')
+        print('[2] Custom Scenario')
         input_value = input('>>>')
         try:
             selection = int(input_value)
