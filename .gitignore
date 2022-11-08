@@ -1,8 +1,9 @@
 # Compiled python modules.
 *.pyc
 
-# results foler
-/results/
+# results folder
+simglucose/simulation/results/
+simglucose/Simulazioni_RL/Risultati/
 
 # Setuptools distribution folder.
 /dist/

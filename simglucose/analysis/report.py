@@ -32,7 +32,7 @@ def ensemble_BG(BG, ax=None, plot_var=False, nstd=3):
     ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
     ax.xaxis.set_major_locator(mdates.DayLocator())
     ax.xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
-
+    
     ax.axhline(70, c='green', linestyle='--', label='Hypoglycemia', lw=1)
     ax.axhline(180, c='red', linestyle='--', label='Hyperglycemia', lw=1)
 
@@ -48,27 +48,41 @@ def ensemblePlot(df):
     df_BG = df.unstack(level=0).BG
     df_CGM = df.unstack(level=0).CGM
     df_CHO = df.unstack(level=0).CHO
-    fig = plt.figure()
-    ax1 = fig.add_subplot(311)
-    ax2 = fig.add_subplot(312)
-    ax3 = fig.add_subplot(313)
+    df_dCGM = df.unstack(level=0).dCGM
+    
+    fig = plt.figure(figsize=(14, 12), dpi=100)
+    ax1 = fig.add_subplot(411)
+    ax2 = fig.add_subplot(412)
+    ax3 = fig.add_subplot(413)
+    ax4 = fig.add_subplot(414)
+    
     ax1 = ensemble_BG(df_BG, ax=ax1, plot_var=True, nstd=1)
     ax2 = ensemble_BG(df_CGM, ax=ax2, plot_var=True, nstd=1)
     # t = df_CHO.index.to_pydatetime()
     t = pd.to_datetime(df_CHO.index)
     ax3.plot(t, df_CHO)
+    
+    t_dCGM = pd.to_datetime(df_dCGM.index)
+    ax4.plot(t_dCGM, df_dCGM)
 
     ax1.tick_params(labelbottom=False)
     ax2.tick_params(labelbottom=False)
     ax3.xaxis.set_minor_locator(mdates.AutoDateLocator())
     ax3.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
-    ax3.xaxis.set_major_locator(mdates.DayLocator())
-    ax3.xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
+    
+    # locator = mdates.AutoDateLocator()
+    # formatter = mdates.ConciseDateFormatter(locator)
+    # ax4.xaxis.set_major_locator(locator)
+    # ax4.xaxis.set_major_formatter(formatter)
     ax3.set_xlim([t[0], t[-1]])
     ax1.set_ylabel('Blood Glucose (mg/dl)')
     ax2.set_ylabel('CGM (mg/dl)')
-    ax3.set_ylabel('CHO (g)')
-    return fig, ax1, ax2, ax3
+    ax3.set_ylabel('CHO (g)', labelpad=10)
+    
+    ax4.set_xlim([t[0], t[-1]])
+    ax4.set_ylabel('dCGM (mg/dl*s)')
+    
+    return fig, ax1, ax2, ax3, ax4
 
 
 def percent_stats(BG, ax=None):
@@ -246,11 +260,11 @@ def CVGA(BG_list, label=None):
 def report(df, save_path=None):
     BG = df.unstack(level=0).BG
 
-    fig_ensemble, ax1, ax2, ax3 = ensemblePlot(df)
+    fig_ensemble, ax1, ax2, ax3, ax_dCGM = ensemblePlot(df)
     pstats, fig_percent, ax4 = percent_stats(BG)
     ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
     zone_stats, fig_cvga, ax6 = CVGA(BG, label='')
-    axes = [ax1, ax2, ax3, ax4, ax5, ax6]
+    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax_dCGM]
     figs = [fig_ensemble, fig_percent, fig_ri, fig_cvga]
     results = pd.concat([pstats, ri_mean], axis=1)
 
