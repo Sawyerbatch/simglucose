@@ -56,6 +56,9 @@ def ensemblePlot(df):
     ax3 = fig.add_subplot(413)
     ax4 = fig.add_subplot(414)
     
+    fig_2 = plt.figure(figsize=(14, 12), dpi=100)
+    # ax_4_2 = fig_2.add_subplot(111)
+    
     ax1 = ensemble_BG(df_BG, ax=ax1, plot_var=True, nstd=1)
     ax2 = ensemble_BG(df_CGM, ax=ax2, plot_var=True, nstd=1)
     # t = df_CHO.index.to_pydatetime()
@@ -63,7 +66,13 @@ def ensemblePlot(df):
     ax3.plot(t, df_CHO)
     
     t_dCGM = pd.to_datetime(df_dCGM.index)
-    ax4.plot(t_dCGM, df_dCGM)
+    ax4.plot(t_dCGM, df_CGM-150)
+    ax4.plot(t_dCGM, df_dCGM*10)
+    ax4.plot(t_dCGM, df_dCGM*0)
+    
+    # ax_4_2.plot(t_dCGM, df_CGM)
+    # ax_4_2.plot(t_dCGM, df_dCGM*20)
+    # ax_4_2.plot(t_dCGM, df_dCGM*0)
 
     ax1.tick_params(labelbottom=False)
     ax2.tick_params(labelbottom=False)

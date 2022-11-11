@@ -25,10 +25,10 @@ parallel   - switch for parallel computing. True/False.
 
 if __name__ == '__main__':
     seed = 42
-    my_sim_time = timedelta(hours=float(4))
+    my_sim_time = timedelta(hours=float(6))
     scenario = RandomScenario(start_time=newdatetime, seed=seed)
     controller = RandomController()
-    patient_names = ['adult#001']#,'adult#002']
+    patient_names = ['adult#001','adult#002']
     cgm_name = 'Dexcom'   
     insulin_pump_name = 'Nuovo'
     start_time = newdatetime
