@@ -67,7 +67,7 @@ def ensemblePlot(df):
     
     t_dCGM = pd.to_datetime(df_dCGM.index)
     ax4.plot(t_dCGM, df_CGM-150)
-    ax4.plot(t_dCGM, df_dCGM*10)
+    ax4.plot(t_dCGM, df_dCGM)
     ax4.plot(t_dCGM, df_dCGM*0)
     
     # ax_4_2.plot(t_dCGM, df_CGM)

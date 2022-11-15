@@ -54,7 +54,7 @@ class T1DSimEnv(object):
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
         
-        CGM_prev = self.sensor.measure(self.patient)
+        # CGM_prev = self.sensor.measure(self.patient)
         
         # State update
         self.patient.step(patient_mdl_act) # avanzamento dello stato del paziente
@@ -62,10 +62,12 @@ class T1DSimEnv(object):
         # next observation
         BG = self.patient.observation.Gsub
         CGM = self.sensor.measure(self.patient) # CGM al tempo t+1
-        dCGM = CGM - CGM_prev
+        # dCGM = CGM - CGM_prev
         # aggiungere valore per derivata?
+        # print(CHO, insulin, BG, CGM, dCGM, '\n')
+        return CHO, insulin, BG, CGM #dCGM # aggiungere valore per derivata?
 
-        return CHO, insulin, BG, CGM, dCGM # aggiungere valore per derivata?
+
 
     def step(self, action, reward_fun=risk_diff):
         '''
@@ -76,17 +78,23 @@ class T1DSimEnv(object):
         BG = 0.0
         CGM = 0.0
         # dCGM = 0.0
+        # CGM_old = 0.0
         # aggiungere valore per derivata
         
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
-            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM, tmp_dCGM = self.mini_step(action) # tmp_dCGM
+            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action) # tmp_dCGM
             # mini_step fornisce il delta dei valori
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
             BG += tmp_BG / self.sample_time
-            dCGM = tmp_dCGM # aggiungere derivata
+            # dCGM += tmp_dCGM / self.sample_time # aggiungere derivata
+            # dCGM = tmp_CGM # self.sample_time
             CGM += tmp_CGM / self.sample_time
+            # print('index', _, BG, CGM, dCGM)
+        
+        # dCGM = tmp_dCGM / self.sample_time
+        dCGM = CGM - self.CGM_hist[-1]
             
 
         # Compute risk index

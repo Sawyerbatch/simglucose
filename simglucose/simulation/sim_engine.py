@@ -45,8 +45,10 @@ class SimObj(object):
         df = self.results()
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
-        filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
-        df.to_csv(filename)
+        # filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
+        filename_exc = os.path.join(self.path, str(self.env.patient.name) + '_clear.xlsx')
+        # df.to_csv(filename)
+        df.to_excel(filename_exc)
 
     def reset(self):
         self.env.reset()
