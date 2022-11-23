@@ -5,22 +5,25 @@ from datetime import timedelta
 import logging
 from collections import namedtuple
 from simglucose.simulation.rendering import Viewer
+import gym
+from gym import spaces
+import numpy as np
 
-try:
-    from rllab.envs.base import Step
-except ImportError:
-    _Step = namedtuple("Step", ["observation", "reward", "done", "info"])
+# try:
+# from rllab.envs.base import Step
+# except ImportError:
+_Step = namedtuple("Step", ["observation", "reward", "done", "info"])
 
-    def Step(observation, reward, done, **kwargs):
-        """
-        Convenience method creating a namedtuple with the results of the
-        environment.step method.
-        Put extra diagnostic info in the kwargs
-        """
-        return _Step(observation, reward, done, kwargs)
+def Step(observation, reward, done, **kwargs):
+    """
+    Convenience method creating a namedtuple with the results of the
+    environment.step method.
+    Put extra diagnostic info in the kwargs
+    """
+    return _Step(observation, reward, done, kwargs)
 
 
-Observation = namedtuple('Observation', ['CGM', 'dCGM']) # inserire derivata
+Observation = namedtuple('Observation', ['CGM'])#, 'dCGM']) # inserire derivata
 logger = logging.getLogger(__name__)
 
 
@@ -39,8 +42,10 @@ class T1DSimEnv(object):
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
-        self._reset()
-
+        # self._reset()
+        # self.observation_space = spaces.Box(0, 4, shape=(1,), dtype=int)
+        # self.action_space = spaces.Discrete(2)
+        
     @property
     def time(self):
         return self.scenario.start_time + timedelta(minutes=self.patient.t)
@@ -119,8 +124,9 @@ class T1DSimEnv(object):
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350
-        obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
-
+        # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
+        obs = np.array(Observation([CGM, dCGM]))
+        
         return Step(observation=obs,
                     reward=reward,
                     done=done,
@@ -134,7 +140,56 @@ class T1DSimEnv(object):
                     hbgi=HBGI,
                     risk=risk)
 
-    def _reset(self):
+    # def _reset(self):
+    #     self.sample_time = self.sensor.sample_time
+    #     self.viewer = None
+
+    #     BG = self.patient.observation.Gsub
+    #     horizon = 1
+    #     LBGI, HBGI, risk = risk_index([BG], horizon)
+    #     CGM = self.sensor.measure(self.patient)
+    #     dCGM = 0.0
+    #     self.time_hist = [self.scenario.start_time]
+    #     self.BG_hist = [BG]
+    #     self.CGM_hist = [CGM] 
+    #     self.dCGM_hist = [dCGM] # aggiungere derivata?
+    #     self.risk_hist = [risk]
+    #     self.LBGI_hist = [LBGI]
+    #     self.HBGI_hist = [HBGI]
+    #     self.CHO_hist = []
+    #     self.insulin_hist = []
+
+    # def reset(self):
+    #     self.patient.reset()
+    #     self.sensor.reset()
+    #     self.pump.reset()
+    #     self.scenario.reset()
+    #     self._reset()
+    #     CGM = self.sensor.measure(self.patient)
+    #     dCGM = 0.0
+    #     obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
+    #     return Step(observation=obs,
+    #                 reward=0,
+    #                 done=False,
+    #                 sample_time=self.sample_time,
+    #                 patient_name=self.patient.name,
+    #                 meal=0,
+    #                 patient_state=self.patient.state,
+    #                 time=self.time,
+    #                 bg=self.BG_hist[0],
+    #                 lbgi=self.LBGI_hist[0],
+    #                 hbgi=self.HBGI_hist[0],
+    #                 risk=self.risk_hist[0])
+    
+    # for gym 0.21
+    def reset(self):
+        # print('sto usando reset')
+        self.patient.reset()
+        self.sensor.reset()
+        self.pump.reset()
+        self.scenario.reset()
+        # self._reset()
+              
         self.sample_time = self.sensor.sample_time
         self.viewer = None
 
@@ -152,17 +207,15 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = []
         self.insulin_hist = []
-
-    def reset(self):
-        self.patient.reset()
-        self.sensor.reset()
-        self.pump.reset()
-        self.scenario.reset()
-        self._reset()
+        
+        # self._agent_location = 1
+        # observation = self._agent_location = 1
+        
         CGM = self.sensor.measure(self.patient)
         dCGM = 0.0
-        obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
-        return Step(observation=obs,
+        # obs = Observation(CGM=CGM, dCGM=dCGM)
+        obs = np.array(Observation([CGM, dCGM])) # aggiungere derivata
+        self.ritorno = Step(observation=obs,
                     reward=0,
                     done=False,
                     sample_time=self.sample_time,
@@ -174,7 +227,16 @@ class T1DSimEnv(object):
                     lbgi=self.LBGI_hist[0],
                     hbgi=self.HBGI_hist[0],
                     risk=self.risk_hist[0])
+        print(self.ritorno)
+        # print(type(obs))
+        # print(obs.shape)
+        
+        return self.ritorno
 
+    
+    # def _get_obs(self):
+    #     return self._agent_location
+    
     def render(self, close=False):
         if close:
             if self.viewer is not None:
@@ -200,3 +262,6 @@ class T1DSimEnv(object):
         df['Risk'] = pd.Series(self.risk_hist)
         df = df.set_index('Time')
         return df
+
+# cl = T1DSimEnv()
+# print(cl.reset())

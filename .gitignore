@@ -4,6 +4,7 @@
 # results folder
 simglucose/simulation/results/
 simglucose/Simulazioni_RL/Risultati/
+simglucose/Simulazioni_RL/videos/
 
 # Setuptools distribution folder.
 /dist/
