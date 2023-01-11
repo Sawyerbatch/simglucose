@@ -14,17 +14,17 @@ from gym.wrappers.order_enforcing import OrderEnforcing
 from stable_baselines3.common.monitor import Monitor
 
 
-# def quad_func(a,x):
-#     return -a*(x-70)*(x-180)
+def quad_func(a,x):
+    return -a*(x-70)*(x-180)
 
-# def quad_reward(BG_last_hour):
-#     return quad_func(0.01, BG_last_hour[-1])
+def quad_reward(BG_last_hour):
+    return quad_func(4.15, BG_last_hour[-1])
 
-def new_func(x):
-    return -0.0417 * x**2 + 10.4167 * x - 525.0017
+# def new_func(x):
+#     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
-def new_reward(BG_last_hour):
-    return new_func(BG_last_hour[-1])
+# def new_reward(BG_last_hour):
+#     return new_func(BG_last_hour[-1])
 
 paziente = 'adolescent#007'
 # env = gym.make('CartPole-v1')
@@ -34,7 +34,7 @@ register(
     id='simglucose-adolescent2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
     kwargs={'patient_name': 'adolescent#005',
-            'reward_fun': new_reward}
+            'reward_fun': quad_reward}
 )
 
 
@@ -95,7 +95,7 @@ print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 print('Numero di episodi: '+str(n_eval_episodes))
 print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
 
-model.save("ppo_sim_new_mod")
+model.save("ppo_sim_mod")
 
 # Close the environment
 env.close()

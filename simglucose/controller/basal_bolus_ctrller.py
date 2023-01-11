@@ -28,7 +28,8 @@ class BBController(Controller):
         pname = kwargs.get('patient_name')
         meal = kwargs.get('meal')  # unit: g/min
 
-        action = self._bb_policy(pname, meal, observation.CGM, sample_time)
+        # action = self._bb_policy(pname, meal, observation.CGM, sample_time)
+        action = self._bb_policy(pname, meal, observation[0][0], sample_time)
         return action
 
     def _bb_policy(self, name, meal, glucose, env_sample_time):

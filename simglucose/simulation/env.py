@@ -227,7 +227,7 @@ class T1DSimEnv(object):
                     lbgi=self.LBGI_hist[0],
                     hbgi=self.HBGI_hist[0],
                     risk=self.risk_hist[0])
-        # print(self.ritorno)
+        print(self.ritorno)
         # # print(type(obs))
         # print(obs.shape)
         
