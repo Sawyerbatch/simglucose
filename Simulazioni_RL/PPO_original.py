@@ -13,63 +13,92 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from gym.wrappers.order_enforcing import OrderEnforcing
 from stable_baselines3.common.monitor import Monitor
 
+
+# def quad_func(a,x):
+#     return -a*(x-70)*(x-180)
+
+# def quad_reward(BG_last_hour):
+#     return quad_func(0.01, BG_last_hour[-1])
+
+def new_func(x):
+    return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+def new_reward(BG_last_hour):
+    return new_func(BG_last_hour[-1])
+
+paziente = 'adolescent#007'
 # env = gym.make('CartPole-v1')
 # env = OrderEnforcing(env)
 from gym.envs.registration import register
 register(
     id='simglucose-adolescent2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
-    kwargs={'patient_name': 'adolescent#002'}
+    kwargs={'patient_name': 'adolescent#005',
+            'reward_fun': new_reward}
 )
+
 
 env = gym.make('simglucose-adolescent2-v0')
 # env.action_space
 env.observation_space
 env.reset()
 
-env = Monitor(env, allow_early_resets=True, override_existing=True)
+# env = Monitor(env, allow_early_resets=True, override_existing=True)
 model = PPO(MlpPolicy, env, verbose=0)
 
-def evaluate(model, num_episodes=10):
-    """
-    Evaluate a RL agent
-    :param model: (BaseRLModel object) the RL Agent
-    :param num_episodes: (int) number of episodes to evaluate it
-    :return: (float) Mean reward for the last num_episodes
-    """
-    # This function will only work for a single Environment
-    env = model.get_env()
-    all_episode_rewards = []
-    for i in range(num_episodes):
-        episode_rewards = []
-        done = False
-        obs = env.reset()
-        while not done:
-            # _states are only useful when using LSTM policies
-            action, _states = model.predict(obs)
-            # here, action, rewards and dones are arrays
-            # because we are using vectorized env
-            obs, reward, done, info = env.step(action)
-            episode_rewards.append(reward)
+# def evaluate(model, num_episodes=10):
+#     """
+#     Evaluate a RL agent
+#     :param model: (BaseRLModel object) the RL Agent
+#     :param num_episodes: (int) number of episodes to evaluate it
+#     :return: (float) Mean reward for the last num_episodes
+#     """
+#     # This function will only work for a single Environment
+#     env = model.get_env()
+#     all_episode_rewards = []
+#     for i in range(num_episodes):
+#         episode_rewards = []
+#         done = False
+#         obs = env.reset()
+#         while not done:
+#             # _states are only useful when using LSTM policies
+#             action, _states = model.predict(obs)
+#             # here, action, rewards and dones are arrays
+#             # because we are using vectorized env
+#             obs, reward, done, info = env.step(action)
+#             episode_rewards.append(reward)
 
-        all_episode_rewards.append(sum(episode_rewards))
+#         all_episode_rewards.append(sum(episode_rewards))
 
-    mean_episode_reward = np.mean(all_episode_rewards)
-    print("Mean reward:", mean_episode_reward, "Num episodes:", num_episodes)
+#     mean_episode_reward = np.mean(all_episode_rewards)
+#     print("Mean reward:", mean_episode_reward, "Num episodes:", num_episodes)
 
-    return mean_episode_reward
+#     return mean_episode_reward
+n_eval_episodes=10
+old_mean_reward, old_std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)#, return_episode_rewards=True)
 
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-
-print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-
+# print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+total_timesteps= 100
+import time
+start_time = time.perf_counter()
 # Train the agent for 10000 steps
-model.learn(total_timesteps=10)
+model.learn(total_timesteps=total_timesteps)
+end_time = time.perf_counter()
+execution_time = end_time - start_time
+
 
 # Evaluate the trained agent
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
+mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)
 
+print(f"old_mean_reward:{old_mean_reward:.2f} +/- {old_std_reward:.2f}")
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+print('Numero di episodi: '+str(n_eval_episodes))
+print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
+
+model.save("ppo_sim_new_mod")
+
+# Close the environment
+env.close()
 
 # Set up fake display; otherwise rendering will fail
 # import os
