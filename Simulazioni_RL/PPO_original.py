@@ -18,13 +18,13 @@ def quad_func(a,x):
     return -a*(x-70)*(x-180)
 
 def quad_reward(BG_last_hour):
-    return quad_func(4.15, BG_last_hour[-1])
+    return quad_func(0.0415, BG_last_hour[-1])
 
-# def new_func(x):
-#     return -0.0417 * x**2 + 10.4167 * x - 525.0017
+def new_func(x):
+    return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
-# def new_reward(BG_last_hour):
-#     return new_func(BG_last_hour[-1])
+def new_reward(BG_last_hour):
+    return new_func(BG_last_hour[-1])
 
 paziente = 'adolescent#007'
 # env = gym.make('CartPole-v1')
@@ -33,8 +33,8 @@ from gym.envs.registration import register
 register(
     id='simglucose-adolescent2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
-    kwargs={'patient_name': 'adolescent#005',
-            'reward_fun': quad_reward}
+    kwargs={'patient_name': paziente,
+            'reward_fun': new_reward}
 )
 
 
@@ -78,11 +78,12 @@ n_eval_episodes=10
 old_mean_reward, old_std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)#, return_episode_rewards=True)
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-total_timesteps= 100
+total_timesteps= 10000
+
 import time
 start_time = time.perf_counter()
 # Train the agent for 10000 steps
-model.learn(total_timesteps=total_timesteps)
+model.learn(total_timesteps=total_timesteps, progress_bar=True)
 end_time = time.perf_counter()
 execution_time = end_time - start_time
 
@@ -90,8 +91,9 @@ execution_time = end_time - start_time
 # Evaluate the trained agent
 mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)
 
-print(f"old_mean_reward:{old_mean_reward:.2f} +/- {old_std_reward:.2f}")
-print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+print(f"old_mean_reward: {old_mean_reward:.2f} +/- {old_std_reward:.2f}")
+# print('Step di addestramento: '+str(n_eval_episodes))
+print(f"mean_reward: {mean_reward:.2f} +/- {std_reward:.2f}")
 print('Numero di episodi: '+str(n_eval_episodes))
 print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
 

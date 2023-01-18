@@ -1,5 +1,6 @@
 from simglucose.patient.t1dpatient import Action
 from simglucose.analysis.risk import risk_index
+from simglucose.actuator.pump import InsulinPump
 import pandas as pd
 from datetime import timedelta
 import logging
@@ -42,9 +43,16 @@ class T1DSimEnv(object):
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
-        # self._reset()
-        # self.observation_space = spaces.Box(0, 4, shape=(1,), dtype=int)
-        # self.action_space = spaces.Discrete(2)
+        # self.env, _, _, _ = self.create_env_from_random_state(scenario)
+        # # self._reset()
+        # self.INSULIN_PUMP_HARDWARE = 'Insulet'
+        # pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
+        # ub = self.env.pump._params['max_basal']
+        # ub = 0.5
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,2))
+        self.action_space = spaces.Box(low=0., high=4., shape=(1,2))
+        # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
+        self.metadata = {'render.modes': ['human']}
         
     @property
     def time(self):
@@ -53,9 +61,12 @@ class T1DSimEnv(object):
     def mini_step(self, action):
         # current action 
         patient_action = self.scenario.get_action(self.time) # stato interno del paziente che avanza
-        basal = self.pump.basal(action.basal)
-        bolus = self.pump.bolus(action.bolus)
-        insulin = basal + bolus
+        # basal = self.pump.basal(action.basal)
+        # bolus = self.pump.bolus(action.bolus)
+        basal = self.pump.basal(action[0])
+        # bolus = self.pump.bolus(action[1])
+        insulin = basal
+        # insulin = basal + bolus
         CHO = patient_action.meal
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
         
@@ -126,6 +137,7 @@ class T1DSimEnv(object):
         done = BG < 70 or BG > 350
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
         obs = np.array(Observation([CGM, dCGM]))
+        # obs = Observation([CGM, dCGM])
         
         return Step(observation=obs,
                     reward=reward,
@@ -215,6 +227,7 @@ class T1DSimEnv(object):
         dCGM = 0.0
         # obs = Observation(CGM=CGM, dCGM=dCGM)
         obs = np.array(Observation([CGM, dCGM])) # aggiungere derivata
+        # obs = Observation([CGM, dCGM])
         self.ritorno = Step(observation=obs,
                     reward=0,
                     done=False,
@@ -231,8 +244,8 @@ class T1DSimEnv(object):
         # # print(type(obs))
         # print(obs.shape)
         
-        return self.ritorno
-
+        # return self.ritorno
+        return obs
     
     # def _get_obs(self):
     #     return self._agent_location

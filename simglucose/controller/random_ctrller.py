@@ -35,6 +35,7 @@ class RandomController(Controller):
         pname = kwargs.get('patient_name')
         meal = kwargs.get('meal')  # unit: g/min # quanti carboidrati (meal) (CHO)
 
+        # action = self._rnd_policy(pname, meal, observation.CGM, sample_time)
         action = self._rnd_policy(pname, meal, observation[0][0], sample_time)
         # aggiungere observation.dCGM 
         return action

@@ -47,7 +47,8 @@ class T1DSimEnv(gym.Env):
 
     def reset(self):
         self.env, _, _, _ = self.create_env_from_random_state()
-        obs, _, _, _ = self.env.reset()
+        # obs, _, _, _ = self.env.reset()
+        obs = self.env.reset()
         return obs
 
     def seed(self, seed=None):
@@ -78,8 +79,11 @@ class T1DSimEnv(gym.Env):
     @property
     def action_space(self):
         ub = self.env.pump._params['max_basal']
-        return spaces.Box(low=0, high=ub, shape=(1,))
+        # return spaces.Box(low=0, high=ub, shape=(1,))
+        # return spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
+        return spaces.Box(low=0., high=4., shape=(1,))
 
     @property
     def observation_space(self):
-        return spaces.Box(low=0, high=np.inf, shape=(1,2))
+        # return spaces.Box(low=np.array([0.,-np.inf]), high=np.array([np.inf,np.inf]), shape=(1,2))
+        return spaces.Box(low=-np.inf, high=np.inf, shape=(1,2))

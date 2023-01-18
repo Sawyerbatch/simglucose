@@ -8,6 +8,9 @@ from matplotlib.collections import PatchCollection
 # from pandas.plotting import lag_plot
 import logging
 
+from datetime import datetime
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "_" ).replace(":", "_" )
+
 logger = logging.getLogger(__name__)
 
 
@@ -278,14 +281,14 @@ def report(df, save_path=None):
     results = pd.concat([pstats, ri_mean], axis=1)
 
     if save_path is not None:
-        results.to_csv(os.path.join(save_path, 'performance_stats.csv'))
-        ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace.csv'))
-        zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats.csv'))
+        results.to_csv(os.path.join(save_path, 'performance_stats_'+date_time+'.csv'))
+        ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace_'+date_time+'.csv'))
+        zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats_'+date_time+'.csv'))
 
-        fig_ensemble.savefig(os.path.join(save_path, 'BG_trace.png'))
-        fig_percent.savefig(os.path.join(save_path, 'zone_stats.png'))
-        fig_ri.savefig(os.path.join(save_path, 'risk_stats.png'))
-        fig_cvga.savefig(os.path.join(save_path, 'CVGA.png'))
+        fig_ensemble.savefig(os.path.join(save_path, 'BG_trace_'+date_time+'.png'))
+        fig_percent.savefig(os.path.join(save_path, 'zone_stats_'+date_time+'.png'))
+        fig_ri.savefig(os.path.join(save_path, 'risk_stats_'+date_time+'.png'))
+        fig_cvga.savefig(os.path.join(save_path, 'CVGA_'+date_time+'.png'))
 
     plt.show()
     return results, ri_per_hour, zone_stats, figs, axes

@@ -1,6 +1,10 @@
 import logging
 import time
 import os
+from datetime import datetime
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "_" ).replace(":", "_" )
+
+
 
 pathos = True
 try:
@@ -28,12 +32,18 @@ class SimObj(object):
 
     def simulate(self):
         self.controller.reset()
-        obs, reward, done, info = self.env.reset()
+        # obs, reward, done, info = self.env.reset()
+        done = False
+        reward = 0
+        
+        obs = self.env.reset()
         tic = time.time()
         while self.env.time < self.env.scenario.start_time + self.sim_time:
             if self.animate:
                 self.env.render()
-            action = self.controller.policy(obs, reward, done, **info)
+            # action = self.controller.policy(obs, reward, done, **info)
+            # obs, reward, done, info = self.env.step(action)
+            action = self.controller.policy(obs, reward, done)
             obs, reward, done, info = self.env.step(action)
         toc = time.time()
         logger.info('Simulation took {} seconds.'.format(toc - tic))
@@ -46,7 +56,7 @@ class SimObj(object):
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
         # filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
-        filename_exc = os.path.join(self.path, str(self.env.patient.name) + '_clear.xlsx')
+        filename_exc = os.path.join(self.path, str(self.env.patient.name) + '_clear_'+date_time+'.xlsx')
         # df.to_csv(filename)
         df.to_excel(filename_exc)
 

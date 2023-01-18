@@ -2,6 +2,7 @@ from simglucose.simulation.user_interface import simulate
 from simglucose.simulation.scenario_gen import RandomScenario
 # from simglucose.controller.basal_bolus_ctrller import BBController
 from simglucose.controller.random_ctrller import RandomController
+from simglucose.controller.ppo_ctrller import PPOController
 from datetime import datetime
 from datetime import timedelta
 
@@ -25,9 +26,10 @@ parallel   - switch for parallel computing. True/False.
 
 if __name__ == '__main__':
     seed = 42
-    my_sim_time = timedelta(hours=float(6))
+    my_sim_time = timedelta(hours=float(72))
     scenario = RandomScenario(start_time=newdatetime, seed=seed)
-    controller = RandomController()
+    # controller = RandomController()
+    controller = PPOController()
     patient_names = ['adult#001']#,'adult#002']
     cgm_name = 'Dexcom'   
     insulin_pump_name = 'Nuovo'
