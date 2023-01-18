@@ -2,7 +2,7 @@ import logging
 import time
 import os
 from datetime import datetime
-date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "_" ).replace(":", "_" )
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 
 

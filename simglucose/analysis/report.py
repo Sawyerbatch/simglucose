@@ -9,7 +9,7 @@ from matplotlib.collections import PatchCollection
 import logging
 
 from datetime import datetime
-date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "_" ).replace(":", "_" )
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 logger = logging.getLogger(__name__)
 
