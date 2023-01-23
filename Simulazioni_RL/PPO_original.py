@@ -26,19 +26,22 @@ def new_func(x):
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
 
-paziente = 'adolescent#007'
+# paziente = 'adolescent#007'
+paziente = 'adult#001'
 # env = gym.make('CartPole-v1')
 # env = OrderEnforcing(env)
 from gym.envs.registration import register
 register(
-    id='simglucose-adolescent2-v0',
+    # id='simglucose-adolescent2-v0',
+    id='simglucose-adult2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
     kwargs={'patient_name': paziente,
             'reward_fun': new_reward}
 )
 
 
-env = gym.make('simglucose-adolescent2-v0')
+# env = gym.make('simglucose-adolescent2-v0')
+env = gym.make('simglucose-adult2-v0')
 # env.action_space
 env.observation_space
 env.reset()
@@ -78,7 +81,7 @@ n_eval_episodes=10
 old_mean_reward, old_std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)#, return_episode_rewards=True)
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-total_timesteps= 10000
+total_timesteps= 100000
 
 import time
 start_time = time.perf_counter()
@@ -97,7 +100,7 @@ print(f"mean_reward: {mean_reward:.2f} +/- {std_reward:.2f}")
 print('Numero di episodi: '+str(n_eval_episodes))
 print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
 
-model.save("ppo_sim_mod")
+model.save("ppo_sim_mod_food_hour_"+str(total_timesteps)+"tmstp")
 
 # Close the environment
 env.close()

@@ -2,12 +2,14 @@ from simglucose.simulation.user_interface import simulate
 from simglucose.simulation.scenario_gen import RandomScenario
 # from simglucose.controller.basal_bolus_ctrller import BBController
 from simglucose.controller.random_ctrller import RandomController
+from stable_baselines3 import PPO
 from simglucose.controller.ppo_ctrller import PPOController
 from datetime import datetime
 from datetime import timedelta
 
 now = datetime.now() # gestire una qualsiasi data di input
 newdatetime = now.replace(hour=12, minute=00)
+
 
 '''
 Main user interface.
@@ -29,7 +31,7 @@ if __name__ == '__main__':
     my_sim_time = timedelta(hours=float(72))
     scenario = RandomScenario(start_time=newdatetime, seed=seed)
     # controller = RandomController()
-    controller = PPOController()
+    controller = PPOController(model=PPO.load("ppo_sim_mod_food_hour_100000tmstp"))
     patient_names = ['adult#001']#,'adult#002']
     cgm_name = 'Dexcom'   
     insulin_pump_name = 'Nuovo'

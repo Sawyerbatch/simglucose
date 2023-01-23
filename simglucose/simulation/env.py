@@ -26,7 +26,7 @@ def Step(observation, reward, done, **kwargs):
 
 Observation = namedtuple('Observation', ['CGM'])#, 'dCGM']) # inserire derivata
 logger = logging.getLogger(__name__)
-
+# aggiungere allo spazio delle osservazioni zona oraria(h_zone[int da 1 a 12]) e alimentazione(food[bool])
 
 def risk_diff(BG_last_hour):
     if len(BG_last_hour) < 2:
@@ -49,8 +49,8 @@ class T1DSimEnv(object):
         # pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
         # ub = self.env.pump._params['max_basal']
         # ub = 0.5
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,2))
-        self.action_space = spaces.Box(low=0., high=4., shape=(1,2))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,4))
+        self.action_space = spaces.Box(low=0., high=1., shape=(1,2))
         # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         self.metadata = {'render.modes': ['human']}
         
@@ -111,7 +111,11 @@ class T1DSimEnv(object):
         
         # dCGM = tmp_dCGM / self.sample_time
         dCGM = CGM - self.CGM_hist[-1]
-            
+        h_zone = int(self.time.hour/2)
+        if CHO > 0:
+            food = True
+        else:
+            food = False
 
         # Compute risk index
         horizon = 1
@@ -125,10 +129,15 @@ class T1DSimEnv(object):
         self.time_hist.append(self.time)
         self.BG_hist.append(BG)
         self.CGM_hist.append(CGM)
+        
         self.dCGM_hist.append(dCGM) # aggiungere derivata?
+        self.h_zone_hist.append(h_zone)
+        self.food_hist.append(food)
+        
         self.risk_hist.append(risk)
         self.LBGI_hist.append(LBGI)
         self.HBGI_hist.append(HBGI)
+        
 
         # Compute reward, and decide whether game is over
         window_size = int(60 / self.sample_time)
@@ -136,7 +145,7 @@ class T1DSimEnv(object):
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
-        obs = np.array(Observation([CGM, dCGM]))
+        obs = np.array(Observation([CGM, dCGM, h_zone, food]))
         # obs = Observation([CGM, dCGM])
         
         return Step(observation=obs,
@@ -210,10 +219,16 @@ class T1DSimEnv(object):
         LBGI, HBGI, risk = risk_index([BG], horizon)
         CGM = self.sensor.measure(self.patient)
         dCGM = 0.0
+        h_zone = int(self.scenario.start_time.hour/2)
+        food = False
         self.time_hist = [self.scenario.start_time]
         self.BG_hist = [BG]
         self.CGM_hist = [CGM] 
+        
         self.dCGM_hist = [dCGM] # aggiungere derivata?
+        self.h_zone_hist = [h_zone]
+        self.food_hist = [food]
+        
         self.risk_hist = [risk]
         self.LBGI_hist = [LBGI]
         self.HBGI_hist = [HBGI]
@@ -226,7 +241,7 @@ class T1DSimEnv(object):
         CGM = self.sensor.measure(self.patient)
         dCGM = 0.0
         # obs = Observation(CGM=CGM, dCGM=dCGM)
-        obs = np.array(Observation([CGM, dCGM])) # aggiungere derivata
+        obs = np.array(Observation([CGM, dCGM, h_zone, food])) # aggiungere derivata
         # obs = Observation([CGM, dCGM])
         self.ritorno = Step(observation=obs,
                     reward=0,
@@ -268,6 +283,8 @@ class T1DSimEnv(object):
         df['BG'] = pd.Series(self.BG_hist)
         df['CGM'] = pd.Series(self.CGM_hist)
         df['dCGM'] = pd.Series(self.dCGM_hist)
+        df['h_zone'] = pd.Series(self.h_zone_hist)
+        df['food'] = pd.Series(self.food_hist)
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
         df['LBGI'] = pd.Series(self.LBGI_hist)

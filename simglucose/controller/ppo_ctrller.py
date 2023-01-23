@@ -1,8 +1,8 @@
 from .base import Controller
-from .base import Action
+# from .base import Action
 from stable_baselines3 import PPO
-from stable_baselines3.ppo.policies import MlpPolicy
-from stable_baselines3.common.evaluation import evaluate_policy
+# from stable_baselines3.ppo.policies import MlpPolicy
+# from stable_baselines3.common.evaluation import evaluate_policy
 import numpy as np
 import pandas as pd
 import pkg_resources
@@ -17,20 +17,30 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
 
 class PPOController(Controller):
     
-    def __init__(self, target=140):
-        self.model = PPO.load("ppo_sim_mod")
+    def __init__(self, model, target=140):
+        # self.model = PPO.load("ppo_sim_mod")
+        self.model = model
         self.quest = pd.read_csv(CONTROL_QUEST)
         self.patient_params = pd.read_csv(PATIENT_PARA_FILE)
         self.target = target
 
     def policy(self, observation, reward, done, **kwargs):
-        sample_time = kwargs.get('sample_time', 1)
-        pname = kwargs.get('patient_name')
-        meal = kwargs.get('meal')  # unit: g/min
+        # sample_time = kwargs.get('sample_time', 1)
+        # pname = kwargs.get('patient_name')
+        # meal = kwargs.get('meal')  # unit: g/min
         
         # action = self.ppo_policy(pname, meal, observation, sample_time) # AGGIUNGERE DERIVATA
-        action = self.model.predict(observation)
-        
+        if observation[0][0] < 90:
+            
+            action = np.array([0])
+            
+        else:
+            scale_factor = 2
+            action = self.model.predict(observation)
+            action = list(action)
+            action[0] /=scale_factor
+            action = tuple(action)
+        # action = np.array([0])
         return action
     
     # def ppo_policy(self, name, meal, glucose, env_sample_time):
