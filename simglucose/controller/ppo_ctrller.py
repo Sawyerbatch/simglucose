@@ -35,12 +35,12 @@ class PPOController(Controller):
             action = np.array([0])
             
         else:
-            scale_factor = 2
+            # scale_factor = 2
             action = self.model.predict(observation)
-            action = list(action)
-            action[0] /=scale_factor
-            action = tuple(action)
-        # action = np.array([0])
+            # action = list(action)
+            # action[0] /=scale_factor
+            # action = tuple(action)
+            # action = np.array([0])
         return action
     
     # def ppo_policy(self, name, meal, glucose, env_sample_time):

@@ -15,6 +15,19 @@ import numpy as np
 # except ImportError:
 _Step = namedtuple("Step", ["observation", "reward", "done", "info"])
 
+N = 180 # durata dell'effetto dell'insulina (minuti)
+
+# funzione che pesa sempre meno il contributo dell'insulina più k è alto, 
+# ovvero più si va a misurare effetti risalenti a k minuti prima
+# a(0 minuti prima) = 1, il massimo, mentre a(N minuti prima) = 0, dove N=180
+def a(k, N):
+  if k > N:
+    return 0
+  else:
+    return (N - k)/N
+
+
+
 def Step(observation, reward, done, **kwargs):
     """
     Convenience method creating a namedtuple with the results of the
@@ -49,11 +62,20 @@ class T1DSimEnv(object):
         # pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
         # ub = self.env.pump._params['max_basal']
         # ub = 0.5
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,4))
-        self.action_space = spaces.Box(low=0., high=1., shape=(1,2))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,5))
+        self.action_space = spaces.Box(low=0., high=0.1, shape=(1,2))
         # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         self.metadata = {'render.modes': ['human']}
         
+    # definisco l'Insulin On Board (vedi anche eq. (3) paper "A New Glycemic closed-loop control based on Dyna-Q for Type-1-Diabetes" )
+    # Ins: array in cui ad ogni indice corrisponde un minuto
+    def IOB_fun(self, t, Ins, N):
+      IOB = 0
+      N_min = np.minimum(N, len(Ins))
+      for k in range(N_min):
+          IOB += a(k,N)*Ins[t-k]
+      return IOB
+
     @property
     def time(self):
         return self.scenario.start_time + timedelta(minutes=self.patient.t)
@@ -116,7 +138,7 @@ class T1DSimEnv(object):
             food = True
         else:
             food = False
-
+                   
         # Compute risk index
         horizon = 1
         LBGI, HBGI, risk = risk_index([BG], horizon)
@@ -124,7 +146,26 @@ class T1DSimEnv(object):
         # Record current action
         self.CHO_hist.append(CHO)
         self.insulin_hist.append(insulin)
-
+        
+        # insulin_array = np.array(self.insulin_hist, dtype=object)
+        # self.insulin_array = np.array(self.insulin_hist)
+        IOB = self.IOB_fun(0, self.insulin_hist, N)
+        IOB = float(IOB)
+        # IOB = self.IOB_fun(0, self.insulin_array, N)
+        # IOB = self.IOB_fun(0, insulin_array, N) # è un array ma serve un float
+        difference = (self.time - self.scenario.start_time).total_seconds()
+        minutes, _ = divmod(difference, 60)
+        print('vvvvvvvvvvvvvvvvvvvvvvvv')
+        print(insulin)
+        print(minutes)
+        print(IOB)
+        # if minutes > 2:
+        #     IOB = float(IOB[int(minutes)])
+        # else:
+        #     IOB = 0.0
+        # IOB = 0.0   
+        self.IOB_hist.append(IOB)
+        
         # Record next observation
         self.time_hist.append(self.time)
         self.BG_hist.append(BG)
@@ -145,7 +186,8 @@ class T1DSimEnv(object):
         reward = reward_fun(BG_last_hour)
         done = BG < 70 or BG > 350
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
-        obs = np.array(Observation([CGM, dCGM, h_zone, food]))
+        obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB]))
+        print(obs)
         # obs = Observation([CGM, dCGM])
         
         return Step(observation=obs,
@@ -221,6 +263,9 @@ class T1DSimEnv(object):
         dCGM = 0.0
         h_zone = int(self.scenario.start_time.hour/2)
         food = False
+        IOB = 0.0
+        insulin = 0.0
+        CHO = 0.0
         self.time_hist = [self.scenario.start_time]
         self.BG_hist = [BG]
         self.CGM_hist = [CGM] 
@@ -232,8 +277,10 @@ class T1DSimEnv(object):
         self.risk_hist = [risk]
         self.LBGI_hist = [LBGI]
         self.HBGI_hist = [HBGI]
-        self.CHO_hist = []
-        self.insulin_hist = []
+        self.CHO_hist = [CHO]
+        self.insulin_hist = [insulin]
+        self.IOB_hist = [IOB]
+        
         
         # self._agent_location = 1
         # observation = self._agent_location = 1
@@ -241,7 +288,7 @@ class T1DSimEnv(object):
         CGM = self.sensor.measure(self.patient)
         dCGM = 0.0
         # obs = Observation(CGM=CGM, dCGM=dCGM)
-        obs = np.array(Observation([CGM, dCGM, h_zone, food])) # aggiungere derivata
+        obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB])) # aggiungere derivata
         # obs = Observation([CGM, dCGM])
         self.ritorno = Step(observation=obs,
                     reward=0,

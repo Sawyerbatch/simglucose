@@ -27,6 +27,12 @@ def quad_func(a,x):
 def quad_reward(BG_last_hour):
     return quad_func(0.01, BG_last_hour[-1])
 
+def new_func(x):
+    return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+def new_reward(BG_last_hour):
+    return new_func(BG_last_hour[-1])
+
 # def custom_reward(BG_last_hour):
 #     if BG_last_hour[-1] > 180:
 #         return -1
@@ -37,28 +43,28 @@ def quad_reward(BG_last_hour):
 
 # env = gym.make('CartPole-v1')
 # env = OrderEnforcing(env)
-paziente = 'adolescent#007'
+paziente = 'adult#007'
 from gym.envs.registration import register
 register(
-    id='simglucose-adolescent2-v0',
+    id='simglucose-adult2-v0',
     entry_point='simglucose.envs:T1DSimEnv',
     kwargs={'patient_name': paziente,
-            'reward_fun': quad_reward}
+            'reward_fun': new_reward}
 )
 
 now = datetime.now() # gestire una qualsiasi data di input
 newdatetime = now.replace(hour=12, minute=00)
 
-env = gym.make('simglucose-adolescent2-v0')
+env = gym.make('simglucose-adult2-v0')
 
 # from stable_baselines3.common.env_checker import check_env
 # check_env(env)
 
 scen = [(7, 45), (12, 70), (16, 15), (18, 80), (23, 10)]
 scenario = CustomScenario(start_time=newdatetime, scenario=scen)
-patient = T1DPatient.withName('adolescent#001')
+patient = T1DPatient.withName('adult#001')
 sensor = CGMSensor.withName('Dexcom', seed=1)
-pump = InsulinPump.withName('Insulet')
+pump = InsulinPump.withName('Nuovo')
 # scenario = RandomScenario(start_time=start_time, seed=1)
 env = T1DSimEnv(patient, sensor, pump, scenario)
 # env.action_space

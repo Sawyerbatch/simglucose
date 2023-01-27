@@ -30,6 +30,8 @@ class BBController(Controller):
 
         # action = self._bb_policy(pname, meal, observation.CGM, sample_time)
         action = self._bb_policy(pname, meal, observation[0][0], sample_time)
+        # action = self._bb_policy(pname, meal, observation, sample_time)
+        # action = self._bb_policy('adult#001', meal, observation[0][0], sample_time)
         return action
 
     def _bb_policy(self, name, meal, glucose, env_sample_time):

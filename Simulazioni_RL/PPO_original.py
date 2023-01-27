@@ -8,10 +8,14 @@ Created on Tue Nov 22 14:34:39 2022
 import gym
 import numpy as np
 from stable_baselines3 import PPO
+# from stable_baselines import PPO2
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 from gym.wrappers.order_enforcing import OrderEnforcing
 from stable_baselines3.common.monitor import Monitor
+
+from datetime import datetime
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 
 def quad_func(a,x):
@@ -81,7 +85,7 @@ n_eval_episodes=10
 old_mean_reward, old_std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)#, return_episode_rewards=True)
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-total_timesteps= 100000
+total_timesteps= 10000
 
 import time
 start_time = time.perf_counter()
@@ -100,7 +104,7 @@ print(f"mean_reward: {mean_reward:.2f} +/- {std_reward:.2f}")
 print('Numero di episodi: '+str(n_eval_episodes))
 print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
 
-model.save("ppo_sim_mod_food_hour_"+str(total_timesteps)+"tmstp")
+model.save("ppo_sim_mod_food_hour_"+str(total_timesteps)+"tmstp_"+date_time)
 
 # Close the environment
 env.close()
