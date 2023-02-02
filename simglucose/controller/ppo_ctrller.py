@@ -15,32 +15,57 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/vpatient_params.csv')
 
 
+
 class PPOController(Controller):
     
-    def __init__(self, model, target=140):
+    def __init__(self, model, target=140, window_size=30):
         # self.model = PPO.load("ppo_sim_mod")
         self.model = model
         self.quest = pd.read_csv(CONTROL_QUEST)
         self.patient_params = pd.read_csv(PATIENT_PARA_FILE)
         self.target = target
+        self.action_list = []
+        self.window_size = window_size
+        
+    def moving_average(self, lst, window_size):
+        moving_average_list = []
+        window_len = min(len(lst), window_size)
+        for i in range(window_len):
+            moving_average_head = sum(lst[0:i+1]) / (i+1)
+            moving_average_list.append(moving_average_head)
+        for i in range(len(lst) - window_size):
+            moving_average = sum(lst[i:i + window_size]) / window_size
+            moving_average_list.append(moving_average)
+        
+        return moving_average_list[-1]
+        
 
     def policy(self, observation, reward, done, **kwargs):
         # sample_time = kwargs.get('sample_time', 1)
         # pname = kwargs.get('patient_name')
         # meal = kwargs.get('meal')  # unit: g/min
         
+        # action_list_ppo = []
         # action = self.ppo_policy(pname, meal, observation, sample_time) # AGGIUNGERE DERIVATA
         if observation[0][0] < 90:
             
-            action = np.array([0])
+            action = np.array([0.0])
+            # action = [0.0]
+            # action = 0
             
         else:
             # scale_factor = 2
             action = self.model.predict(observation)
+            # action_list.append(action)
             # action = list(action)
             # action[0] /=scale_factor
             # action = tuple(action)
             # action = np.array([0])
+        # window_size = 50
+        self.action_list.append(action[0])
+        # print('action_list:',self.action_list)
+        action = self.moving_average(self.action_list, self.window_size)
+        # action = 0.05
         return action
     
     # def ppo_policy(self, name, meal, glucose, env_sample_time):

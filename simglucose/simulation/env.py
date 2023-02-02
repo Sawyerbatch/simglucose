@@ -75,7 +75,37 @@ class T1DSimEnv(object):
       for k in range(N_min):
           IOB += a(k,N)*Ins[t-k]
       return IOB
-
+  
+    # def moving_average(self, lst, window_size):
+    #     moving_average_list = []
+    #     for i in range(len(lst)):
+    #         if i + window_size <= len(lst):
+    #             moving_average = sum(lst[i:i + window_size]) / window_size
+    #         else:
+    #             moving_average = sum(lst[i:]) / len(lst[i:])
+    #         moving_average_list.append(moving_average)
+    #     return moving_average_list
+    
+    # def moving_average_2(self, lst, window_size):
+    #     moving_average_list = []
+    #     for i in range(len(lst) - window_size + 1):
+    #         moving_average = sum(lst[i:i + window_size]) / window_size
+    #         moving_average_list.append(moving_average)
+    #     return ([0.0]*(window_size-1)) + moving_average_list
+    
+    def moving_average(self, lst, window_size):
+        moving_average_list = []
+        window_len = min(len(lst), window_size)
+        for i in range(window_len):
+            moving_average_head = sum(lst[0:i+1]) / (i+1)
+            moving_average_list.append(moving_average_head)
+        # if window_size > len(lst):            
+        for i in range(len(lst) - window_size):
+            moving_average = sum(lst[i:i + window_size]) / window_size
+            moving_average_list.append(moving_average)
+        
+        return moving_average_list
+    
     @property
     def time(self):
         return self.scenario.start_time + timedelta(minutes=self.patient.t)
@@ -85,7 +115,8 @@ class T1DSimEnv(object):
         patient_action = self.scenario.get_action(self.time) # stato interno del paziente che avanza
         # basal = self.pump.basal(action.basal)
         # bolus = self.pump.bolus(action.bolus)
-        basal = self.pump.basal(action[0])
+        # basal = self.pump.basal(action[0])
+        basal = self.pump.basal(action) # for moving average
         # bolus = self.pump.bolus(action[1])
         insulin = basal
         # insulin = basal + bolus
@@ -155,7 +186,7 @@ class T1DSimEnv(object):
         # IOB = self.IOB_fun(0, insulin_array, N) # è un array ma serve un float
         difference = (self.time - self.scenario.start_time).total_seconds()
         minutes, _ = divmod(difference, 60)
-        print('vvvvvvvvvvvvvvvvvvvvvvvv')
+        # print('vvvvvvvvvvvvvvvvvvvvvvvv')
         print(insulin)
         print(minutes)
         print(IOB)
@@ -163,9 +194,15 @@ class T1DSimEnv(object):
         #     IOB = float(IOB[int(minutes)])
         # else:
         #     IOB = 0.0
-        # IOB = 0.0   
-        self.IOB_hist.append(IOB)
+        # IOB = 0.0
         
+        # media mobile insulina
+        # df_insulina = pd.DataFrame(self.insulin_hist, columns=['insulina'])
+        # if len insulina >= 30:
+        #     ins_mean = df_insulina.rolling(30).mean()
+        # self.ins_mean_hist.append(ins_mean)
+        self.IOB_hist.append(IOB)
+        # print(ins_mean)
         # Record next observation
         self.time_hist.append(self.time)
         self.BG_hist.append(BG)
@@ -266,6 +303,7 @@ class T1DSimEnv(object):
         IOB = 0.0
         insulin = 0.0
         CHO = 0.0
+        ins_mean = 0.0
         self.time_hist = [self.scenario.start_time]
         self.BG_hist = [BG]
         self.CGM_hist = [CGM] 
@@ -279,6 +317,7 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
+        self.ins_mean_hist = [ins_mean]
         self.IOB_hist = [IOB]
         
         
@@ -334,6 +373,8 @@ class T1DSimEnv(object):
         df['food'] = pd.Series(self.food_hist)
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
+        window = 30
+        df['ins_mean'] = pd.Series(self.moving_average(self.insulin_hist, window))
         df['LBGI'] = pd.Series(self.LBGI_hist)
         df['HBGI'] = pd.Series(self.HBGI_hist)
         df['Risk'] = pd.Series(self.risk_hist)

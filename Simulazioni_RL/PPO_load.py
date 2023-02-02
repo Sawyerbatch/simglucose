@@ -4,7 +4,7 @@ Created on Tue Nov 22 14:34:39 2022
 
 @author: Daniele
 """
-
+import os
 import gym
 import numpy as np
 import time
@@ -20,6 +20,19 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from gym.wrappers.order_enforcing import OrderEnforcing
 from stable_baselines3.common.monitor import Monitor
 from statistics import mean, stdev
+
+def moving_average(lst, window_size):
+    moving_average_list = []
+    window_len = min(len(lst), window_size)
+    for i in range(window_len):
+        moving_average_head = sum(lst[0:i+1]) / (i+1)
+        moving_average_list.append(moving_average_head)
+    if window_size > len(lst):            
+        for i in range(len(lst) - window_size):
+            moving_average = sum(lst[i:i + window_size]) / window_size
+            moving_average_list.append(moving_average)
+    
+    return moving_average_list
 
 def quad_func(a,x):
     return -a*(x-70)*(x-180)
@@ -73,15 +86,16 @@ env.reset()
 
 # env = Monitor(env, allow_early_resets=True, override_existing=True)
 # model = PPO(MlpPolicy, env, verbose=0)
-
+path = 'C:\GitHub\simglucose\Simulazioni_RL'
 # loading the saved model
-model = PPO.load("ppo_sim_mod")
+model = PPO.load(os.path.join(path, "ppo_sim_mod_food_hour_10000tmstp_moltobuono"))
 
 # # get the first observation of the environment
 obs = env.reset()
 # obs = obs[0]
 
 azioni = list()
+mean_actions = list()
 stati = list()
 osservazioni = list()
 ricompense = list()
@@ -92,10 +106,24 @@ n_eval_episodes=100
 for i in range(n_eval_episodes):
     # action, _states = model.predict(obs)
     # obs =  np.expand_dims(obs[0], axis=0)
-    action = model.predict(obs)
-    obs, rewards, dones, info = env.step(action[0])   
+    # action = model.predict(obs)
+    # obs, rewards, dones, info = env.step(action[0])   
     
-    azioni.append(action)
+    # azioni.append(action)
+    # # stati.append(_states)
+    # osservazioni.append(obs)
+    # ricompense.append(rewards)
+    
+    
+    # action, _states = model.predict(obs)
+    # obs =  np.expand_dims(obs[0], axis=0)
+    action = model.predict(obs)
+    
+    window_size = 30
+    azioni.append(action[0])
+    mean_action = moving_average(azioni, window_size)
+    obs, rewards, dones, info = env.step(mean_action[-1])  
+    mean_actions.append(mean_action[-1])
     # stati.append(_states)
     osservazioni.append(obs)
     ricompense.append(rewards)
@@ -105,7 +133,7 @@ for i in range(n_eval_episodes):
 temp_mean_reward, temp_std_reward = mean(ricompense), stdev(ricompense)
 # close the environment
 # env.close()
-
+#%%
 # old_mean_reward, old_std_reward = evaluate_policy(model, env, n_eval_episodes=n_eval_episodes)#, return_episode_rewards=True)
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")

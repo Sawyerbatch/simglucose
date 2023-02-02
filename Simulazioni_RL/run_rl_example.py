@@ -3,6 +3,7 @@ from simglucose.simulation.scenario_gen import RandomScenario
 from simglucose.controller.basal_bolus_ctrller import BBController
 from simglucose.actuator.pump import InsulinPump
 from simglucose.controller.random_ctrller import RandomController
+from simglucose.simulation.scenario import CustomScenario
 from simglucose.controller.pid_ctrller import PIDController
 from stable_baselines3 import PPO
 from simglucose.controller.ppo_ctrller import PPOController
@@ -14,8 +15,59 @@ from simglucose.sensor.cgm import CGMSensor
 from simglucose.actuator.pump import InsulinPump
 from simglucose.simulation.sim_engine import SimObj, sim, batch_sim
 import os
+import numpy as np
+
+n_days = 10
+n_hours = n_days*24
+
+def create_scenario(n_days, cho_daily=230):
+
+  scenario = []
+  cho_sum = 0
+  mu_break, sigma_break = 8, 3 
+  mu_lunch, sigma_lunch = 13, 1
+  mu_snack, sigma_snack = 17, 2
+  mu_dinner, sigma_dinner = 21, 2
+  mu_night, sigma_night = 24, 2
+
+  for i in range(n_days):
+
+    mu_cho_break, sigma_cho_break = cho_daily*0.15, 15 
+    mu_cho_lunch, sigma_cho_lunch = cho_daily*0.45, 45
+    mu_cho_snack, sigma_cho_snack = cho_daily*0.05, 5
+    mu_cho_dinner, sigma_cho_dinner = cho_daily*0.35, 35
+    mu_cho_night, sigma_cho_night = cho_daily*0.05, 5
+
+    hour_break = int(np.random.normal(mu_break, sigma_break/2)) + 24*i
+    hour_lunch = int(np.random.normal(mu_lunch, sigma_lunch/2)) + 24*i
+    hour_snack = int(np.random.normal(mu_snack, sigma_snack/2)) + 24*i
+    hour_dinner = int(np.random.normal(mu_dinner, sigma_dinner/2)) + 24*i
+    hour_night = int(np.random.normal(mu_night, sigma_night/2)) + 24*i
+
+    cho_break = int(np.random.normal(mu_cho_break, sigma_cho_break/2))
+    cho_lunch = int(np.random.normal(mu_cho_lunch, sigma_cho_lunch/2))
+    cho_snack = int(np.random.normal(mu_cho_snack, sigma_cho_snack/2))
+    cho_dinner = int(np.random.normal(mu_cho_dinner, sigma_cho_dinner/2))
+    cho_night = int(np.random.normal(mu_cho_night, sigma_cho_night/2))
+
+    if int(np.random.randint(100)) < 60:
+      scenario.append((hour_break,cho_break))
+    if int(np.random.randint(100)) < 100:
+      scenario.append((hour_lunch,cho_lunch))
+    if int(np.random.randint(100)) < 30:
+      scenario.append((hour_snack,cho_snack))
+    if int(np.random.randint(100)) < 95:
+      scenario.append((hour_dinner,cho_dinner))
+    if int(np.random.randint(100)) < 3:
+      scenario.append((hour_night,cho_night))
+
+    #cho_sum += cho_break + cho_lunch + cho_snack + cho_dinner + cho_night
+
+  return scenario
+
 
 now = datetime.now() # gestire una qualsiasi data di input
+start_time = datetime.combine(now.date(), datetime.min.time())
 newdatetime = now.replace(hour=12, minute=00)
 
 data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
@@ -27,6 +79,7 @@ data_path = os.path.join(cwd, data)
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
+model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 '''
 Main user interface.
 ----
@@ -44,21 +97,23 @@ parallel   - switch for parallel computing. True/False.
 
 if __name__ == '__main__':
     # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
-    model_ppo = "ppo_sim_mod_food_hour_10000tmstp_moltobuono"
+    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_moltobuono")
     # seed = 42
-    my_sim_time = timedelta(hours=float(240))
-    scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
+    my_sim_time = timedelta(hours=float(n_hours))
+    # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
     # controller = RandomController()
-    
+    # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
+    scen_long = create_scenario(n_days)
+    scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     # controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
     controller = PPOController(model=PPO.load(model_ppo))
-    patient_names = ['adult#002']
+    patient_names = ['adult#001']
     # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
     #     ['adult#010']
     # patient = T1DPatient.withName('adult#001')
     # sensor = CGMSensor.withName('Dexcom', seed=1)
     # pump = InsulinPump.withName('Nuovo')
-    cgm_name = 'Dexcom'   
+    cgm_name = 'Dexcom'
     insulin_pump_name = 'Nuovo'
     start_time = newdatetime
     save_path = data_path

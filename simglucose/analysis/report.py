@@ -53,13 +53,14 @@ def ensemblePlot(df):
     df_CHO = df.unstack(level=0).CHO
     df_dCGM = df.unstack(level=0).dCGM
     insulin = df.unstack(level=0).insulin
+    ins_mean = df.unstack(level=0).ins_mean
     
     fig = plt.figure(figsize=(14, 12), dpi=100)
-    ax1 = fig.add_subplot(511)
-    ax2 = fig.add_subplot(512)
-    ax3 = fig.add_subplot(513)
-    ax4 = fig.add_subplot(514)
-    ax5 = fig.add_subplot(515)
+    ax1 = fig.add_subplot(411)
+    ax2 = fig.add_subplot(412)
+    ax3 = fig.add_subplot(413)
+    ax4 = fig.add_subplot(414)
+    # ax5 = fig.add_subplot(515)
     
     # fig_2 = plt.figure(figsize=(14, 12), dpi=100)
     # ax_4_2 = fig_2.add_subplot(111)
@@ -71,11 +72,12 @@ def ensemblePlot(df):
     ax3.plot(t, df_CHO)
     
     t_dCGM = pd.to_datetime(df_dCGM.index)
-    ax4.plot(t_dCGM, df_CGM-150)
-    ax4.plot(t_dCGM, df_dCGM)
-    ax4.plot(t_dCGM, df_dCGM*0)
+    # ax4.plot(t_dCGM, df_CGM-150)
+    # ax4.plot(t_dCGM, df_dCGM)
+    # ax4.plot(t_dCGM, df_dCGM*0)
     
-    ax5.plot(t_dCGM, insulin)
+    ax4.plot(t_dCGM, insulin)
+    ax4.plot(t_dCGM, ins_mean)
     
     # ax_4_2.plot(t_dCGM, df_CGM)
     # ax_4_2.plot(t_dCGM, df_dCGM*20)
@@ -95,13 +97,13 @@ def ensemblePlot(df):
     ax2.set_ylabel('CGM (mg/dl)')
     ax3.set_ylabel('CHO (g)', labelpad=10)
     
+    # ax4.set_xlim([t[0], t[-1]])
+    # ax4.set_ylabel('dCGM (mg/dl*s)')
+    
     ax4.set_xlim([t[0], t[-1]])
-    ax4.set_ylabel('dCGM (mg/dl*s)')
+    ax4.set_ylabel('insulin')
     
-    ax5.set_xlim([t[0], t[-1]])
-    ax5.set_ylabel('insulin')
-    
-    return fig, ax1, ax2, ax3, ax4, ax5
+    return fig, ax1, ax2, ax3, ax4
 
 
 def percent_stats(BG, ax=None):
@@ -279,11 +281,11 @@ def CVGA(BG_list, label=None):
 def report(df, save_path=None):
     BG = df.unstack(level=0).BG
 
-    fig_ensemble, ax1, ax2, ax3, ax_dCGM, ax_insulin = ensemblePlot(df)
+    fig_ensemble, ax1, ax2, ax3, ax_insulin = ensemblePlot(df)
     pstats, fig_percent, ax4 = percent_stats(BG)
     ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
     zone_stats, fig_cvga, ax6 = CVGA(BG, label='')
-    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax_dCGM, ax_insulin]
+    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax_insulin]
     figs = [fig_ensemble, fig_percent, fig_ri, fig_cvga]
     results = pd.concat([pstats, ri_mean], axis=1)
 
