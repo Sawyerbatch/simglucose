@@ -49,7 +49,7 @@ class PPOController(Controller):
         # action = self.ppo_policy(pname, meal, observation, sample_time) # AGGIUNGERE DERIVATA
         if observation[0][0] < 90:
             
-            action = np.array([0.0])
+            action = np.array([[0.0]])
             # action = [0.0]
             # action = 0
             

@@ -81,7 +81,7 @@ class T1DSimEnv(gym.Env):
         # ub = self.env.pump._params['max_basal']
         # return spaces.Box(low=0, high=ub, shape=(1,))
         # return spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
-        return spaces.Box(low=0., high=0.1, shape=(1,))
+        return spaces.Box(low=0., high=0.08, shape=(1,))
 
     @property
     def observation_space(self):

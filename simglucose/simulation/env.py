@@ -63,7 +63,7 @@ class T1DSimEnv(object):
         # ub = self.env.pump._params['max_basal']
         # ub = 0.5
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,5))
-        self.action_space = spaces.Box(low=0., high=0.1, shape=(1,2))
+        self.action_space = spaces.Box(low=0., high=0.08, shape=(1,2))
         # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         self.metadata = {'render.modes': ['human']}
         
@@ -144,6 +144,7 @@ class T1DSimEnv(object):
         '''
         CHO = 0.0
         insulin = 0.0
+        insulin = [0.0]
         BG = 0.0
         CGM = 0.0
         # dCGM = 0.0
@@ -152,7 +153,7 @@ class T1DSimEnv(object):
         
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
-            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action) # tmp_dCGM
+            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action[0]) # tmp_dCGM
             # mini_step fornisce il delta dei valori
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
@@ -187,9 +188,9 @@ class T1DSimEnv(object):
         difference = (self.time - self.scenario.start_time).total_seconds()
         minutes, _ = divmod(difference, 60)
         # print('vvvvvvvvvvvvvvvvvvvvvvvv')
-        print(insulin)
+        print('insulin:',insulin)
         print(minutes)
-        print(IOB)
+        # print(IOB)
         # if minutes > 2:
         #     IOB = float(IOB[int(minutes)])
         # else:
@@ -300,10 +301,14 @@ class T1DSimEnv(object):
         dCGM = 0.0
         h_zone = int(self.scenario.start_time.hour/2)
         food = False
-        IOB = 0.0
-        insulin = 0.0
         CHO = 0.0
-        ins_mean = 0.0
+        IOB = 0.0
+        # insulin = 0.0
+        insulin = np.array([0.0])
+        # ins_mean = 0.0
+        ins_mean = np.array([0.0])
+        
+
         self.time_hist = [self.scenario.start_time]
         self.BG_hist = [BG]
         self.CGM_hist = [CGM] 

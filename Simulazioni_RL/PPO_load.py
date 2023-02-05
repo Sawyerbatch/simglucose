@@ -88,7 +88,7 @@ env.reset()
 # model = PPO(MlpPolicy, env, verbose=0)
 path = 'C:\GitHub\simglucose\Simulazioni_RL'
 # loading the saved model
-model = PPO.load(os.path.join(path, "ppo_sim_mod_food_hour_10000tmstp_moltobuono"))
+model = PPO.load(os.path.join(path, "ppo_sim_mod_food_hour_10000tmstp_insmax010"))
 
 # # get the first observation of the environment
 obs = env.reset()

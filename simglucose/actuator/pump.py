@@ -33,8 +33,11 @@ class InsulinPump(object):
 
     def basal(self, amount):
         bas = amount * self.U2PMOL  # convert from U/min to pmol/min
+        # bas = float(amount) * self.U2PMOL # con trasformazione in float
         bas = np.round(bas / self._params['inc_basal']
-                       ) * self._params['inc_basal']
+                        ) * self._params['inc_basal']
+        # bas = np.round(float(bas / self._params['inc_basal'] # con trasformazione float
+        #                 )) * self._params['inc_basal']
         bas = bas / self.U2PMOL     # convert from pmol/min to U/min
         bas = min(bas, self._params['max_basal'])
         print(self._params['max_basal'])

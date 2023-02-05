@@ -97,7 +97,8 @@ parallel   - switch for parallel computing. True/False.
 
 if __name__ == '__main__':
     # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
-    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_moltobuono")
+    # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax010")
+    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax008_exprew")
     # seed = 42
     my_sim_time = timedelta(hours=float(n_hours))
     # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     scen_long = create_scenario(n_days)
     scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     # controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
-    controller = PPOController(model=PPO.load(model_ppo))
+    controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=15)
     patient_names = ['adult#001']
     # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
     #     ['adult#010']
