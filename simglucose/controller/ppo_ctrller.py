@@ -38,6 +38,20 @@ class PPOController(Controller):
             moving_average_list.append(moving_average)
         
         return moving_average_list[-1]
+    
+    def rectified_linear_filter(self, observation, action):
+        if observation[0][0] < 90:
+            action = np.array([[0.0]])
+        else:
+            action = ((observation[0][0]-90)/90)*action
+        
+        return action
+    
+    def step_filter(self, observation, action):
+        if observation[0][0] < 90:            
+            action = np.array([[0.0]])
+            
+        return action
         
 
     def policy(self, observation, reward, done, **kwargs):
@@ -47,22 +61,23 @@ class PPOController(Controller):
         
         # action_list_ppo = []
         # action = self.ppo_policy(pname, meal, observation, sample_time) # AGGIUNGERE DERIVATA
-        if observation[0][0] < 90:
+        # if observation[0][0] < 90:
             
-            action = np.array([[0.0]])
+        #     action = np.array([[0.0]])
             # action = [0.0]
             # action = 0
+                   
+        # else:
             
-        else:
-            # scale_factor = 2
-            action = self.model.predict(observation)
-            # action_list.append(action)
-            # action = list(action)
-            # action[0] /=scale_factor
-            # action = tuple(action)
-            # action = np.array([0])
-        # window_size = 50
-        self.action_list.append(action[0])
+            # action = self.model.predict(observation)
+ 
+        action = self.model.predict(observation)
+        
+        # action = self.rectified_linear_filter(observation, action[0])
+        action = self.step_filter(observation, action[0]) # filtro classico con cap 90
+        
+        # self.action_list.append(action[0])
+        self.action_list.append(action)
         # print('action_list:',self.action_list)
         action = self.moving_average(self.action_list, self.window_size)
         # action = 0.05

@@ -143,7 +143,7 @@ class T1DSimEnv(object):
         action is a namedtuple with keys: basal, bolus
         '''
         CHO = 0.0
-        insulin = 0.0
+        # insulin = 0.0
         insulin = [0.0]
         BG = 0.0
         CGM = 0.0
@@ -153,7 +153,9 @@ class T1DSimEnv(object):
         
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
-            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action[0]) # tmp_dCGM
+            # tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action) # BBC
+            tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action[0]) # PPO
+            
             # mini_step fornisce il delta dei valori
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
@@ -350,8 +352,8 @@ class T1DSimEnv(object):
         # # print(type(obs))
         # print(obs.shape)
         
-        # return self.ritorno
-        return obs
+        # return self.ritorno #BBC
+        return obs #PPO
     
     # def _get_obs(self):
     #     return self._agent_location

@@ -98,8 +98,8 @@ parallel   - switch for parallel computing. True/False.
 if __name__ == '__main__':
     # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
     # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax010")
-    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax008_exprew")
-    # seed = 42
+    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_001_10000tmstp_insmax008")
+    seed = 42
     my_sim_time = timedelta(hours=float(n_hours))
     # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
     # controller = RandomController()
@@ -108,7 +108,9 @@ if __name__ == '__main__':
     scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     # controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
     controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=15)
-    patient_names = ['adult#001']
+    patient_names = ['adult#010']
+    # controller = BBController()
+    
     # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
     #     ['adult#010']
     # patient = T1DPatient.withName('adult#001')
@@ -132,7 +134,7 @@ if __name__ == '__main__':
             controller=controller,
             patient_names=patient_names,
             cgm_name=cgm_name,
-            # cgm_seed=seed,
+            cgm_seed=seed,
             insulin_pump_name=insulin_pump_name,
             start_time=start_time,
             save_path=save_path,

@@ -41,7 +41,7 @@ def exp_reward(BG_last_hour,a=0.0417,k=0.3,hypo_treshold = 80, hyper_threshold =
     return exp_func(BG_last_hour[-1])
 
 # paziente = 'adolescent#007'
-paziente = 'adult#001'
+paziente = ['adult#001']
 # env = gym.make('CartPole-v1')
 # env = OrderEnforcing(env)
 from gym.envs.registration import register

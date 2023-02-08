@@ -290,9 +290,9 @@ def report(df, save_path=None):
     results = pd.concat([pstats, ri_mean], axis=1)
 
     if save_path is not None:
-        results.to_csv(os.path.join(save_path, 'performance_stats_'+date_time+'.csv'))
-        ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace_'+date_time+'.csv'))
-        zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats_'+date_time+'.csv'))
+        results.to_excel(os.path.join(save_path, 'performance_stats_'+date_time+'.xlsx'))
+        ri_per_hour.to_excel(os.path.join(save_path, 'risk_trace_'+date_time+'.xlsx'))
+        zone_stats.to_excel(os.path.join(save_path, 'CVGA_stats_'+date_time+'.xlsx'))
 
         fig_ensemble.savefig(os.path.join(save_path, 'BG_trace_'+date_time+'.png'))
         fig_percent.savefig(os.path.join(save_path, 'zone_stats_'+date_time+'.png'))
