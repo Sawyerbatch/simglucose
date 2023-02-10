@@ -7,6 +7,8 @@ import matplotlib.dates as mdates
 from matplotlib.collections import PatchCollection
 # from pandas.plotting import lag_plot
 import logging
+from simglucose.simulation.env import T1DSimEnv as _T1DSimEnv
+from simglucose.simulation.env import PPOSimEnv as _PPOSimEnv
 
 from datetime import datetime
 date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
@@ -290,14 +292,28 @@ def report(df, save_path=None):
     results = pd.concat([pstats, ri_mean], axis=1)
 
     if save_path is not None:
-        results.to_excel(os.path.join(save_path, 'performance_stats_'+date_time+'.xlsx'))
-        ri_per_hour.to_excel(os.path.join(save_path, 'risk_trace_'+date_time+'.xlsx'))
-        zone_stats.to_excel(os.path.join(save_path, 'CVGA_stats_'+date_time+'.xlsx'))
+        
+        # results.to_csv(os.path.join(save_path, 'performance_stats_'+date_time+'.csv'))
+        # ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace_'+date_time+'.csv'))
+        # zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats_'+date_time+'.csv'))
+        
+        # T1D_strategy = _T1DSimEnv()
+        # fare excel con strategy e utilizzarla qui
+        # try:
+        strategy_df = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        strategy = strategy_df['strategy'][0]
+        # except:
+        #     strategy = 'PPO'
+        # print(strategy)
+        
+        results.to_excel(os.path.join(save_path, 'performance_stats_'+'_'+strategy+'_'+date_time+'.xlsx'))
+        ri_per_hour.to_excel(os.path.join(save_path, 'risk_trace_'+'_'+strategy+'_'+date_time+'.xlsx'))
+        zone_stats.to_excel(os.path.join(save_path, 'CVGA_stats_'+'_'+strategy+'_'+date_time+'.xlsx'))
 
-        fig_ensemble.savefig(os.path.join(save_path, 'BG_trace_'+date_time+'.png'))
-        fig_percent.savefig(os.path.join(save_path, 'zone_stats_'+date_time+'.png'))
-        fig_ri.savefig(os.path.join(save_path, 'risk_stats_'+date_time+'.png'))
-        fig_cvga.savefig(os.path.join(save_path, 'CVGA_'+date_time+'.png'))
+        fig_ensemble.savefig(os.path.join(save_path, 'BG_trace_'+'_'+strategy+'_'+date_time+'.png'))
+        fig_percent.savefig(os.path.join(save_path, 'zone_stats_'+'_'+strategy+'_'+date_time+'.png'))
+        fig_ri.savefig(os.path.join(save_path, 'risk_stats_'+'_'+strategy+'_'+date_time+'.png'))
+        fig_cvga.savefig(os.path.join(save_path, 'CVGA_'+'_'+strategy+'_'+date_time+'.png'))
 
     plt.show()
     return results, ri_per_hour, zone_stats, figs, axes

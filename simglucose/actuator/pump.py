@@ -23,6 +23,7 @@ class InsulinPump(object):
         return cls(params)
 
     def bolus(self, amount):
+        # print(amount)
         bol = amount * self.U2PMOL  # convert from U/min to pmol/min
         bol = np.round(bol / self._params['inc_bolus']
                        ) * self._params['inc_bolus']
@@ -39,8 +40,10 @@ class InsulinPump(object):
         # bas = np.round(float(bas / self._params['inc_basal'] # con trasformazione float
         #                 )) * self._params['inc_basal']
         bas = bas / self.U2PMOL     # convert from pmol/min to U/min
-        bas = min(bas, self._params['max_basal'])
+        # print(bas)
         print(self._params['max_basal'])
+        bas = min(bas, self._params['max_basal'])
+        
         bas = max(bas, self._params['min_basal'])
         return bas
 

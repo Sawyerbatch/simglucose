@@ -22,28 +22,36 @@ class SimObj(object):
                  controller,
                  sim_time,
                  animate=True,
-                 path=None):
+                 path=None,
+                 strategy=None):
         self.env = env
         self.controller = controller
         self.sim_time = sim_time
         self.animate = animate
         self._ctrller_kwargs = None
         self.path = path
+        self.strategy = strategy
 
     def simulate(self):
         self.controller.reset()
-        # obs, reward, done, info = self.env.reset() # BBC
+        if self.strategy == 'PPO':
+            obs = self.env.reset() # PPO
+        else:
+            obs, reward, done, info = self.env.reset() # BBC
+
         done = False
         reward = 0
         
-        obs = self.env.reset() # PPO
+        
         tic = time.time()
         while self.env.time < self.env.scenario.start_time + self.sim_time:
             if self.animate:
                 self.env.render()
-            # action = self.controller.policy(obs, reward, done, **info) # BBC
-            # obs, reward, done, info = self.env.step(action)
-            action = self.controller.policy(obs, reward, done) # PPO
+            if self.strategy == 'PPO':
+                action = self.controller.policy(obs, reward, done) # PPO
+            else:
+                action = self.controller.policy(obs, reward, done, **info) # BBC
+
             obs, reward, done, info = self.env.step(action)
         toc = time.time()
         logger.info('Simulation took {} seconds.'.format(toc - tic))
@@ -56,7 +64,7 @@ class SimObj(object):
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
         # filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
-        filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+date_time+'.xlsx')
+        filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+self.strategy+'_'+date_time+'.xlsx')
         # df.to_csv(filename)
         df.to_excel(filename_exc)
 

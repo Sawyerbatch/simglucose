@@ -41,16 +41,17 @@ def exp_reward(BG_last_hour,a=0.0417,k=0.3,hypo_treshold = 80, hyper_threshold =
     return exp_func(BG_last_hour[-1])
 
 # paziente = 'adolescent#007'
-paziente = ['adult#001']
+paziente = 'adult#001'
 # env = gym.make('CartPole-v1')
 # env = OrderEnforcing(env)
 from gym.envs.registration import register
 register(
     # id='simglucose-adolescent2-v0',
     id='simglucose-adult2-v0',
-    entry_point='simglucose.envs:T1DSimEnv',
+    # entry_point='simglucose.envs:T1DSimEnv',
+    entry_point='simglucose.envs:PPOSimEnv',
     kwargs={'patient_name': paziente,
-            'reward_fun': exp_reward}
+            'reward_fun': new_reward}
 )
 
 
@@ -96,6 +97,7 @@ model = PPO(MlpPolicy, env, verbose=0)
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 total_timesteps= 10000
+# total_timesteps= 1000
 
 import time
 start_time = time.perf_counter()

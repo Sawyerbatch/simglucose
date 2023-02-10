@@ -39,6 +39,24 @@ class PPOController(Controller):
         
         return moving_average_list[-1]
     
+    def piecewise_01_filter(self, observation, action):
+        if observation[0][0] < 90:
+            action = np.array([[0.0]])
+        elif (90 <= observation[0][0] <= 180):
+            action = action
+        else:
+            action = ((observation[0][0]-90)/90)*action
+            
+        return action
+    
+    def simple_filter(self, observation, action):
+        if observation[0][0] < 110:
+            action = np.array([[0.0]])
+        elif observation[0][0] >230:
+            action = np.array([[0.08]])
+            
+        return action
+    
     def rectified_linear_filter(self, observation, action):
         if observation[0][0] < 90:
             action = np.array([[0.0]])
@@ -74,8 +92,9 @@ class PPOController(Controller):
         action = self.model.predict(observation)
         
         # action = self.rectified_linear_filter(observation, action[0])
-        action = self.step_filter(observation, action[0]) # filtro classico con cap 90
-        
+        # action = self.piecewise_01_filter(observation, action[0])
+        # action = self.step_filter(observation, action[0]) # filtro classico con cap 90
+        action = self.simple_filter(observation, action[0]) # cap 90 e 180
         # self.action_list.append(action[0])
         self.action_list.append(action)
         # print('action_list:',self.action_list)

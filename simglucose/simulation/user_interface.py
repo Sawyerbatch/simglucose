@@ -1,5 +1,5 @@
 from simglucose.simulation.sim_engine import SimObj, batch_sim
-from simglucose.simulation.env import T1DSimEnv
+from simglucose.simulation.env import T1DSimEnv, PPOSimEnv
 from simglucose.controller.basal_bolus_ctrller import BBController
 from simglucose.controller.random_ctrller import RandomController
 from simglucose.sensor.cgm import CGMSensor
@@ -314,7 +314,8 @@ def simulate(sim_time=None,
              start_time=None,
              save_path=None,
              animate=None,
-             parallel=None):
+             parallel=None,
+             strategy=None):
     '''
     Main user interface.
     ----
@@ -370,14 +371,18 @@ def simulate(sim_time=None,
         cgm_sensor = CGMSensor.withName(cgm_name, seed=cgm_seed)
         insulin_pump = InsulinPump.withName(insulin_pump_name)
         scen = copy.deepcopy(scenario)
-        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
+        
+        if strategy == 'PPO':
+            env = PPOSimEnv(patient, cgm_sensor, insulin_pump, scen)
+        else:
+            env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, strategy)
         return env
 
     envs = [local_build_env(p) for p in patient_names]
 
     ctrllers = [copy.deepcopy(controller) for _ in range(len(envs))]
     sim_instances = [
-        SimObj(e, c, sim_time, animate=animate, path=save_path)
+        SimObj(e, c, sim_time, animate=animate, path=save_path, strategy=strategy)
         for (e, c) in zip(envs, ctrllers)
     ]
 

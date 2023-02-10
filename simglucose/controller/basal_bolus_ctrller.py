@@ -27,10 +27,10 @@ class BBController(Controller):
         sample_time = kwargs.get('sample_time', 1)
         pname = kwargs.get('patient_name')
         meal = kwargs.get('meal')  # unit: g/min
-        
+        # print(sample_time, pname, meal)
         # action = self._bb_policy(pname, meal, observation.CGM, sample_time)
         # action = self._bb_policy(pname, meal, observation[0][0], sample_time)
-        action = self._bb_policy(pname, meal, observation, sample_time)
+        action = self._bb_policy(pname, meal, observation.CGM, sample_time)
         # action = self._bb_policy('adult#001', meal, observation[0][0], sample_time)
         return action
 
@@ -81,8 +81,8 @@ class BBController(Controller):
         # differently. The unit of Action.basal and Action.bolus are the same
         # (U/min).
         bolus = bolus / env_sample_time  # unit: U/min
-        # return Action(basal=basal, bolus=bolus)
-        return bolus
+        return Action(basal=basal, bolus=bolus)
+        # return bolus
     
     def reset(self):
         pass

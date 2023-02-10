@@ -18,8 +18,8 @@ class PIDController(Controller):
         sample_time = kwargs.get('sample_time', 1)
 
         # BG is the only state for this PID controller
-        # bg = observation.CGM
-        bg = observation[0][0]
+        bg = observation.CGM
+        # bg = observation[0][0]
         control_input = self.P * (bg - self.target) + \
             self.I * self.integrated_state + \
             self.D * (bg - self.prev_state) / sample_time

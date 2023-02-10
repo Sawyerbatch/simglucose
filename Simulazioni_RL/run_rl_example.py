@@ -9,16 +9,16 @@ from stable_baselines3 import PPO
 from simglucose.controller.ppo_ctrller import PPOController
 from datetime import datetime
 from datetime import timedelta
-from simglucose.simulation.env import T1DSimEnv
+from simglucose.simulation.env import T1DSimEnv, PPOSimEnv
 from simglucose.patient.t1dpatient import T1DPatient
 from simglucose.sensor.cgm import CGMSensor
 from simglucose.actuator.pump import InsulinPump
 from simglucose.simulation.sim_engine import SimObj, sim, batch_sim
 import os
 import numpy as np
+import pandas as pd
 
-n_days = 10
-n_hours = n_days*24
+
 
 def create_scenario(n_days, cho_daily=230):
 
@@ -78,6 +78,10 @@ cwd = os.getcwd()
 data_path = os.path.join(cwd, data)  
 if not os.path.exists(data_path):
     os.makedirs(data_path)
+    
+strategy_path = os.path.join(cwd, 'Strategy')  
+if not os.path.exists(strategy_path):
+    os.makedirs(strategy_path)
 
 model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 '''
@@ -96,52 +100,90 @@ parallel   - switch for parallel computing. True/False.
 '''
 
 if __name__ == '__main__':
-    # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
-    # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax010")
-    model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_001_10000tmstp_insmax008")
-    seed = 42
-    my_sim_time = timedelta(hours=float(n_hours))
-    # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
-    # controller = RandomController()
-    # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
-    scen_long = create_scenario(n_days)
-    scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-    # controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
-    controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=15)
-    patient_names = ['adult#010']
-    # controller = BBController()
     
-    # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
-    #     ['adult#010']
-    # patient = T1DPatient.withName('adult#001')
-    # sensor = CGMSensor.withName('Dexcom', seed=1)
-    # pump = InsulinPump.withName('Nuovo')
+    # strategy = 'PPO'
+    # strategy = 'BBC'
+    # strategy = 'Random'
+    # strategy = 'PID'
+    
+    n_days = 1
+    n_hours = n_days*24
+    seed = 42
+    ma = 15
+    patient_names = ['adult#001']
+
     cgm_name = 'Dexcom'
     insulin_pump_name = 'Nuovo'
     start_time = newdatetime
-    save_path = data_path
     animate = True
     parallel = True
-    # env = T1DSimEnv(patient=patient,
-    #                 sensor=sensor,
-    #                 pump = pump,
-    #                 scenario=scenario)   
     
-    # controller = BBController()
+    # for i in ['PPO', 'BBC', 'PID']:
+    for i in ['PPO']:
+        strategy = i
     
-    simulate(sim_time=my_sim_time,
-            scenario=scenario,
-            controller=controller,
-            patient_names=patient_names,
-            cgm_name=cgm_name,
-            cgm_seed=seed,
-            insulin_pump_name=insulin_pump_name,
-            start_time=start_time,
-            save_path=save_path,
-            animate=animate,
-            parallel=parallel)
+        # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
+        # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax010")
+        my_sim_time = timedelta(hours=float(n_hours))
+        # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
+        scen_long = create_scenario(n_days)
+        scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
+        # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
+        if strategy == 'PPO':
+            model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_001_10000tmstp_insmax008")
+            controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=ma)
+        elif strategy == 'Random':
+            controller = RandomController()
+        elif strategy == 'BBC':
+            insulin_pump_name = 'Insulet'
+            env = T1DSimEnv(patient=patient_names,
+                            sensor=cgm_name,
+                            pump = insulin_pump_name,
+                            scenario=scenario,
+                            strategy=strategy)  
+            controller = BBController()
+            S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
+        elif strategy == 'PID':
+            insulin_pump_name = 'Insulet'
+            env = T1DSimEnv(patient=patient_names,
+                            sensor=cgm_name,
+                            pump = insulin_pump_name,
+                            scenario=scenario,
+                            strategy=strategy)
+            S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
+            controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
+            parallel = False
     
-    # s1 = SimObj(env, controller, timedelta(days=1),
-    #             animate=False, path=save_path)
-    # results = sim(s1)
-    # print(results)
+        
+        # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
+        #     ['adult#010']
+        # patient = T1DPatient.withName('adult#001')
+        # sensor = CGMSensor.withName('Dexcom', seed=1)
+        # pump = InsulinPump.withName('Nuovo')
+        
+        # env = T1DSimEnv(patient=patient,
+        #                 sensor=sensor,
+        #                 pump = pump,
+        #                 scenario=scenario)   
+        
+        # controller = BBController()
+        strategy_df = pd.DataFrame([strategy], columns=['strategy'])
+        strategy_df.to_excel(os.path.join(strategy_path,'strategy.xlsx'),index=False)
+        
+        simulate(sim_time=my_sim_time,
+                scenario=scenario,
+                controller=controller,
+                patient_names=patient_names,
+                cgm_name=cgm_name,
+                cgm_seed=seed,
+                insulin_pump_name=insulin_pump_name,
+                start_time=start_time,
+                save_path=data_path,
+                animate=animate,
+                parallel=parallel,
+                strategy=strategy)
+        
+        # s1 = SimObj(env, controller, timedelta(days=1),
+        #             animate=False, path=save_path)
+        # results = sim(s1)
+        # print(results)
