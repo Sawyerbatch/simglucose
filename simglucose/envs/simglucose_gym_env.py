@@ -11,6 +11,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
+import pandas as pd
 
 PATIENT_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/vpatient_params.csv')
@@ -158,7 +159,19 @@ class PPOSimEnv(gym.Env):
         # ub = self.env.pump._params['max_basal']
         # return spaces.Box(low=0, high=ub, shape=(1,))
         # return spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
-        return spaces.Box(low=0., high=0.08, shape=(1,))
+        
+        # cap di accordo con il paziente
+        df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx')
+        # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        paziente = df_cap['paziente'][0]
+        # print(self.patient)
+        cap = df_cap.loc[df_cap['paziente']==paziente].iloc[:,1]
+        cap = cap.iloc[0]
+        # print(cap)
+        return spaces.Box(low=0., high=cap, shape=(1,))
+        
+        # cap statico
+        # return spaces.Box(low=0., high=0.08, shape=(1,))
 
     @property
     def observation_space(self):

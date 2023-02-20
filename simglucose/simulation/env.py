@@ -65,6 +65,7 @@ class T1DSimEnv(object):
         # ub = self.env.pump._params['max_basal']
         # ub = 0.5
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,5))
+        
         self.action_space = spaces.Box(low=0., high=0.08, shape=(1,2))
         # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         self.metadata = {'render.modes': ['human']}
@@ -420,7 +421,20 @@ class PPOSimEnv(object):
         # ub = self.env.pump._params['max_basal']
         # ub = 0.5
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,5))
-        self.action_space = spaces.Box(low=0., high=0.08, shape=(1,2))
+        
+        # cap di accordo con il paziente
+        df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index_col=None)
+        # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        paziente = df_cap['paziente'][0]
+        # print(self.patient)
+        cap = df_cap.loc[df_cap['paziente']==paziente].iloc[:,1]
+        cap = cap.iloc[0]
+        # cap = cap.iloc
+        print('\ncap insulina per paziente '+paziente+': '+str(cap))
+        self.action_space = spaces.Box(low=0., high=cap, shape=(1,2))
+        
+        # cap statico
+        # self.action_space = spaces.Box(low=0., high=0.08, shape=(1,2))
         # self.action_space = spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         self.metadata = {'render.modes': ['human']}
         

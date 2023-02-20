@@ -93,8 +93,8 @@ class PPOController(Controller):
         
         # action = self.rectified_linear_filter(observation, action[0])
         # action = self.piecewise_01_filter(observation, action[0])
-        # action = self.step_filter(observation, action[0]) # filtro classico con cap 90
-        action = self.simple_filter(observation, action[0]) # cap 90 e 180
+        action = self.step_filter(observation, action[0]) # filtro classico con cap 90
+        # action = self.simple_filter(observation, action[0]) # cap 90 e 180
         # self.action_list.append(action[0])
         self.action_list.append(action)
         # print('action_list:',self.action_list)

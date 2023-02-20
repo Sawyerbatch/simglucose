@@ -20,6 +20,8 @@ class SimObj(object):
     def __init__(self,
                  env,
                  controller,
+                 # controller1, # DOUBLE PPO
+                 # controller2,
                  sim_time,
                  animate=True,
                  path=None,
@@ -49,6 +51,8 @@ class SimObj(object):
                 self.env.render()
             if self.strategy == 'PPO':
                 action = self.controller.policy(obs, reward, done) # PPO
+                
+                # if obs[0][0]
             else:
                 action = self.controller.policy(obs, reward, done, **info) # BBC
 
