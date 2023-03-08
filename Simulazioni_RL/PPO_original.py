@@ -46,7 +46,8 @@ def exp_func(x,a=0.0417,k=0.3,hypo_treshold = 80, hyper_threshold = 180, exp_boo
 def exp_reward(BG_last_hour,a=0.0417,k=0.3,hypo_treshold = 90, hyper_threshold = 150, exp_bool=True):
     return exp_func(BG_last_hour[-1])
 
-def create_scenario(n_days, cho_daily=230):
+# def create_scenario(n_days, cho_daily=230):
+def create_scenario(n_days, cho_daily=280):
 
   scenario = []
   cho_sum = 0
@@ -126,31 +127,53 @@ model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 # df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
 
 # dizionario['adult#007'] = 0.11
-# ins_max_list = [0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11]
-ins_max_list = [0.12, 0.13]
+# ins_max_list = [0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0,12, 0.12, 0.13, 0.14]
+# ins_max_list = [0.12]
 
-# pazienti_list = ['adult#003', 'adult#004', 'adult#005', 'adult#006', 'adult#009', 'adult#010']
-pazienti_list = ['adult#006', 'adult#009']#, 'adult#002', 'adult#008']#', 'adult#010']
+# pazienti_list = ['adult#001', 'adult#002', 'adult#003', 'adult#004', 'adult#005', 
+#                  'adult#006', 'adult#007', 'adult#008', 'adult#009', 'adult#010']
 
-for p in pazienti_list:
-    for i in ins_max_list:
-        
-        print('training', p, i)
-        
-        dizionario = {'paziente': p,
-                      'ins_max': i}
+tmstp_list = [1440]#, 2048] [1440, 2,400]
 
-        df_cap = pd.DataFrame(dizionario, index=[0])
-        df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
+opt_dict = {
+            # 'adult#001':[0.07],
+            # 'adult#002':[0.07],
+            # 'adult#003':[0.07],
+            # 'adult#004':[0.07],
+            # 'adult#005':[0.07],
+            # 'adult#006':[0.14],
+            # 'adult#007':[0.7],
+            # 'adult#008':[0.07],
+            'adult#009':[0.15,0.16,0.17,0.18],
+            # 'adult#010':[0.05,0.06,0.08,0.09,0.10,0.11,0.12,0.13,0.14],
+            }
+
+# pazienti_list = ['adult#006', 'adult#009']#, 'adult#002', 'adult#008']#', 'adult#010']
+
+# for p in pazienti_list:
+#     for i in ins_max_list:
     
-
-# paziente = 'adult#007'
-        paziente = p
-        n_days = 5
-        n_hours = n_days*24
-        scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
-        scen_long = create_scenario(n_days)
-        scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
+for t in tmstp_list:
+    for p, cap in list(opt_dict.items()):
+    
+        for c in cap:
+   
+            print('training', p, c)
+            
+            dizionario = {'paziente': p,
+                          'ins_max': c}
+    
+            df_cap = pd.DataFrame(dizionario, index=[0])
+            df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
+        
+    
+            # paziente = 'adult#007'
+            paziente = p
+            n_days = 5
+            n_hours = n_days*24
+            # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
+            scen_long = create_scenario(n_days)
+            scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
 
 # df_cap = pd.DataFrame(dizionario)
 # df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
@@ -158,15 +181,15 @@ for p in pazienti_list:
 # cap = cap.iloc[0]
 # cap = float(df_cap.loc[df_cap['paziente']=='adult#010'].iloc[:,1])
 
-        # registrazione per train singolo
-        register(
-            # id='simglucose-adolescent2-v0',
-            id='simglucose-adult2-v0',
-            # entry_point='simglucose.envs:T1DSimEnv',
-            entry_point='simglucose.envs:PPOSimEnv',
-            kwargs={'patient_name': paziente,
-                    'reward_fun': new_reward,
-                    'custom_scenario': scenario})
+            # registrazione per train singolo
+            register(
+                # id='simglucose-adolescent2-v0',
+                id='simglucose-adult2-v0',
+                # entry_point='simglucose.envs:T1DSimEnv',
+                entry_point='simglucose.envs:PPOSimEnv',
+                kwargs={'patient_name': paziente,
+                        'reward_fun': new_reward,
+                        'custom_scenario': scenario})
 
 
 
@@ -200,18 +223,18 @@ for p in pazienti_list:
         
 # env = Monitor(env, allow_early_resets=True, override_existing=True)
 
-        # make env
-        env = gym.make('simglucose-adult2-v0')
-        env.action_space
-        env.reset()
-
-        # iperparametri
-        gamma = 0.99 #  gamma = 0 -> ritorno nell'immediato futuro
-        # 1, 0.99, 0.95, 0.9, 0.7, 0.5
-        # gae_gamma # tradeoff bias varianza 0 = maggiore varianza e minor bias (più precisi ma più instabili)
-        # net_arch = dict(pi=[64, 64, 64], vf=[64, 64, 64])
-        learning_rate = 0.0003
-        model = PPO(MlpPolicy, env, verbose=0, gamma=gamma, learning_rate=learning_rate)
+            # make env
+            env = gym.make('simglucose-adult2-v0')
+            env.action_space
+            env.reset()
+    
+            # iperparametri
+            gamma = 0.99 #  gamma = 0 -> ritorno nell'immediato futuro
+            # 1, 0.99, 0.95, 0.9, 0.7, 0.5
+            # gae_gamma # tradeoff bias varianza 0 = maggiore varianza e minor bias (più precisi ma più instabili)
+            # net_arch = dict(pi=[64, 64, 64], vf=[64, 64, 64])
+            learning_rate = 0.0003
+            model = PPO(MlpPolicy, env, verbose=0, gamma=gamma, learning_rate=learning_rate)
 
 # model = PPO(MlpPolicy, env, verbose=0)
 # model = PPO(CnnPolicy, env, verbose=0)
@@ -250,14 +273,14 @@ for p in pazienti_list:
 
 # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
-        # train
-        total_timesteps= 10000 
-        # total_timesteps= 1000
-        start_time = time.perf_counter()
-        # Train the agent for 10000 steps
-        model.learn(total_timesteps=total_timesteps, progress_bar=True)
-        end_time = time.perf_counter()
-        execution_time = end_time - start_time
+            # train
+            total_timesteps= t
+            # total_timesteps= 1000
+            start_time = time.perf_counter()
+            # Train the agent for 10000 steps
+            model.learn(total_timesteps=total_timesteps, progress_bar=True)
+            end_time = time.perf_counter()
+            execution_time = end_time - start_time
 
 
 # Evaluate the trained agent
@@ -269,11 +292,11 @@ for p in pazienti_list:
 # print('Numero di episodi: '+str(n_eval_episodes))
 # print(f'Learning time {execution_time:.6f} seconds in '+str(total_timesteps)+' timesteps')
 
-        model.save(os.path.join(model_path, "ppo_sim_mod_food_hour_"+p+'_tmstp'+str(total_timesteps)+"_lr"+str(learning_rate).replace('.','')+'_insmax'+str(i).replace('.','')+'_'+date_time)) # single train
+            model.save(os.path.join(model_path, "ppo_sim_mod_food_hour_"+p+'_tmstp'+str(total_timesteps)+"_lr"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_customscen')) # single train
 
 
-        # Close the environment
-        env.close()
+            # Close the environment
+            env.close()
 
 # Set up fake display; otherwise rendering will fail
 # import os
