@@ -19,8 +19,8 @@ df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Stra
 df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx')        
 strategy = df_strategy['strategy'][0]
 patient = df_strategy['patient'][0]
-cap = df_cap.loc[df_cap['paziente']==patient].iloc[:,1]
-cap = cap.iloc[0]
+# cap = df_cap.loc[df_cap['paziente']==patient].iloc[:,1]
+# cap = cap.iloc[0]
 
 
 def ensemble_BG(BG, ax=None, plot_var=False, nstd=3):

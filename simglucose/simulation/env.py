@@ -197,6 +197,14 @@ class T1DSimEnv(object):
         self.CHO_hist.append(CHO)
         self.insulin_hist.append(insulin)
         
+        # last hour insulin
+        if len(self.insulin_hist) >= 480: 
+            insulin_integral = np.sum(self.insulin_hist[-480:])
+        else:
+            insulin_integral = np.sum(self.insulin_hist)
+            
+        self.insulin_24h.append(insulin_integral)
+        
         # insulin_array = np.array(self.insulin_hist, dtype=object)
         # self.insulin_array = np.array(self.insulin_hist)
         IOB = self.IOB_fun(0, self.insulin_hist, N)
@@ -342,6 +350,7 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
+        self.insulin_24h = [insulin]
         self.ins_mean_hist = [ins_mean]
         self.IOB_hist = [IOB]
         
@@ -399,6 +408,7 @@ class T1DSimEnv(object):
         df['food'] = pd.Series(self.food_hist)
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
+        df['insulin_integral'] = pd.Series(self.insulin_24h)
         window = 30
         df['ins_mean'] = pd.Series(self.moving_average(self.insulin_hist, window))
         df['LBGI'] = pd.Series(self.LBGI_hist)
@@ -406,6 +416,8 @@ class T1DSimEnv(object):
         df['Risk'] = pd.Series(self.risk_hist)
         df = df.set_index('Time')
         return df
+    
+    
 
 class PPOSimEnv(object):
     def __init__(self, patient, sensor, pump, scenario):
@@ -425,12 +437,12 @@ class PPOSimEnv(object):
         # cap di accordo con il paziente
         df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index_col=None)
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
-        paziente = df_cap['paziente'][0]
+        self.paziente = df_cap['paziente'][0]
         # print(self.patient)
-        cap = df_cap.loc[df_cap['paziente']==paziente].iloc[:,1]
+        cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
         cap = cap.iloc[0]
         # cap = cap.iloc
-        print('\ncap insulina per paziente '+paziente+': '+str(cap))
+        print('\ncap insulina per paziente '+self.paziente+': '+str(cap))
         self.action_space = spaces.Box(low=0., high=cap, shape=(1,2))
         
         # cap statico
@@ -552,6 +564,31 @@ class PPOSimEnv(object):
         self.CHO_hist.append(CHO)
         self.insulin_hist.append(insulin)
         
+        # last hour insulin
+        if len(self.insulin_hist) >= 480: 
+            insulin_integral = np.sum(self.insulin_hist[-480:])
+        else:
+            insulin_integral = np.sum(self.insulin_hist)
+            
+        self.insulin_24h.append([insulin_integral])
+        
+        # BB insulin
+        bb_ins_df = pd.read_csv('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\\vpatient_params.csv')
+        
+        u2ss = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,16]   # unit: pmol/(L*kg)
+        BW = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,58]   # unit: kg
+        basal = u2ss * BW / 6000  # unit: U/min
+        
+        self.insulin_BB.append([basal])
+        
+        # last hour insulin BB
+        if len(self.insulin_BB) >= 480: 
+            insulin_BB_integral = np.sum(self.insulin_BB[-480:])
+        else:
+            insulin_BB_integral = np.sum(self.insulin_BB)
+            
+        self.insulin_BB_24h.append([insulin_BB_integral])
+
         # insulin_array = np.array(self.insulin_hist, dtype=object)
         # self.insulin_array = np.array(self.insulin_hist)
         IOB = self.IOB_fun(0, self.insulin_hist, N)
@@ -695,6 +732,9 @@ class PPOSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
+        self.insulin_24h = [insulin]
+        self.insulin_BB = [insulin]
+        self.insulin_BB_24h = [insulin]
         self.ins_mean_hist = [ins_mean]
         self.IOB_hist = [IOB]
         
@@ -752,6 +792,9 @@ class PPOSimEnv(object):
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
         window = 30
+        df['insulin_integral'] = pd.Series(self.insulin_24h)
+        df['insulin_BB'] = pd.Series(self.insulin_BB)
+        df['insulin_BB_integral'] = pd.Series(self.insulin_BB_24h)
         df['ins_mean'] = pd.Series(self.moving_average(self.insulin_hist, window))
         df['LBGI'] = pd.Series(self.LBGI_hist)
         df['HBGI'] = pd.Series(self.HBGI_hist)

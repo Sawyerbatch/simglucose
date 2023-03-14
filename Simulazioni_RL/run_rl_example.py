@@ -117,11 +117,12 @@ if __name__ == '__main__':
     # cap = cap.iloc[0]
     # cap = float(df_cap.loc[df_cap['paziente']=='adult#010'].iloc[:,1])
 
-    n_days = 5
+    n_days = 2
     n_hours = n_days*24
     seed = 42
-    ma = 1
-    patient_names = ['adult#007']#,'adult#003']
+    ma = 15
+    training = 1440
+    # patient_names = ['adult#009']#,'adult#003']
 
     cgm_name = 'Dexcom'
     insulin_pump_name = 'Nuovo'
@@ -129,89 +130,80 @@ if __name__ == '__main__':
     animate = True
     parallel = True
     
-    # for p in patient_names:
-    #     for i in ['PPO', 'BBC', 'PID']:
-    #     # for i in ['PPO']:
-    #         strategy = i
+    opt_dict = {
+                # 'adult#001':[0.07],
+                # 'adult#002':[0.07],
+                # 'adult#003':[0.07],
+                # 'adult#004':[0.07],
+                # 'adult#005':[0.07],
+                # 'adult#006':[0.14],
+                # 'adult#007':[0.7],
+                # 'adult#008':[0.07],
+                'adult#009':[0.19],
+                # 'adult#010':[0.05,0.06,0.08,0.09,0.10,0.11,0.12,0.13,0.14],
+                }
+    
+    for p, cap in list(opt_dict.items()):
+    
+        for c in cap:
+   
+            print('training', p, c)
+            
+            dizionario = {'paziente': p,
+                          'ins_max': c}
+    
+            df_cap = pd.DataFrame(dizionario, index=[0])
+            df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
+     
+            my_sim_time = timedelta(hours=float(n_hours))
+            # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
+            scen_long = create_scenario(n_days)
+            scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
+            # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
+            if strategy == 'PPO':
+                # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_001_10000tmstp_insmax008")
+                # model_ppo = os.path.join(model_path, 'ppo_sim_mod_food_hour_'+patient_names[0]+'_10000tmstp_1e-05_insmax009')
+                model_ppo = os.path.join(model_path, 'ppo_sim_mod_food_hour_'+p+'_tmstp'+str(training)+'_lr00003_insmax'+str(c).replace('.','')+'_customscen')       
+                
+                controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=ma)
+                
+            elif strategy == 'Random':
+                controller = RandomController()
+            elif strategy == 'BBC':
+                insulin_pump_name = 'Insulet'
+                env = T1DSimEnv(patient=[p],
+                                sensor=cgm_name,
+                                pump = insulin_pump_name,
+                                scenario=scenario,
+                                strategy=strategy)  
+                controller = BBController()
+                S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
+            elif strategy == 'PID':
+                insulin_pump_name = 'Insulet'
+                env = T1DSimEnv(patient=[p],
+                                sensor=cgm_name,
+                                pump = insulin_pump_name,
+                                scenario=scenario,
+                                strategy=strategy)
+                controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
+                S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
+                parallel = False
+                    
+            
+            df_strategy = pd.DataFrame({'strategy': strategy, 'patient': [p]})
         
-    # model_ppo = "ppo_sim_mod_food_hour_10000tmstp_buono"
-    # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_10000tmstp_insmax010")
-    my_sim_time = timedelta(hours=float(n_hours))
-    # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
-    scen_long = create_scenario(n_days)
-    scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-    # scenario = RandomScenario(start_time=newdatetime)#, seed=seed)
-    if strategy == 'PPO':
-        # model_ppo = os.path.join(model_path, "ppo_sim_mod_food_hour_001_10000tmstp_insmax008")
-        # model_ppo = os.path.join(model_path, 'ppo_sim_mod_food_hour_'+patient_names[0]+'_10000tmstp_1e-05_insmax009')
-        model_ppo = os.path.join(model_path, 'ppo_sim_mod_food_hour_adult#007_10000tmstp_lr00003_insmax015_customscen')
-        
-        controller = PPOController(model=PPO.load(model_ppo), target=140, window_size=ma)
-        
-        # DOUBLE PPO
-        # model_ppo1 = os.path.join(model_path, 'ppo_sim_mod_food_hour_adult#007_10000tmstp_insmax008')        
-        # controller1 = PPOController(model=PPO.load(model_ppo), target=140, window_size=ma)
-        # model_ppo2 = os.path.join(model_path, 'ppo_sim_mod_food_hour_adult#007_10000tmstp_lr00003_insmax015_customscen')        
-        # controller2 = PPOController(model=PPO.load(model_ppo), target=140, window_size=ma)
-        
-    elif strategy == 'Random':
-        controller = RandomController()
-    elif strategy == 'BBC':
-        insulin_pump_name = 'Insulet'
-        env = T1DSimEnv(patient=patient_names,
-                        sensor=cgm_name,
-                        pump = insulin_pump_name,
-                        scenario=scenario,
-                        strategy=strategy)  
-        controller = BBController()
-        S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
-    elif strategy == 'PID':
-        insulin_pump_name = 'Insulet'
-        env = T1DSimEnv(patient=patient_names,
-                        sensor=cgm_name,
-                        pump = insulin_pump_name,
-                        scenario=scenario,
-                        strategy=strategy)
-        controller = PIDController(P=0.001, I=0.00001, D=0.001, target=140)
-        S1 = SimObj(env, controller, timedelta(days=n_days), animate=animate, path=data_path)
-        parallel = False
-    
-    
-    # patient_names = ['adult#00'+str(i) for i in range(2,10)] + \
-    #     ['adult#010']
-    # patient = T1DPatient.withName('adult#001')
-    # sensor = CGMSensor.withName('Dexcom', seed=1)
-    # pump = InsulinPump.withName('Nuovo')
-    
-    df_strategy = pd.DataFrame({'strategy': strategy, 'patient': patient_names})
-    # strategy_df = pd.DataFrame(strategy, patient_names[0], columns=['strategy', 'patient'])
-    df_strategy.to_excel(os.path.join(strategy_path,'strategy.xlsx'),index=False)
-    
-    simulate(sim_time=my_sim_time,
-            scenario=scenario,
-            controller=controller,
-            patient_names=patient_names,
-            cgm_name=cgm_name,
-            cgm_seed=seed,
-            insulin_pump_name=insulin_pump_name,
-            start_time=start_time,
-            save_path=data_path,
-            animate=animate,
-            parallel=parallel,
-            strategy=strategy)
-    
-    # DOUBLE PPO
-    
-    # simulate(sim_time=my_sim_time,
-    #         scenario=scenario,
-    #         controller1=controller1,
-    #         controller2 = controller2,
-    #         patient_names=patient_names,
-    #         cgm_name=cgm_name,
-    #         cgm_seed=seed,
-    #         insulin_pump_name=insulin_pump_name,
-    #         start_time=start_time,
-    #         save_path=data_path,
-    #         animate=animate,
-    #         parallel=parallel,
-    #         strategy=strategy)
+            df_strategy.to_excel(os.path.join(strategy_path,'strategy.xlsx'),index=False)
+            
+            simulate(sim_time=my_sim_time,
+                    scenario=scenario,
+                    controller=controller,
+                    patient_names=[p],
+                    cgm_name=cgm_name,
+                    cgm_seed=seed,
+                    insulin_pump_name=insulin_pump_name,
+                    start_time=start_time,
+                    save_path=data_path,
+                    animate=animate,
+                    parallel=parallel,
+                    strategy=strategy)
+

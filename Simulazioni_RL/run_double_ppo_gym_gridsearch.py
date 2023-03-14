@@ -9,23 +9,12 @@ Created on Tue Nov 22 14:34:39 2022
 import gym
 from gym.envs.registration import register
 from stable_baselines3 import PPO
-# from stable_baselines import PPO2
-from simglucose.controller.ppo_ctrller import PPOController
 from simglucose.simulation.scenario import CustomScenario
-from stable_baselines3.ppo.policies import MlpPolicy, CnnPolicy, MultiInputPolicy
-from stable_baselines3.common.evaluation import evaluate_policy
-from gym.wrappers.order_enforcing import OrderEnforcing
-from stable_baselines3.common.monitor import Monitor
 import numpy as np
 import pandas as pd
-import time
 import os
 from statistics import mean
-
 from datetime import datetime
-# date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
-
-
 from random import randrange
 from datetime import timedelta
 
@@ -70,7 +59,7 @@ def exp_reward(BG_last_hour,a=0.0417,k=0.3,hypo_treshold = 90, hyper_threshold =
     return exp_func(BG_last_hour[-1])
 
 # def create_scenario(n_days, cho_daily=230):
-def create_scenario(n_days, cho_daily=280):
+def create_scenario(n_days, cho_daily=230):
 
   scenario = []
   # cho_sum = 0
@@ -118,13 +107,6 @@ def create_scenario(n_days, cho_daily=280):
 def insert_dot(string, index):
     return string[:index] + '.' + string[index:]
 
-# prova cartpole
-# env = gym.make('CartPole-v1')
-# env = OrderEnforcing(env)
-
-# now = datetime.now() # gestire una qualsiasi data di input
-# start_time = datetime.combine(now.date(), datetime.min.time())
-# newdatetime = now.replace(hour=12, minute=00)
 
 data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
 
@@ -132,12 +114,10 @@ n_days = 5
 n_hours = n_days*24
 seed = 42
 ma = 15
-# ripetizioni = 100
-# patient_names = ['adult#007']
+
 
 cgm_name = 'Dexcom'
 insulin_pump_name = 'Nuovo'
-# start_time = newdatetime
 animate = True
 parallel = True
 
@@ -155,137 +135,100 @@ if not os.path.exists(strategy_path):
 
 model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 
-# paziente = 'adult#007'
-# start_time = random_date(d1, d2)
-# n_days = 5
-# n_hours = n_days*24
-# scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
-# scen_long = create_scenario(n_days)
-# scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
 
-# pazienti_list = ['adult#001', 'adult#002', 'adult#003', 'adult#004', 'adult#005', 'adult#007', 'adult#008', 'adult#010']
-
-# grid search per ogni paziente, ogni combinazione deve avere 10 ripetizioni e dare la media
-# su 006, 009 e 010
-
-# cap iper da 0.09 a 0.13
-# cap ipo da 0.05 e 0.08
-# soglia iper 160 e 165
-# soglia ipo 80,85,90
-
-
-tir_dict = {'time in range mean':[],
-            'hyper mean':[],
-            'hypo mean':[],
-            'severe hyper mean':[],
-            'severe hypo mean':[],
-            'cap iper mean':[],
-            'cap ipo mean':[],
-            'soglia iper mean':[],
-            'soglia ipo mean':[],
-            'timesteps':[],
-            'ripetizioni':[],
-            'start':[]}
-
-
-# opt_dict = {'adult#001':('009','006',160,85,100),
-#             # 'adult#002':('014','008',165,85),
-#             # 'adult#003':('011','006',160,90),
-#             # 'adult#004':('009','005',165,95),
-#             # 'adult#005':('013','008',165,90),
-#             # 'adult#006':('015','007',170,95),
-#             'adult#006':('015','007',170,95,100),
-#             # 'adult#007':('011','008',160,85),
-#             # 'adult#007':('011','005',160,85),
-#             # 'adult#007':('011','006',160,85),
-#             # 'adult#007':('011','007',160,85),
-#             # 'adult#007':('011','007',160,80),
-#             # 'adult#008':('01','006',160,95),
-#             'adult#009':('014','005',170,85, 100),
-#             'adult#009':('014','005',170,85,100),
-#             # 'adult#010':('014','007',160,90)
-#             }
 pazienti_list = ['adult#009']#, 'adult#010', 'adult#006'] #['adult#006','adult#009','adult#010']
-iper_control_list = ['009', '01', '011', '012', '013']
-ipo_control_list = ['005','006', '007', '008']
-iper_soglia_list = [160,165]
-ipo_soglia_list = [80,85,90]
-ripetizioni = 10
+# iper_control_list = ['009', '01', '011', '012', '013']
+# ipo_control_list = ['005','006', '007', '008']
+# iper_soglia_list = [160,165]
+# ipo_soglia_list = [80,85,90]
+# ripetizioni = 10
 
 # per provare
-# iper_control_list = ['009']
-# ipo_control_list = ['005','006']
-# iper_soglia_list = [160]
-# ipo_soglia_list = [80]
-# ripetizioni = 10
+iper_control_list = ['013']
+ipo_control_list = ['004']
+iper_soglia_list = [170]
+ipo_soglia_list = [75]
+ripetizioni = 100
+
+# iper_control_list = ['013', '014', '015', '016', '017', '018','019', '02']
+# ipo_control_list = ['003','004','005']
+# iper_soglia_list = [130, 140, 150 ,160,170]
+# ipo_soglia_list = [60, 70, 75, 80, 90,]
+# ripetizioni = 50
+
+
+labels = [
+            'time in range mean',
+            'hyper mean',
+            'hypo mean',
+            'severe hyper mean',
+            'severe hypo mean',
+            'cap iper mean',
+            'cap ipo mean',
+            'soglia iper mean',
+            'soglia ipo mean',
+            'timesteps',
+            'ripetizioni',
+]
+
+
+
+df_final = pd.DataFrame(columns=labels)
+
+
 for paziente in pazienti_list:
     
-    df_final = pd.DataFrame(columns=list(tir_dict.keys()))
-
     for iper in iper_control_list:
-        # print('iper cap: '+iper)
+        print('iper cap: '+iper)
         for ipo in ipo_control_list:
-            # print('ipo cap: '+ipo)
+            print('ipo cap: '+ipo)
             for iper_s in iper_soglia_list:
-                # print('iper soglia: '+str(iper_s))
+                print('iper soglia: '+str(iper_s))
                 for ipo_s in ipo_soglia_list:
-                # print('ipo soglia: '+str(ipo_s))
-                # opt_dict = {'adult#006':(iper,ipo,iper_s,ipo_s, ripetizioni),
-                #             'adult#009':(iper,ipo,iper_s,ipo_s, ripetizioni),
-                #             'adult#010':(iper,ipo,iper_s,ipo_s, ripetizioni),
-                #             }
+                    print('ipo soglia: '+str(ipo_s))
+                    
+                    tir_mean_dict = {
 
-
-# for paziente in pazienti_list:#['adult#006', 'adult#009']:#, 'adult#008']:
-    
-                # for k,v in opt_dict.items():
-                    
-                #     paziente = k
-                #     iper = v[0]
-                #     ipo = v[1]
-                #     iper_s = v[2]
-                #     ipo_s = v[3]
-                #     ripetizioni = v[4]
-                    
-                    print(paziente, iper, ipo, iper_s, ipo_s)
-                    
-                    tir_dict = {'time in range':[],
-                                'hyper':[],
-                                'hypo':[],
-                                'severe hyper':[],
-                                'severe hypo':[],
-                                'cap iper':[],
-                                'cap ipo':[],
-                                'soglia iper':[],
-                                'soglia ipo':[],
+                                'time in range mean':[],
+                                'hyper mean':[],
+                                'hypo mean':[],
+                                'severe hyper mean':[],
+                                'severe hypo mean':[],
+                                'cap iper mean':[],
+                                'cap ipo mean':[],
+                                'soglia iper mean':[],
+                                'soglia ipo mean':[],
                                 'timesteps':[],
                                 'ripetizioni':[],
-                                'start':[]}
+                                }
                     
+                   
                     for i in range(ripetizioni):
+                        
+                        tir_dict = {'time in range':[],
+                                    'hyper':[],
+                                    'hypo':[],
+                                    'severe hyper':[],
+                                    'severe hypo':[],
+                                    'cap iper':[],
+                                    'cap ipo':[],
+                                    'soglia iper':[],
+                                    'soglia ipo':[],
+                                    'timesteps':[],
+                                    'ripetizioni':[],
+                
+                                    }
                 
                         start_time = random_date(d1, d2)
                         n_days = 5
                         n_hours = n_days*24
-                        scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
                         scen_long = create_scenario(n_days)
                         scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
                 
-                        
-                        # iper_control_list = ['012', '013', '014']
-                        # ipo_control_list = ['005','006', '007', '008']
-                        # iper_soglia_list = [160,165,170]
-                        # ipo_soglia_list = [85,90,95]
                         timesteps = 2400 # 5 giorni
-                        # timesteps = 480 # 1 giorno
-                        # timesteps = 10000 
+                
                         training = 1440
-                        # iper_control_list = ['01']
-                        # ipo_control_list = ['006']
-                        # iper_soglia_list = [160]
-                        # ipo_soglia_list = [95]
-                        
-                        
+                
                         # registrazione per train singolo
                         register(
                             # id='simglucose-adolescent2-v0',
@@ -295,15 +238,7 @@ for paziente in pazienti_list:
                             kwargs={'patient_name': paziente,
                                     'reward_fun': new_reward,
                                     'custom_scenario': scenario})
-                        
-                        # for iper in iper_control_list:
-                        #     print('iper cap: '+iper)
-                        #     for ipo in ipo_control_list:
-                        #         print('ipo cap: '+ipo)
-                        #         for iper_s in iper_soglia_list:
-                        #             print('iper soglia: '+str(iper_s))
-                        #             for ipo_s in ipo_soglia_list:
-                        #                 print('ipo soglia: '+str(ipo_s))
+                
                         
                         model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+iper+'_customscen')) # iper  
                         model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+ipo+'_customscen'))  # ipo   
@@ -320,14 +255,13 @@ for paziente in pazienti_list:
                         counter_over_250 = 0
                         counter_total = 0
                         
-                        # best result 007: 006, 008, 90, 165
-                        
                         tir = np.zeros(shape=(5,))
                         
                         # ogni timestep equivale a 3 minuti
                         for t in range(timesteps):
                             
                             # env.render(mode='human')
+                            
                             print(observation)
                     
                             if observation[0][0] < ipo_s:
@@ -350,7 +284,8 @@ for paziente in pazienti_list:
                             
                             counter_total += 1
                             
-                    
+                            print(paziente)
+                            print(i)
                             tir[0] = (counter_50/counter_total)*100
                             print('severe hypo:',tir[0])
                             tir[1] = (counter_70/counter_total)*100
@@ -362,10 +297,6 @@ for paziente in pazienti_list:
                             tir[4] = (counter_over_250/counter_total)*100
                             print('severe hyper:', tir[4])
                             
-                            # if tir[0] > 3.0 or tir[1] > 9.0 or tir[3] > 40.0 or tir[4] > 15.0:
-                            # # if done:
-                            #     print("Episode finished after {} timesteps".format(t + 1))
-                            #     break
                         
                         tir_dict['time in range'].append(tir[2])
                         tir_dict['hyper'].append(tir[3])
@@ -380,40 +311,23 @@ for paziente in pazienti_list:
                         tir_dict['soglia ipo'].append(ipo_s)
                         tir_dict['timesteps'].append(timesteps)
                         tir_dict['ripetizioni'].append(ripetizioni)
-                        tir_dict['start'].append(start_time)
-                        
-                        # df_cap = pd.DataFrame(tir_dict)
-                        # df_cap.to_excel(os.path.join(strategy_path,'performance_'+paziente+'_'+iper+'_'+ipo+'_'+str(iper_s)+'_'+str(ipo_s)+'_'+str(timesteps)+'_train1440(2048)_ripetizioni'+str(ripetizioni)+'.xlsx')
-                                        # ,sheet_name='results', index=False)
-                    
-                    tir_mean_dict = dict()
-                    tir_mean_dict['time in range mean'] = mean(tir_dict['time in range'])
-                    tir_mean_dict['hyper mean'] = mean(tir_dict['hyper'])
-                    tir_mean_dict['hypo mean'] = mean(tir_dict['hypo'])
-                    tir_mean_dict['severe hyper mean'] = mean(tir_dict['severe hyper'])
-                    tir_mean_dict['severe hypo mean'] = mean(tir_dict['severe hypo'])
-                    tir_mean_dict['cap iper mean'] = tir_dict['cap iper'][0]
-                    tir_mean_dict['cap ipo mean'] = tir_dict['cap ipo'][0]
-                    tir_mean_dict['soglia iper mean'] = tir_dict['soglia iper'][0]
-                    tir_mean_dict['soglia ipo mean'] = tir_dict['soglia ipo'][0]
-                    tir_mean_dict['timesteps'] = tir_dict['timesteps'][0]
-                    tir_mean_dict['ripetizioni'] = tir_dict['ripetizioni'][0]
-                    tir_mean_dict['start'] = tir_dict['start'][0]
-
-                    df_cap_mean = pd.DataFrame(tir_mean_dict, index=([0]))
-                    # df_cap_mean.to_excel(os.path.join(strategy_path,'performance_'+paziente+'_'+str(timesteps)+'_train1440(2048)_100test.xlsx')
-                    #                 ,sheet_name='results mean', index=False)
-                    
-                    df_final = df_final.append(df_cap_mean, ignore_index = True)
-                    
-                    df_final.to_excel(os.path.join(strategy_path,'performance_'+paziente+'_'+str(timesteps)+'_allmeans_train1440(2048)_100test.xlsx')
-                                    ,sheet_name='risultati', index=False)
                 
-                    # with pd.ExcelWriter(os.path.join(strategy_path,'performance_'+paziente+'_'+iper+'_'+ipo+'_'+str(iper_s)+'_'+str(ipo_s)+'_'+str(timesteps)+'_train1440(2048)_ripetizioni'+str(ripetizioni)+'.xlsx')) as writer:
-                       
-                        # use to_excel function and specify the sheet_name and index
-                        # to store the dataframe in specified sheet
-                        # df_cap.to_excel(writer, sheet_name="results", index=False)
-                        # df_cap_mean.to_excel(writer, sheet_name="results mean", index=False)
-                        # data_frame3.to_excel(writer, sheet_name="Baked Items", index=False)    
-    
+                    
+                    tir_mean_dict['time in range mean'].append(mean(tir_dict['time in range']))
+                    tir_mean_dict['hyper mean'].append(mean(tir_dict['hyper']))
+                    tir_mean_dict['hypo mean'].append(mean(tir_dict['hypo']))
+                    tir_mean_dict['severe hyper mean'].append(mean(tir_dict['severe hyper']))
+                    tir_mean_dict['severe hypo mean'].append(mean(tir_dict['severe hypo']))
+                    tir_mean_dict['cap iper mean'].append(tir_dict['cap iper'][0])
+                    tir_mean_dict['cap ipo mean'].append(tir_dict['cap ipo'][0])
+                    tir_mean_dict['soglia iper mean'].append(tir_dict['soglia iper'][0])
+                    tir_mean_dict['soglia ipo mean'].append(tir_dict['soglia ipo'][0])
+                    tir_mean_dict['timesteps'].append(tir_dict['timesteps'][0])
+                    tir_mean_dict['ripetizioni'].append(tir_dict['ripetizioni'][0])
+                
+                    df_cap_mean = pd.DataFrame(tir_mean_dict)
+                
+                    df_final = df_final.append(df_cap_mean)
+                                
+                    df_final.to_excel(os.path.join(strategy_path,'performance_gridsearch_'+paziente+'_'+str(timesteps)+'_train1440(2048)_'+str(ripetizioni)+'ripetizioni_singola_combinazione.xlsx')
+                                ,sheet_name='risultati', index=False)
