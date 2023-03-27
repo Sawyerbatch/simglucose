@@ -203,7 +203,7 @@ class T1DSimEnv(object):
         else:
             insulin_integral = np.sum(self.insulin_hist)
             
-        self.insulin_24h.append(insulin_integral)
+        self.insulin_24h_hist_hist.append(insulin_integral)
         
         # insulin_array = np.array(self.insulin_hist, dtype=object)
         # self.insulin_array = np.array(self.insulin_hist)
@@ -335,6 +335,7 @@ class T1DSimEnv(object):
         insulin = np.array([0.0])
         # ins_mean = 0.0
         ins_mean = np.array([0.0])
+        ins_bb = np.array([0.0])
         
 
         self.time_hist = [self.scenario.start_time]
@@ -350,8 +351,9 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
-        self.insulin_24h = [insulin]
+        self.insulin_24h_hist_hist_hist = [insulin]
         self.ins_mean_hist = [ins_mean]
+        self.ins_bb_hist = [ins_bb]
         self.IOB_hist = [IOB]
         
         
@@ -408,7 +410,7 @@ class T1DSimEnv(object):
         df['food'] = pd.Series(self.food_hist)
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
-        df['insulin_integral'] = pd.Series(self.insulin_24h)
+        df['insulin_integral'] = pd.Series(self.insulin_24h_hist)
         window = 30
         df['ins_mean'] = pd.Series(self.moving_average(self.insulin_hist, window))
         df['LBGI'] = pd.Series(self.LBGI_hist)
@@ -438,6 +440,7 @@ class PPOSimEnv(object):
         df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index_col=None)
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         self.paziente = df_cap['paziente'][0]
+        self.timesteps = df_cap['timesteps'][0]
         # print(self.patient)
         cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
         cap = cap.iloc[0]
@@ -570,7 +573,7 @@ class PPOSimEnv(object):
         else:
             insulin_integral = np.sum(self.insulin_hist)
             
-        self.insulin_24h.append([insulin_integral])
+        self.insulin_24h_hist.append([insulin_integral])
         
         # BB insulin
         bb_ins_df = pd.read_csv('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\\vpatient_params.csv')
@@ -632,7 +635,11 @@ class PPOSimEnv(object):
         window_size = int(60 / self.sample_time)
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
+        print(self.time)
+        end_time = self.timesteps * self.sample_time
+        # done = BG < 70 or BG > 350 or minutes > end_time
         done = BG < 70 or BG > 350
+
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
         obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB]))
         print(obs)
@@ -732,7 +739,7 @@ class PPOSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
-        self.insulin_24h = [insulin]
+        self.insulin_24h_hist = [insulin]
         self.insulin_BB = [insulin]
         self.insulin_BB_24h = [insulin]
         self.ins_mean_hist = [ins_mean]
@@ -792,7 +799,7 @@ class PPOSimEnv(object):
         df['CHO'] = pd.Series(self.CHO_hist)
         df['insulin'] = pd.Series(self.insulin_hist)
         window = 30
-        df['insulin_integral'] = pd.Series(self.insulin_24h)
+        df['insulin_integral'] = pd.Series(self.insulin_24h_hist)
         df['insulin_BB'] = pd.Series(self.insulin_BB)
         df['insulin_BB_integral'] = pd.Series(self.insulin_BB_24h)
         df['ins_mean'] = pd.Series(self.moving_average(self.insulin_hist, window))

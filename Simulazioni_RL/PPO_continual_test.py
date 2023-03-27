@@ -117,36 +117,6 @@ def mean_confidence_interval(data, confidence=0.95):
 def insert_dot(string, index):
     return string[:index] + '.' + string[index:]
 
-
-data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
-
-# training parameters
-
-training_learning_rate = '00003'
-# training_n_steps = 128
-training_n_step_list = [64,32,16,8,4,2]
-
-training_total_timesteps = 2048
-
-
-# test parameters
-
-n_days = 5
-n_hours = n_days*24
-test_timesteps = 2400 # 5 giorni
-start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
-seed = 42
-ma = 15
-ripetizioni = 100
-
-# simglucose parameters
-
-cgm_name = 'Dexcom'
-insulin_pump_name = 'Nuovo'
-animate = True
-parallel = True
-
-
 os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
 cwd = os.getcwd()
     
@@ -162,6 +132,33 @@ with open(os.path.join(model_path, 'Risultati\Strategy', 'scenarios_'+scenario_u
     scenarios = json.load(json_file)
 
 
+data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
+
+# training parameters
+
+training_learning_rate = '00003'
+training_n_steps = 2400
+training_total_timesteps = 2400
+learning_days = [480,960,1440,1920,2400]#,2880,3360,3840,4320,4800]
+
+
+# test parameters
+
+n_days = 5
+n_hours = n_days*24
+test_timesteps = 2400 # 5 giorni
+start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+seed = 42
+ma = 15
+ripetizioni = 10
+
+
+cgm_name = 'Dexcom'
+insulin_pump_name = 'Nuovo'
+animate = True
+parallel = True
+
+
 opt_dict = {
             'adult#001':('009','006',160,85),
             # 'adult#002':('014','008',165,85),
@@ -175,12 +172,22 @@ opt_dict = {
             # 'adult#010':('014','007',160,90)
             }
 
-for training_n_steps in training_n_step_list:
+for k,v in opt_dict.items():
 
-    writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+    paziente = k
+    iper = v[0]
+    ipo = v[1]
+    iper_s = v[2]
+    ipo_s = v[3]
     
+    
+    writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_continual_learning_checkpoint_patient_'+k+'_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+    # df_final = pd.read_excel(os.path.join(strategy_path,'performance_continual_learning_patient_'+k+'_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'), engine='openpyxl')
+                
+    print(paziente, iper, ipo, iper_s, ipo_s)
+
     tir_mean_dict = {
-                'paziente':[],
+                'learning_days':[],
                 'time in range mean':[],
                 'time in range st dev':[],
                 'hyper mean':[],
@@ -203,18 +210,9 @@ for training_n_steps in training_n_step_list:
                 'scenario':[],
                 'start time': []
                 }
+
     
-    
-    for k,v in opt_dict.items():
-    
-        paziente = k
-        iper = v[0]
-        ipo = v[1]
-        iper_s = v[2]
-        ipo_s = v[3]
-    
-                        
-        print(paziente, iper, ipo, iper_s, ipo_s)
+    for l in learning_days:
         
         tir_dict = {'time in range':[],
                     'hyper':[],
@@ -232,17 +230,18 @@ for training_n_steps in training_n_step_list:
                     'ripetizione':[],
                     'scenario':[],
                     }
-       
+    
         for i, scen in zip(range(ripetizioni), scenarios.values()):
             
-    
+            
+  
+
             # start_time = random_date(d1, d2)
             # scen_long = create_scenario(n_days)
             # scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
             scen = [tuple(x) for x in scen]
             scenario = CustomScenario(start_time=start_time, scenario=scen)
             
-    
             # registrazione per train singolo
             register(
                 # id='simglucose-adolescent2-v0',
@@ -252,13 +251,14 @@ for training_n_steps in training_n_step_list:
                 kwargs={'patient_name': paziente,
                         'reward_fun': new_reward,
                         'custom_scenario': scenario})
+    
             
-            model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper)) # iper  
-            model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo))  # ipo   
+            # model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_online_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper+'_'+str(l))) # iper  
+            # model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_online_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo+'_'+str(l)))  # ipo   
         
-            # model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+iper+'_customscen')) # iper  
-            # model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+ipo+'_customscen'))  # ipo   
-        
+            model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_online_callback_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper+'__'+str(l)+'_steps')) # iper  
+            model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_online_callback_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo+'__'+str(l)+'_steps'))  # ipo   
+
             env = gym.make('simglucose-adult2-v0')
             
             observation = env.reset()
@@ -299,8 +299,10 @@ for training_n_steps in training_n_step_list:
                     counter_over_250 += 1
                 
                 counter_total += 1
+                
                 print(paziente)
-                print(i)
+                print(i+1)
+                print(l)
                 tir[0] = (counter_50/counter_total)*100
                 print('severe hypo:',tir[0])
                 tir[1] = (counter_70/counter_total)*100
@@ -330,13 +332,12 @@ for training_n_steps in training_n_step_list:
             tir_dict['training n steps'].append(training_n_steps)
             tir_dict['training timesteps'].append(training_total_timesteps)
             tir_dict['scenario'].append(scen)
-    
-            df_cap = pd.DataFrame(tir_dict)
             
-            df_cap.to_excel(writer, sheet_name=paziente, index=False)
+            df_cap = pd.DataFrame(tir_dict)       
+            df_cap.to_excel(writer, sheet_name='learning_days_'+str(l), index=False)
     
-    
-        tir_mean_dict['paziente'].append(k)
+        
+        tir_mean_dict['learning_days'].append(l)
         tir_mean_dict['time in range mean'].append(mean(tir_dict['time in range']))
         tir_mean_dict['time in range st dev'].append(stdev(tir_dict['time in range']))
         tir_mean_dict['hyper mean'].append(mean(tir_dict['hyper']))
@@ -361,10 +362,8 @@ for training_n_steps in training_n_step_list:
     
     
         df_cap_mean = pd.DataFrame(tir_mean_dict)
-           
-        # df_cap_mean.to_excel(os.path.join(strategy_path,'performance_test_timesteps'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')
-        #                 ,sheet_name='risultati', index=False)
         
         df_cap_mean.to_excel(writer, sheet_name='risultati', index=False)
         
         writer.save()
+

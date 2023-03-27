@@ -240,7 +240,7 @@ for paziente in pazienti_list:
                                     'custom_scenario': scenario})
                 
                         
-                        model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+iper+'_customscen')) # iper  
+                        model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+iper+'_hyper_190scen')) # iper  
                         model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+ipo+'_customscen'))  # ipo   
                     
                         env = gym.make('simglucose-adult2-v0')
@@ -329,5 +329,5 @@ for paziente in pazienti_list:
                 
                     df_final = df_final.append(df_cap_mean)
                                 
-                    df_final.to_excel(os.path.join(strategy_path,'performance_gridsearch_'+paziente+'_'+str(timesteps)+'_train1440(2048)_'+str(ripetizioni)+'ripetizioni_singola_combinazione.xlsx')
+                    df_final.to_excel(os.path.join(strategy_path,'performance_gridsearch_'+paziente+'_'+str(timesteps)+'_train1440(2048)_'+str(ripetizioni)+'ripetizioni_singola_combinazione_hyper190_hypo.xlsx')
                                 ,sheet_name='risultati', index=False)
