@@ -51,15 +51,18 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv(object):
-    def __init__(self, patient, sensor, pump, scenario, strategy):
+    # def __init__(self, patient, sensor, pump, scenario, strategy):
+    def __init__(self, patient, sensor, pump, scenario):
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
-        self.strategy = strategy
+        df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        self.strategy = df_strategy['strategy'][0]
+        # self.strategy = strategy
         # self.reset()
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
-        # # self._reset()
+        self._reset()
         # self.INSULIN_PUMP_HARDWARE = 'Insulet'
         # pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
         # ub = self.env.pump._params['max_basal']
@@ -139,6 +142,16 @@ class T1DSimEnv(object):
             CHO = patient_action.meal
             patient_mdl_act = Action(insulin=insulin, CHO=CHO)
         
+        # basal = self.pump.basal(action.basal)
+        # bolus = self.pump.bolus(action.bolus)
+        # # basal = self.pump.basal(action[0])
+        # # basal = self.pump.basal(action) # for moving average
+        # # bolus = self.pump.bolus(action[1])
+        # # insulin = basal
+        # insulin = basal + bolus
+        # CHO = patient_action.meal
+        # patient_mdl_act = Action(insulin=insulin, CHO=CHO)
+        
         # CGM_prev = self.sensor.measure(self.patient)
         
         # State update
@@ -203,7 +216,7 @@ class T1DSimEnv(object):
         else:
             insulin_integral = np.sum(self.insulin_hist)
             
-        self.insulin_24h_hist_hist.append(insulin_integral)
+        self.insulin_24h_hist.append(insulin_integral)
         
         # insulin_array = np.array(self.insulin_hist, dtype=object)
         # self.insulin_array = np.array(self.insulin_hist)
@@ -269,24 +282,24 @@ class T1DSimEnv(object):
                     hbgi=HBGI,
                     risk=risk)
 
-    # def _reset(self):
-    #     self.sample_time = self.sensor.sample_time
-    #     self.viewer = None
+    def _reset(self):
+        self.sample_time = self.sensor.sample_time
+        self.viewer = None
 
-    #     BG = self.patient.observation.Gsub
-    #     horizon = 1
-    #     LBGI, HBGI, risk = risk_index([BG], horizon)
-    #     CGM = self.sensor.measure(self.patient)
-    #     dCGM = 0.0
-    #     self.time_hist = [self.scenario.start_time]
-    #     self.BG_hist = [BG]
-    #     self.CGM_hist = [CGM] 
-    #     self.dCGM_hist = [dCGM] # aggiungere derivata?
-    #     self.risk_hist = [risk]
-    #     self.LBGI_hist = [LBGI]
-    #     self.HBGI_hist = [HBGI]
-    #     self.CHO_hist = []
-    #     self.insulin_hist = []
+        BG = self.patient.observation.Gsub
+        horizon = 1
+        LBGI, HBGI, risk = risk_index([BG], horizon)
+        CGM = self.sensor.measure(self.patient)
+        dCGM = 0.0
+        self.time_hist = [self.scenario.start_time]
+        self.BG_hist = [BG]
+        self.CGM_hist = [CGM] 
+        self.dCGM_hist = [dCGM] # aggiungere derivata?
+        self.risk_hist = [risk]
+        self.LBGI_hist = [LBGI]
+        self.HBGI_hist = [HBGI]
+        self.CHO_hist = []
+        self.insulin_hist = []
 
     # def reset(self):
     #     self.patient.reset()
@@ -351,7 +364,7 @@ class T1DSimEnv(object):
         self.HBGI_hist = [HBGI]
         self.CHO_hist = [CHO]
         self.insulin_hist = [insulin]
-        self.insulin_24h_hist_hist_hist = [insulin]
+        self.insulin_24h_hist = [insulin]
         self.ins_mean_hist = [ins_mean]
         self.ins_bb_hist = [ins_bb]
         self.IOB_hist = [IOB]
@@ -383,6 +396,8 @@ class T1DSimEnv(object):
         # print(obs.shape)
         
         return self.ritorno #BBC
+        
+        
         # return obs #PPO
     
     # def _get_obs(self):

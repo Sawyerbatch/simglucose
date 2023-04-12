@@ -26,6 +26,8 @@ SENSOR_PARA_FILE = pkg_resources.resource_filename('simglucose',
 INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/pump_params.csv')
 
+df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+strategy = df_strategy['strategy'][0]
 
 def pick_patients():
     patient_params = pd.read_csv(PATIENT_PARA_FILE)
@@ -314,8 +316,8 @@ def simulate(sim_time=None,
              start_time=None,
              save_path=None,
              animate=None,
-             parallel=None,
-             strategy=None):
+             parallel=None):
+             # strategy=None):
     '''
     Main user interface.
     ----
@@ -375,14 +377,16 @@ def simulate(sim_time=None,
         if strategy == 'PPO':
             env = PPOSimEnv(patient, cgm_sensor, insulin_pump, scen)
         else:
-            env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, strategy)
+            # env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, strategy)
+            env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
         return env
 
     envs = [local_build_env(p) for p in patient_names]
 
     ctrllers = [copy.deepcopy(controller) for _ in range(len(envs))]
     sim_instances = [
-        SimObj(e, c, sim_time, animate=animate, path=save_path, strategy=strategy)
+        SimObj(e, c, sim_time, animate=animate, path=save_path)
+        # SimObj(e, c, sim_time, animate=animate, path=save_path, strategy=strategy)
         for (e, c) in zip(envs, ctrllers)
     ]
 

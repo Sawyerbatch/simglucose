@@ -124,9 +124,9 @@ data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" 
 
 training_learning_rate = '00003'
 # training_n_steps = 128
-training_n_step_list = [64,32,16,8,4,2]
+training_n_step_list = [1024]
 
-training_total_timesteps = 2048
+training_total_timesteps = 1024
 
 
 # test parameters
@@ -136,8 +136,8 @@ n_hours = n_days*24
 test_timesteps = 2400 # 5 giorni
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
-ma = 15
-ripetizioni = 100
+ma = 1
+ripetizioni = 10
 
 # simglucose parameters
 
@@ -164,8 +164,8 @@ with open(os.path.join(model_path, 'Risultati\Strategy', 'scenarios_'+scenario_u
 
 opt_dict = {
             'adult#001':('009','006',160,85),
-            # 'adult#002':('014','008',165,85),
-            # 'adult#003':('011','006',160,90),
+            'adult#002':('014','008',165,85),
+            'adult#003':('011','006',160,90),
             # 'adult#004':('009','005',165,95),
             # 'adult#005':('013','008',165,90),
             # 'adult#006':('015','007',170,95),
@@ -177,7 +177,7 @@ opt_dict = {
 
 for training_n_steps in training_n_step_list:
 
-    writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+    writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_withcaps_safecontrol_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
     
     tir_mean_dict = {
                 'paziente':[],
@@ -253,8 +253,11 @@ for training_n_steps in training_n_step_list:
                         'reward_fun': new_reward,
                         'custom_scenario': scenario})
             
-            model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper)) # iper  
-            model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo))  # ipo   
+            model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper)) # iper
+            model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))  # ipo 
+            
+            # model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper)) # iper  
+            # model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo))  # ipo   
         
             # model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+iper+'_customscen')) # iper  
             # model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_sim_mod_food_hour_'+paziente+'_tmstp'+str(training)+'_lr00003_insmax'+ipo+'_customscen'))  # ipo   
@@ -300,7 +303,7 @@ for training_n_steps in training_n_step_list:
                 
                 counter_total += 1
                 print(paziente)
-                print(i)
+                print(i+1)
                 tir[0] = (counter_50/counter_total)*100
                 print('severe hypo:',tir[0])
                 tir[1] = (counter_70/counter_total)*100

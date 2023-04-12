@@ -137,16 +137,17 @@ data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" 
 # training parameters
 
 training_learning_rate = '00003'
-training_n_steps = 2400
-training_total_timesteps = 2400
-learning_days = [480,960,1440,1920,2400]#,2880,3360,3840,4320,4800]
-
+training_n_steps = 2
+training_total_timesteps = 2
+# learning_days = [480,960,1440,1920,2400]#,2880,3360,3840,4320,4800]
+learning_days = [1,2]
 
 # test parameters
 
 n_days = 5
 n_hours = n_days*24
 test_timesteps = 2400 # 5 giorni
+# test_timesteps = 1200 
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 15
@@ -160,15 +161,15 @@ parallel = True
 
 
 opt_dict = {
-            'adult#001':('009','006',160,85),
+            # 'adult#001':('009','006',160,85),
             # 'adult#002':('014','008',165,85),
             # 'adult#003':('011','006',160,90),
             # 'adult#004':('009','005',165,95),
             # 'adult#005':('013','008',165,90),
             # 'adult#006':('015','007',170,95),
-            # 'adult#007':('011','008',160,80),
+            'adult#007':('011','008',160,80),
             # 'adult#008':('01','006',160,95),
-            # 'adult#009':('013','004',160,60),
+            'adult#009':('013','004',160,60),
             # 'adult#010':('014','007',160,90)
             }
 
@@ -259,6 +260,9 @@ for k,v in opt_dict.items():
             model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_online_callback_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper+'__'+str(l)+'_steps')) # iper  
             model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_online_callback_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo+'__'+str(l)+'_steps'))  # ipo   
 
+            # model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_online_callback_PROVA_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper+'__'+str(l)+'_steps')) # iper  
+            # model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_online_callback_PROVA_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo+'__'+str(l)+'_steps'))  # ipo   
+
             env = gym.make('simglucose-adult2-v0')
             
             observation = env.reset()
@@ -301,7 +305,7 @@ for k,v in opt_dict.items():
                 counter_total += 1
                 
                 print(paziente)
-                print(i+1)
+                print('ripetizione '+str(i+1))
                 print(l)
                 tir[0] = (counter_50/counter_total)*100
                 print('severe hypo:',tir[0])

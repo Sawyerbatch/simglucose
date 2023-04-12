@@ -134,29 +134,29 @@ model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 #                  'adult#006', 'adult#007', 'adult#008', 'adult#009', 'adult#010']
 
 # tmstp_list = [1440]#, 2048] [1440, 2,400]
-n_steps_list = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024] # 1 non si può
-tmstps_list = [2048]
+n_steps_list = [1024] # 1 non si può
+tmstps_list = [1024]
 
 
 # poi 1024/2048 e test di 10 ripetzioni
 # 512/2048
 
 opt_dict = {
-            'adult#001':[0.06, 0.09],
-            # 'adult#002':[0.08,0.14],
-            # 'adult#003':[0.06,0.11],
-            # 'adult#004':[0.05,0.09],
-            # 'adult#005':[0.08,0.13],
-            # 'adult#006':[0.07,0.15],
-            # 'adult#007':[0.08,0.11],
-            # 'adult#008':[0.06,0.1],
-            # 'adult#009':[0.13,0.04],
-            # 'adult#010':[0.07,0.14],
+            'adult#001':[0.08, 0.06,0.09],
+            'adult#002':[0.08,0.14],
+            'adult#003':[0.08, 0.06,0.11],
+            'adult#004':[0.07, 0.05,0.09],
+            'adult#005':[0.08,0.13],
+            'adult#006':[0.09, 0.07,0.15],
+            'adult#007':[0.07,0.11],
+            'adult#008':[0.07, 0.06,0.1],
+            'adult#009':[0.07, 0.14,0.05],
+            'adult#010':[0.07,0.14],
             }
 
     
-for total_timesteps in tmstps_list:
-    for n_steps in n_steps_list:
+for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
+    
         for p, cap in list(opt_dict.items()):
         
             for c in cap:
@@ -173,14 +173,7 @@ for total_timesteps in tmstps_list:
                 paziente = p
                 n_days = 5
                 n_hours = n_days*24
-                # scen_long = [(12, 100), (20, 120), (23, 30), (31, 40), (36, 70), (40, 100), (47, 10)] # scenario di due giorni
-                # if c < 0.09:
-                #     ppo_type = 'hypo'
-                #     cho_daily=230
-                # else:
-                #     ppo_type = 'hyper'
-                #     cho_daily=190
-                # scen_long = create_scenario(n_days, cho_daily=cho_daily)
+
                 scen_long = create_scenario(n_days)
                 scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     
@@ -218,7 +211,7 @@ for total_timesteps in tmstps_list:
                 end_time = time.perf_counter()
                 execution_time = end_time - start_time
     
-                model.save(os.path.join(model_path, "ppo_offline_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
+                model.save(os.path.join(model_path, "ppo_withcaps_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
                 # model.save(os.path.join(model_path, "ppo_sim_mod_food_hour_"+p+'_tmstp'+str(total_timesteps)+"_lr"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_'+ppo_type+'_'+str(cho_daily)+'scen'))
     
                 # Close the environment

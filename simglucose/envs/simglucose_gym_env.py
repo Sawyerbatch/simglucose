@@ -50,8 +50,11 @@ class T1DSimEnv(gym.Env):
 
     def reset(self):
         self.env, _, _, _ = self.create_env_from_random_state()
+        
+
         obs, _, _, _ = self.env.reset()
         # obs = self.env.reset()
+        return self.env.reset()
         return obs
 
     def seed(self, seed=None):
@@ -73,7 +76,9 @@ class T1DSimEnv(gym.Env):
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         scenario = RandomScenario(start_time=start_time, seed=seed3) if custom_scenario is None else custom_scenario
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv(patient, sensor, pump, scenario, _T1DSimEnv.strategy)
+        # env = _T1DSimEnv(patient, sensor, pump, scenario, _T1DSimEnv.strategy)
+        env = _T1DSimEnv(patient, sensor, pump, scenario)
+        
         return env, seed2, seed3, seed4
 
     def render(self, mode='human', close=False):

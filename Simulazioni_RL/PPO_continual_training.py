@@ -149,19 +149,19 @@ if not os.path.exists(logdir):
 # CAMBIARE DA 5 A 1 SE SI USA 64
 # n_steps_list = [480]
 # tmstps_list = [480]
-n_steps_list = [2400]
-tmstps_list = [2400]
+n_steps_list = [2]
+tmstps_list = [2]
 
 opt_dict = {
-            'adult#001':[0.06, 0.09],
+            # 'adult#001':[0.06, 0.09],
             # 'adult#002':[0.08,0.14],
             # 'adult#003':[0.06,0.11],
             # 'adult#004':[0.05,0.09],
             # 'adult#005':[0.08,0.13],
             # 'adult#006':[0.07,0.15],
-            # 'adult#007':[0.08,0.11],
+            'adult#007':[0.08,0.11],
             # 'adult#008':[0.06,0.1],
-            # 'adult#009':[0.13,0.04],
+            'adult#009':[0.13,0.04],
             # 'adult#010':[0.07,0.14],
             }
 
@@ -221,6 +221,7 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 learning_rate = 0.0003
                 # learning_rate = 0.00003 # new lr
                 model = PPO(MlpPolicy, env, verbose=0, n_steps=n_steps,
+                            # batch_size=
                             gamma=gamma,                           
                             learning_rate=learning_rate,
                             tensorboard_log=logdir)
@@ -228,7 +229,7 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 # train
                 
                 checkpoint_callback = CheckpointCallback(
-                      save_freq=480,
+                      save_freq=1,
                       save_path=model_path,
                       name_prefix="ppo_online_callback_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_',
                       save_replay_buffer=True,

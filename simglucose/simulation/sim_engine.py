@@ -2,6 +2,7 @@ import logging
 import time
 import os
 from datetime import datetime
+import pandas as pd
 date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 
@@ -24,15 +25,18 @@ class SimObj(object):
                  # controller2,
                  sim_time,
                  animate=True,
-                 path=None,
-                 strategy=None):
+                 path=None):
+                 # strategy=None):
         self.env = env
         self.controller = controller
         self.sim_time = sim_time
         self.animate = animate
         self._ctrller_kwargs = None
         self.path = path
-        self.strategy = strategy
+        # self.strategy = strategy
+        
+        df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        self.strategy = df_strategy['strategy'][0]
 
     def simulate(self):
         self.controller.reset()
@@ -68,9 +72,13 @@ class SimObj(object):
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
         # filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
+        self.path = 'C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy'
         filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+self.strategy+'_'+date_time+'.xlsx')
+        # filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+date_time+'.xlsx')
         # df.to_csv(filename)
         df.to_excel(filename_exc)
+        print(filename_exc)
+        print(df)
 
     def reset(self):
         self.env.reset()
