@@ -19,6 +19,7 @@ from random import randrange
 from datetime import timedelta
 import json
 import scipy
+import random
 
 # def random_date(start, end):
 #     """
@@ -137,8 +138,7 @@ test_timesteps = 2400 # 5 giorni
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
-# ma = 15
-ripetizioni = 20
+ripetizioni = 10
 
 # simglucose parameters
 
@@ -164,15 +164,15 @@ with open(os.path.join(model_path, 'Risultati\Strategy', 'scenarios_'+scenario_u
 
 
 opt_dict = {
-            # 'adult#001':('009','006',160,85),
+            'adult#001':('009','006',160,85),
             # 'adult#002':('014','008',165,85),
             # 'adult#003':('011','006',160,90),
             # 'adult#004':('009','005',165,95),
             # 'adult#005':('013','008',165,90),
             # 'adult#006':('015','007',170,95),
-            # 'adult#007':('011','007',160,80),
+            # 'adult#007':('011','008',160,80),
             # 'adult#008':('01','006',160,95),
-            'adult#009':('014','005',160,60),
+            # 'adult#009':('013','004',160,60),
             # 'adult#010':('014','007',160,90)
             }
 
@@ -214,7 +214,7 @@ for training_n_steps in training_n_step_list:
         iper_s = v[2]
         ipo_s = v[3]
         
-        writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_withcaps_safecontrol_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+        writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_onlycaps_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
                         
         print(paziente, iper, ipo, iper_s, ipo_s)
         
@@ -286,11 +286,15 @@ for training_n_steps in training_n_step_list:
                 print(observation)
         
                 if observation[0][0] < ipo_s:
-                    action = np.array([[0.0]])
+                    # action = np.array([[0.06]])
+                    action = np.array([[random.uniform(0.0, 0.06)]])
                 elif observation[0][0] > iper_s:
-                    action = model_ppo_iper.predict(np.array(observation)) # iper control
+                    # action = np.array([[0.09]])
+                    action = np.array([[random.uniform(0.0, 0.09)]])
+                    # action = model_ppo_iper.predict(np.array(observation)) # iper control
                 else:
-                    action = model_ppo_ipo.predict(np.array(observation)) # ipo control
+                    action = np.array([[0.0]])
+                    # action = model_ppo_ipo.predict(np.array(observation)) # ipo control
                 observation, reward, done, info = env.step(action[0])
                 if observation[0][0] < 50:
                     counter_50 += 1

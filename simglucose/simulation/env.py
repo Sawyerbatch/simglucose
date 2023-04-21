@@ -9,6 +9,7 @@ from simglucose.simulation.rendering import Viewer
 import gym
 from gym import spaces
 import numpy as np
+import os
 
 # try:
 # from rllab.envs.base import Step
@@ -443,6 +444,7 @@ class PPOSimEnv(object):
         self.pump = pump
         self.scenario = scenario
         
+        self.model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
         # # self._reset()
         # self.INSULIN_PUMP_HARDWARE = 'Insulet'
@@ -455,7 +457,9 @@ class PPOSimEnv(object):
         df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index_col=None)
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         self.paziente = df_cap['paziente'][0]
+        self.cap = df_cap['ins_max'][0]
         self.timesteps = df_cap['timesteps'][0]
+
         # print(self.patient)
         cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
         cap = cap.iloc[0]
@@ -658,6 +662,12 @@ class PPOSimEnv(object):
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
         obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB]))
         print(obs)
+        
+        self.show_history()
+
+        # self.df_CGM['CGM'] = self.df_CGM['CGM'].append(pd.Series(CGM), ignore_index=True)
+        # self.df_CGM.to_excel(os.path.join(model_path, self.paziente+'_'+str(self.cap)+'_CGM.xlsx'),index=False)
+        
         # obs = Observation([CGM, dCGM])
         
         return Step(observation=obs,
@@ -822,4 +832,7 @@ class PPOSimEnv(object):
         df['HBGI'] = pd.Series(self.HBGI_hist)
         df['Risk'] = pd.Series(self.risk_hist)
         df = df.set_index('Time')
+        
+        df.to_excel(os.path.join(self.model_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
+        
         return df

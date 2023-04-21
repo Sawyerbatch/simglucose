@@ -178,14 +178,14 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
                 scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     
                 # registrazione per train singolo
-                register(
-                    # id='simglucose-adolescent2-v0',
-                    id='simglucose-adult2-v0',
-                    # entry_point='simglucose.envs:T1DSimEnv',
-                    entry_point='simglucose.envs:PPOSimEnv',
-                    kwargs={'patient_name': paziente,
-                            'reward_fun': new_reward,
-                            'custom_scenario': scenario})
+                # register(
+                #     # id='simglucose-adolescent2-v0',
+                #     id='simglucose-adult2-v0',
+                #     # entry_point='simglucose.envs:T1DSimEnv',
+                #     entry_point='simglucose.envs:PPOSimEnv',
+                #     kwargs={'patient_name': paziente,
+                #             'reward_fun': new_reward,
+                #             'custom_scenario': scenario})
     
     
     

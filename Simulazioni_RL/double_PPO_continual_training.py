@@ -24,14 +24,6 @@ import os
 from datetime import datetime
 date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
-model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
-
-def sliding_window(list, window_size):
-    
-    if len(list) <= window_size:
-       return list
-    for i in range(len(list)-window_size+1):
-        print(np.mean(list[i:i+window_size]))
 
 def quad_func(a,x):
     return -a*(x-90)*(x-150)
@@ -126,9 +118,9 @@ if not os.path.exists(strategy_path):
 
 model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 
-logdir = os.path.join(model_path, 'logdir')
-if not os.path.exists(logdir):
-    os.makedirs(logdir)
+# logdir = os.path.join(model_path, 'logdir')
+# if not os.path.exists(logdir):
+#     os.makedirs(logdir)
     
 # tensorboard --logdir=C:\GitHub\simglucose\Simulazioni_RL\logdir --bind_all
     
@@ -157,23 +149,23 @@ if not os.path.exists(logdir):
 # CAMBIARE DA 5 A 1 SE SI USA 64
 # n_steps_list = [480]
 # tmstps_list = [480]
-
-tmstps_list = [16384]
-n_steps_list = [2048] # default
-
+n_steps_list = [2]
+tmstps_list = [2]
 
 opt_dict = {
             'adult#001':[0.06, 0.09],
-            'adult#002':[0.08,0.14],
-            'adult#003':[0.06,0.11],
-            'adult#004':[0.05,0.09],
-            'adult#005':[0.08,0.13],
-            'adult#006':[0.07,0.15],
-            'adult#007':[0.07,0.11],
-            'adult#008':[0.06,0.1],
-            'adult#009':[0.05,0.14],
-            'adult#010':[0.07,0.14],
+            # 'adult#002':[0.08,0.14],
+            # 'adult#003':[0.06,0.11],
+            # 'adult#004':[0.05,0.09],
+            # 'adult#005':[0.08,0.13],
+            # 'adult#006':[0.07,0.15],
+            # 'adult#007':[0.08,0.11],
+            # 'adult#008':[0.06,0.1],
+            # 'adult#009':[0.13,0.04],
+            # 'adult#010':[0.07,0.14],
             }
+
+paziente_test = 'adult#002'
 
 for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
 
@@ -181,20 +173,17 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
 #     for n_steps in n_steps_list:
         for p, cap in list(opt_dict.items()):
         
-            for c in (cap):
+            for c in cap:
        
                 print('training', p, c)
                 
                 dizionario = {'paziente': p,
-                              'ins_max': c,
-                              }
+                              'ins_max': c}
         
                 df_cap = pd.DataFrame(dizionario, index=[0])
                 df_cap['timesteps'] = total_timesteps
                 df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
-                
             
-                
                 paziente = p
                 n_days = 5
                 # n_hours = n_days*24
@@ -215,7 +204,7 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                     id='simglucose-adult2-v0',
                     # entry_point='simglucose.envs:T1DSimEnv',
                     entry_point='simglucose.envs:PPOSimEnv',
-                    kwargs={'patient_name': paziente,
+                    kwargs={'patient_name': paziente_test,
                             'reward_fun': new_reward,
                             'custom_scenario': scenario})
     
@@ -233,16 +222,20 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 # net_arch = dict(pi=[64, 64, 64], vf=[64, 64, 64])
                 learning_rate = 0.0003
                 # learning_rate = 0.00003 # new lr
-                model = PPO(MlpPolicy, env, verbose=0, n_steps=n_steps,
+                model_iper = PPO(MlpPolicy, env, verbose=0, n_steps=n_steps,
                             # batch_size=
                             gamma=gamma,                           
-                            learning_rate=learning_rate,
-                            tensorboard_log=logdir)
+                            learning_rate=learning_rate)
+                
+                model_ipo = PPO(MlpPolicy, env, verbose=0, n_steps=n_steps,
+                            # batch_size=
+                            gamma=gamma,                           
+                            learning_rate=learning_rate)
     
                 # train
                 
                 checkpoint_callback = CheckpointCallback(
-                      save_freq=2048,
+                      save_freq=1,
                       save_path=model_path,
                       name_prefix="ppo_online_callback_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_',
                       save_replay_buffer=True,

@@ -123,22 +123,30 @@ data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" 
 # training parameters
 
 training_learning_rate = '00003'
-# training_n_steps = 128
-training_n_step_list = [1024]
+training_n_steps = 128
+# training_n_step_list = [1024]
 
 training_total_timesteps = 1024
 
+training_n_step = 1024
+
+training_old_iper = 1024
+training_old_ipo = 1024
+
+training_new_iper = 0
+training_new_ipo = 0
 
 # test parameters
 
 n_days = 5
 n_hours = n_days*24
 test_timesteps = 2400 # 5 giorni
+test_timesteps_list = 2400 # 5 giorni
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
 # ma = 15
-ripetizioni = 20
+ripetizioni = 2
 
 # simglucose parameters
 
@@ -163,50 +171,53 @@ with open(os.path.join(model_path, 'Risultati\Strategy', 'scenarios_'+scenario_u
     scenarios = json.load(json_file)
 
 
-opt_dict = {
-            # 'adult#001':('009','006',160,85),
+paz_old_dict = {
+            'adult#001':('009','006',160,85),
             # 'adult#002':('014','008',165,85),
             # 'adult#003':('011','006',160,90),
             # 'adult#004':('009','005',165,95),
             # 'adult#005':('013','008',165,90),
             # 'adult#006':('015','007',170,95),
-            # 'adult#007':('011','007',160,80),
+            # 'adult#007':('011','008',160,80),
             # 'adult#008':('01','006',160,95),
-            'adult#009':('014','005',160,60),
+            # 'adult#009':('013','004',160,60),
             # 'adult#010':('014','007',160,90)
             }
 
-for training_n_steps in training_n_step_list:
+paz_new = 'adult#002'
+
+# for test_timesteps in range(test_timesteps_list):
 
     # writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_withcaps_safecontrol_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
     
-    tir_mean_dict = {
-                'paziente':[],
-                'time in range mean':[],
-                'time in range st dev':[],
-                'hyper mean':[],
-                'hyper st dev':[],
-                'hypo mean':[],
-                'hypo st dev':[],
-                'severe hyper mean':[],
-                'severe hyper st dev':[],
-                'severe hypo mean':[],
-                'severe hypo st dev':[],
-                'cap iper mean':[],
-                'cap ipo mean':[],
-                'soglia iper mean':[],
-                'soglia ipo mean':[],
-                'training learning rate':[],
-                'training n steps':[],
-                'training timesteps':[],
-                'test timesteps':[],
-                'ripetizioni':[],
-                'scenario':[],
-                'start time': []
-                }
+tir_mean_dict = {
+            'paziente':[],
+            'time in range mean':[],
+            'time in range st dev':[],
+            'hyper mean':[],
+            'hyper st dev':[],
+            'hypo mean':[],
+            'hypo st dev':[],
+            'severe hyper mean':[],
+            'severe hyper st dev':[],
+            'severe hypo mean':[],
+            'severe hypo st dev':[],
+            'cap iper mean':[],
+            'cap ipo mean':[],
+            'soglia iper mean':[],
+            'soglia ipo mean':[],
+            'training learning rate':[],
+            'training n steps':[],
+            'training timesteps':[],
+            'test timesteps':[],
+            'ripetizioni':[],
+            'scenario':[],
+            'start time': []
+            }
+
+for t in range(test_timesteps):
     
-    
-    for k,v in opt_dict.items():
+    for k,v in paz_old_dict.items():
     
         paziente = k
         iper = v[0]
@@ -214,7 +225,7 @@ for training_n_steps in training_n_step_list:
         iper_s = v[2]
         ipo_s = v[3]
         
-        writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_withcaps_safecontrol_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+        writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_double_ppo_online_withcaps_safecontrol_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
                         
         print(paziente, iper, ipo, iper_s, ipo_s)
         
@@ -251,12 +262,12 @@ for training_n_steps in training_n_step_list:
                 id='simglucose-adult2-v0',
                 # entry_point='simglucose.envs:T1DSimEnv',
                 entry_point='simglucose.envs:PPOSimEnv',
-                kwargs={'patient_name': paziente,
+                kwargs={'patient_name': paz_new,
                         'reward_fun': new_reward,
                         'custom_scenario': scenario})
             
-            model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper)) # iper
-            model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))  # ipo 
+            model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper+'_for_online_learning')) # iper
+            model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo+'_for_online_learning'))  # ipo 
             
             # model_ppo_iper = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+iper)) # iper  
             # model_ppo_ipo = PPO.load(os.path.join(model_path, "ppo_offline_"+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+"_lr_"+training_learning_rate+'_insmax'+ipo))  # ipo   
@@ -279,46 +290,56 @@ for training_n_steps in training_n_step_list:
             tir = np.zeros(shape=(5,))
             
             # ogni timestep equivale a 3 minuti
-            for t in range(test_timesteps):
+            # for t in range(test_timesteps):
                 
                 # env.render(mode='human')
                 
-                print(observation)
-        
-                if observation[0][0] < ipo_s:
-                    action = np.array([[0.0]])
-                elif observation[0][0] > iper_s:
-                    action = model_ppo_iper.predict(np.array(observation)) # iper control
-                else:
-                    action = model_ppo_ipo.predict(np.array(observation)) # ipo control
-                observation, reward, done, info = env.step(action[0])
-                if observation[0][0] < 50:
-                    counter_50 += 1
-                if 50 <= observation[0][0] < 70:
-                    counter_70 += 1
-                if 70 <= observation[0][0] <= 180:
-                    counter_180 += 1
-                if 180 < observation[0][0] <= 250:
-                    counter_250 += 1
-                if observation[0][0] > 250:
-                    counter_over_250 += 1
+            print(observation)
+    
+            if observation[0][0] < ipo_s:
+                action = np.array([[0.0]])
+            elif observation[0][0] > iper_s:
+                action = model_ppo_iper.predict(np.array(observation)) # iper control
                 
-                counter_total += 1
-                print(paziente)
-                print(i+1)
-                print(action)
-                tir[0] = (counter_50/counter_total)*100
-                print('severe hypo:',tir[0])
-                tir[1] = (counter_70/counter_total)*100
-                print('hypo:', tir[1])
-                tir[2] = (counter_180/counter_total)*100
-                print('time in range:', tir[2])
-                tir[3] = (counter_250/counter_total)*100
-                print('hyper:', tir[3])
-                tir[4] = (counter_over_250/counter_total)*100
-                print('severe hyper:', tir[4])
+                model_selected = 'model iper'
+                training_old_iper -= 1
+                training_new_iper += 1
                 
+            else:
+                action = model_ppo_ipo.predict(np.array(observation)) # ipo control
+                
+                model_selected = 'model ipo'
+                training_old_ipo = -1
+                training_new_ipo += 1
+                
+            observation, reward, done, info = env.step(action[0])
+            if observation[0][0] < 50:
+                counter_50 += 1
+            if 50 <= observation[0][0] < 70:
+                counter_70 += 1
+            if 70 <= observation[0][0] <= 180:
+                counter_180 += 1
+            if 180 < observation[0][0] <= 250:
+                counter_250 += 1
+            if observation[0][0] > 250:
+                counter_over_250 += 1
             
+            counter_total += 1
+            print(paziente)
+            print(i+1)
+            print(action)
+            tir[0] = (counter_50/counter_total)*100
+            print('severe hypo:',tir[0])
+            tir[1] = (counter_70/counter_total)*100
+            print('hypo:', tir[1])
+            tir[2] = (counter_180/counter_total)*100
+            print('time in range:', tir[2])
+            tir[3] = (counter_250/counter_total)*100
+            print('hyper:', tir[3])
+            tir[4] = (counter_over_250/counter_total)*100
+            print('severe hyper:', tir[4])
+            
+            tir_dict['tmstp'].append(t)
             tir_dict['time in range'].append(tir[2])
             tir_dict['hyper'].append(tir[3])
             tir_dict['hypo'].append(tir[1])
@@ -340,37 +361,95 @@ for training_n_steps in training_n_step_list:
             df_cap = pd.DataFrame(tir_dict)
             
             df_cap.to_excel(writer, sheet_name=paziente, index=False)
+            
+            env.close()
+            
+            
+            
+            
+            
+            
+            if model_selected == 'model iper':
+                
+                df_cap = pd.DataFrame({'adult#001':0.09})
+                df_cap['timesteps'] = 1024
+                df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
+                
+                env = gym.make('simglucose-adult2-v0')
+                env.reset()
+                
+                # registrazione per train singolo
+                register(
+                    # id='simglucose-adolescent2-v0',
+                    id='simglucose-adult2-v0',
+                    # entry_point='simglucose.envs:T1DSimEnv',
+                    entry_point='simglucose.envs:PPOSimEnv',
+                    kwargs={'patient_name': paziente,
+                            'reward_fun': new_reward,
+                            'custom_scenario': scenario})
+                                
+                model_ppo_iper.learn(total_timesteps=training_old_iper, progress_bar=True)
+                
+                model.save(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper+'_for_online_learning')) # iper
+                
+            if model_selected == 'model ipo':
+                
+                df_cap = pd.DataFrame({'adult#001':0.06})
+                df_cap['timesteps'] = 1024
+                df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
+                
+                env = gym.make('simglucose-adult2-v0')
+                env.reset()
+                
+                # registrazione per train singolo
+                register(
+                    # id='simglucose-adolescent2-v0',
+                    id='simglucose-adult2-v0',
+                    # entry_point='simglucose.envs:T1DSimEnv',
+                    entry_point='simglucose.envs:PPOSimEnv',
+                    kwargs={'patient_name': paziente,
+                            'reward_fun': new_reward,
+                            'custom_scenario': scenario})
+                
+                
+                model_ppo_ipo.learn(total_timesteps=training_old_ipo, progress_bar=True)
+                
+                model.save(PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo+'_for_online_learning'))  # ipo
+
+    # tir_mean_dict['paziente'].append(k)
+    # tir_mean_dict['time in range mean'].append(mean(tir_dict['time in range']))
+    # tir_mean_dict['time in range st dev'].append(stdev(tir_dict['time in range']))
+    # tir_mean_dict['hyper mean'].append(mean(tir_dict['hyper']))
+    # tir_mean_dict['hyper st dev'].append(stdev(tir_dict['hyper']))
+    # tir_mean_dict['hypo mean'].append(mean(tir_dict['hypo']))
+    # tir_mean_dict['hypo st dev'].append(stdev(tir_dict['hypo']))
+    # tir_mean_dict['severe hyper mean'].append(mean(tir_dict['severe hyper']))
+    # tir_mean_dict['severe hyper st dev'].append(stdev(tir_dict['severe hyper']))
+    # tir_mean_dict['severe hypo mean'].append(mean(tir_dict['severe hypo']))
+    # tir_mean_dict['severe hypo st dev'].append(stdev(tir_dict['severe hypo']))
+    # tir_mean_dict['cap iper mean'].append(tir_dict['cap iper'][0])
+    # tir_mean_dict['cap ipo mean'].append(tir_dict['cap ipo'][0])
+    # tir_mean_dict['soglia iper mean'].append(tir_dict['soglia iper'][0])
+    # tir_mean_dict['soglia ipo mean'].append(tir_dict['soglia ipo'][0])
+    # tir_mean_dict['test timesteps'].append(tir_dict['test timesteps'][0])
+    # tir_mean_dict['ripetizioni'].append(ripetizioni)
+    # tir_mean_dict['training learning rate'].append(training_learning_rate)
+    # tir_mean_dict['training n steps'].append(training_n_steps)
+    # tir_mean_dict['training timesteps'].append(training_total_timesteps)
+    # tir_mean_dict['scenario'].append(scenario_usato)
+    # tir_mean_dict['start time'].append(start_time)
+
+
+    # df_cap_mean = pd.DataFrame(tir_mean_dict)
     
+    # df_cap_mean.to_excel(writer, sheet_name='risultati', index=False)
     
-        tir_mean_dict['paziente'].append(k)
-        tir_mean_dict['time in range mean'].append(mean(tir_dict['time in range']))
-        tir_mean_dict['time in range st dev'].append(stdev(tir_dict['time in range']))
-        tir_mean_dict['hyper mean'].append(mean(tir_dict['hyper']))
-        tir_mean_dict['hyper st dev'].append(stdev(tir_dict['hyper']))
-        tir_mean_dict['hypo mean'].append(mean(tir_dict['hypo']))
-        tir_mean_dict['hypo st dev'].append(stdev(tir_dict['hypo']))
-        tir_mean_dict['severe hyper mean'].append(mean(tir_dict['severe hyper']))
-        tir_mean_dict['severe hyper st dev'].append(stdev(tir_dict['severe hyper']))
-        tir_mean_dict['severe hypo mean'].append(mean(tir_dict['severe hypo']))
-        tir_mean_dict['severe hypo st dev'].append(stdev(tir_dict['severe hypo']))
-        tir_mean_dict['cap iper mean'].append(tir_dict['cap iper'][0])
-        tir_mean_dict['cap ipo mean'].append(tir_dict['cap ipo'][0])
-        tir_mean_dict['soglia iper mean'].append(tir_dict['soglia iper'][0])
-        tir_mean_dict['soglia ipo mean'].append(tir_dict['soglia ipo'][0])
-        tir_mean_dict['test timesteps'].append(tir_dict['test timesteps'][0])
-        tir_mean_dict['ripetizioni'].append(ripetizioni)
-        tir_mean_dict['training learning rate'].append(training_learning_rate)
-        tir_mean_dict['training n steps'].append(training_n_steps)
-        tir_mean_dict['training timesteps'].append(training_total_timesteps)
-        tir_mean_dict['scenario'].append(scenario_usato)
-        tir_mean_dict['start time'].append(start_time)
-    
-    
-        df_cap_mean = pd.DataFrame(tir_mean_dict)
-           
-        # df_cap_mean.to_excel(os.path.join(strategy_path,'performance_test_timesteps'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')
-        #                 ,sheet_name='risultati', index=False)
+    # writer.save()
         
-        df_cap_mean.to_excel(writer, sheet_name='risultati', index=False)
         
-        writer.save()
+# faccio learn dei due modelli sul paziente iniziale
+# faccio partire un primo test di t1 sul paziente da testare
+# alla prima scelta prendo il modello scelto e faccio un learn del tempo di test
+# faccio ripartire il test con uno dei due modelli aggiornati aumentando il tempo di test (t2)
+# vedo al secondo timestep che modello è stato scelto e lo aggiorno (tengo il learn)
+# e così via
