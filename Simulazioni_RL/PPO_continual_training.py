@@ -107,9 +107,10 @@ def create_scenario(n_days, cho_daily=230):
 
 # paziente = 'adolescent#007'
 
-now = datetime.now() # gestire una qualsiasi data di input
-start_time = datetime.combine(now.date(), datetime.min.time())
-newdatetime = now.replace(hour=12, minute=00)
+# now = datetime.now() # gestire una qualsiasi data di input
+# start_time = datetime.combine(now.date(), datetime.min.time())
+start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+# newdatetime = now.replace(hour=12, minute=00)
 
 data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
 
@@ -158,21 +159,21 @@ if not os.path.exists(logdir):
 # n_steps_list = [480]
 # tmstps_list = [480]
 
-tmstps_list = [16384]
+tmstps_list = [2048]#[16384]
 n_steps_list = [2048] # default
 
 
 opt_dict = {
-            'adult#001':[0.06, 0.09],
-            'adult#002':[0.08,0.14],
-            'adult#003':[0.06,0.11],
-            'adult#004':[0.05,0.09],
-            'adult#005':[0.08,0.13],
-            'adult#006':[0.07,0.15],
-            'adult#007':[0.07,0.11],
-            'adult#008':[0.06,0.1],
-            'adult#009':[0.05,0.14],
-            'adult#010':[0.07,0.14],
+            # 'adult#001':[0.09],
+            # 'adult#002':[0.08,0.14],
+            # 'adult#003':[0.06,0.11],
+            # 'adult#004':[0.05,0.09],
+            # 'adult#005':[0.08,0.13],
+            # 'adult#006':[0.07,0.15],
+            # 'adult#007':[0.07,0.11],
+            # 'adult#008':[0.06,0.1],
+            'adult#009':[0.05]#,0.14],
+            # 'adult#010':[0.07,0.14],
             }
 
 for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
@@ -193,8 +194,6 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 df_cap['timesteps'] = total_timesteps
                 df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
                 
-            
-                
                 paziente = p
                 n_days = 5
                 # n_hours = n_days*24
@@ -208,7 +207,8 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 # scen_long = create_scenario(n_days, cho_daily=cho_daily)
                 scen_long = create_scenario(n_days)
                 scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-    
+                # scenario = CustomScenario(scenario=scen_long)#, seed=seed)
+
                 # registrazione per train singolo
                 register(
                     # id='simglucose-adolescent2-v0',
@@ -217,7 +217,8 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                     entry_point='simglucose.envs:PPOSimEnv',
                     kwargs={'patient_name': paziente,
                             'reward_fun': new_reward,
-                            'custom_scenario': scenario})
+                            'custom_scenario': scenario
+                            })
     
     
     
@@ -252,8 +253,9 @@ for total_timesteps, n_steps in zip(tmstps_list,  n_steps_list):
                 model.learn(total_timesteps=total_timesteps, 
                                     callback=checkpoint_callback, progress_bar=True,
                                 tb_log_name='PPO', reset_num_timesteps=False)
-    
-                start_time = time.perf_counter()
+                
+                # env.show_history()
+                # start_time = time.perf_counter()
                 # for i in range(5):
                 #     model.learn(total_timesteps=total_timesteps, progress_bar=True,
                 #                 tb_log_name='PPO', reset_num_timesteps=False)

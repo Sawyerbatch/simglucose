@@ -10,6 +10,8 @@ import gym
 from gym import spaces
 import numpy as np
 import os
+from datetime import datetime
+
 
 # try:
 # from rllab.envs.base import Step
@@ -443,6 +445,7 @@ class PPOSimEnv(object):
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
+        self.total_minutes = 0
         
         self.model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
@@ -459,7 +462,10 @@ class PPOSimEnv(object):
         self.paziente = df_cap['paziente'][0]
         self.cap = df_cap['ins_max'][0]
         self.timesteps = df_cap['timesteps'][0]
+        self.df_final = pd.DataFrame(columns=['Time', 'BG', 'CGM', 'dCGM', 'h_zone', 'food', 'CHO', 'insulin', 'insulin_integral', 
+                                   'insulin_BB', 'insulin_BB_integral', 'ins_mean', 'LBGI', 'HBGI', 'Risk'])
 
+        
         # print(self.patient)
         cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
         cap = cap.iloc[0]
@@ -552,11 +558,12 @@ class PPOSimEnv(object):
         insulin = [0.0]
         BG = 0.0
         CGM = 0.0
+        total_minutes = self.total_minutes
         # dCGM = 0.0
         # CGM_old = 0.0
         # aggiungere valore per derivata
         
-        for _ in range(int(self.sample_time)):
+        for i in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
             # tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action) # BBC
             tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action[0]) # PPO
@@ -621,7 +628,7 @@ class PPOSimEnv(object):
         minutes, _ = divmod(difference, 60)
         # print('vvvvvvvvvvvvvvvvvvvvvvvv')
         print('insulin:',insulin)
-        print(minutes)
+        # print(minutes)
         # print(IOB)
         # if minutes > 2:
         #     IOB = float(IOB[int(minutes)])
@@ -654,8 +661,14 @@ class PPOSimEnv(object):
         window_size = int(60 / self.sample_time)
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
+        print('tempo: '+str(minutes))
+        # total_minutes += minutes
+        # print(total_minutes)
         print(self.time)
+        print(i)
+        # print('timesteps: '+str(self.timesteps))
         end_time = self.timesteps * self.sample_time
+        print('tempo totale: '+str(end_time))
         # done = BG < 70 or BG > 350 or minutes > end_time
         done = BG < 70 or BG > 350
 
@@ -663,7 +676,12 @@ class PPOSimEnv(object):
         obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB]))
         print(obs)
         
-        self.show_history()
+        # if minutes % 60 == 0:
+        # if i == self.timesteps:
+        # if self.timesteps
+        
+        if done or self.time==datetime.strptime('3/8/2022 11:59 AM', '%m/%d/%Y %I:%M %p'):
+            self.show_history()
 
         # self.df_CGM['CGM'] = self.df_CGM['CGM'].append(pd.Series(CGM), ignore_index=True)
         # self.df_CGM.to_excel(os.path.join(model_path, self.paziente+'_'+str(self.cap)+'_CGM.xlsx'),index=False)
@@ -769,7 +787,7 @@ class PPOSimEnv(object):
         self.insulin_BB_24h = [insulin]
         self.ins_mean_hist = [ins_mean]
         self.IOB_hist = [IOB]
-        
+           
         
         # self._agent_location = 1
         # observation = self._agent_location = 1
@@ -833,6 +851,30 @@ class PPOSimEnv(object):
         df['Risk'] = pd.Series(self.risk_hist)
         df = df.set_index('Time')
         
-        df.to_excel(os.path.join(self.model_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
+        # df_final = self.df_final
+        
+        # self.df_final['Time'] = pd.concat([self.df_final['Time'], pd.Series(self.time_hist)], axis=0, ignore_index=True)
+        # self.df_final['BG'] = pd.concat([self.df_final['BG'], pd.Series(self.time_hist)], axis=0, ignore_index=True)
+        # self.df_final['CGM'] = pd.concat([self.df_final['CGM'], pd.Series(self.CGM_hist)], axis=0, ignore_index=True)
+        # self.df_final['dCGM'] = pd.concat([self.df_final['dCGM'], pd.Series(self.dCGM_hist)], axis=0, ignore_index=True)
+        # self.df_final['h_zone'] = pd.concat([self.df_final['h_zone'], pd.Series(self.h_zone_hist)], axis=0, ignore_index=True)
+        # self.df_final['food'] = pd.concat([self.df_final['food'], pd.Series(self.food_hist)], axis=0, ignore_index=True)
+        # self.df_final['CHO'] = pd.concat([self.df_final['CHO'], pd.Series(self.CHO_hist)], axis=0, ignore_index=True)
+        # self.df_final['insulin'] = pd.concat([self.df_final['insulin'], pd.Series(self.insulin_hist)], axis=0, ignore_index=True)
+        # window = 30
+        # self.df_final['insulin_integral'] = pd.concat([self.df_final['insulin_integral'], pd.Series(self.insulin_24h_hist)], axis=0, ignore_index=True)
+        # self.df_final['insulin_BB'] = pd.concat([self.df_final['insulin_BB'], pd.Series(self.insulin_BB)], axis=0, ignore_index=True)
+        # self.df_final['insulin_BB_integral'] = pd.concat([self.df_final['insulin_BB_integral'], pd.Series(self.insulin_BB_24h)], axis=0, ignore_index=True)
+        # self.df_final['ins_mean'] = pd.concat([self.df_final['ins_mean'], pd.Series(self.moving_average(self.insulin_hist, window))], axis=0, ignore_index=True)
+        # self.df_final['LBGI'] = pd.concat([self.df_final['LBGI'], pd.Series(self.LBGI_hist)], axis=0, ignore_index=True)
+        # self.df_final['HBGI'] = pd.concat([self.df_final['HBGI'], pd.Series(self.HBGI_hist)], axis=0, ignore_index=True)
+        # self.df_final['Risk'] = pd.concat([self.df_final['Risk'], pd.Series(self.risk_hist)], axis=0, ignore_index=True)
+        # self.df_final = df_final.set_index('Time')
+        
+        self.df_final = pd.concat([self.df_final, df])
+        
+        self.df_final.to_excel(os.path.join(self.model_path, str(self.time.strftime('%Y_%m_%d_%H_%M_%S'))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
+        
+        # df.to_excel(os.path.join(self.model_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
         
         return df

@@ -119,7 +119,8 @@ class PPOSimEnv(gym.Env):
         self.patient_name = patient_name
         self.reward_fun = reward_fun
         self.np_random, _ = seeding.np_random(seed=seed)
-        self.env, _, _, _ = self.create_env_from_random_state(custom_scenario)
+        self.custom_scenario = custom_scenario
+        self.env, _, _, _ = self.create_env_from_random_state(self.custom_scenario)
 
     def step(self, action):
         # This gym only controls basal insulin
@@ -129,7 +130,7 @@ class PPOSimEnv(gym.Env):
         return self.env.step(act, reward_fun=self.reward_fun)
 
     def reset(self):
-        self.env, _, _, _ = self.create_env_from_random_state()
+        self.env, _, _, _ = self.create_env_from_random_state(self.custom_scenario)
         # obs, _, _, _ = self.env.reset()
         obs = self.env.reset()
         return obs
@@ -151,7 +152,8 @@ class PPOSimEnv(gym.Env):
         start_time = datetime(2018, 1, 1, hour, 0, 0)
         patient = T1DPatient.withName(self.patient_name, random_init_bg=True, seed=seed4)
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
-        scenario = RandomScenario(start_time=start_time, seed=seed3) if custom_scenario is None else custom_scenario
+        scenario = RandomScenario(start_time=start_time, seed=seed3) if self.custom_scenario is None else self.custom_scenario
+        # scenario = custom_scenario
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
         env = _PPOSimEnv(patient, sensor, pump, scenario)
         return env, seed2, seed3, seed4
