@@ -12,6 +12,7 @@ import numpy as np
 import os
 from datetime import datetime
 
+total_timesteps = 0
 
 # try:
 # from rllab.envs.base import Step
@@ -62,6 +63,8 @@ class T1DSimEnv(object):
         self.scenario = scenario
         df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         self.strategy = df_strategy['strategy'][0]
+
+        
         # self.strategy = strategy
         # self.reset()
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
@@ -462,9 +465,14 @@ class PPOSimEnv(object):
         self.paziente = df_cap['paziente'][0]
         self.cap = df_cap['ins_max'][0]
         self.timesteps = df_cap['timesteps'][0]
-        self.df_final = pd.DataFrame(columns=['Time', 'BG', 'CGM', 'dCGM', 'h_zone', 'food', 'CHO', 'insulin', 'insulin_integral', 
-                                   'insulin_BB', 'insulin_BB_integral', 'ins_mean', 'LBGI', 'HBGI', 'Risk'])
-
+        self.target_timesteps = df_cap['target timesteps'][0]
+        
+        # for continual learning
+        # self.elapsed_time = df_cap['elapsed_time'][0]
+        # self.df_final = pd.DataFrame(columns=['Time', 'BG', 'CGM', 'dCGM', 'h_zone', 'food', 'CHO', 'insulin', 'insulin_integral', 
+        #                            'insulin_BB', 'insulin_BB_integral', 'ins_mean', 'LBGI', 'HBGI', 'Risk'])
+        
+        self.df_cap = df_cap
         
         # print(self.patient)
         cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
@@ -644,7 +652,7 @@ class PPOSimEnv(object):
         self.IOB_hist.append(IOB)
         # print(ins_mean)
         # Record next observation
-        self.time_hist.append(self.time)
+        self.time_hist.append(str(self.time))
         self.BG_hist.append(BG)
         self.CGM_hist.append(CGM)
         
@@ -665,12 +673,18 @@ class PPOSimEnv(object):
         # total_minutes += minutes
         # print(total_minutes)
         print(self.time)
-        print(i)
+        # print(type(self.time))
+        # print(str(self.time))
+        print('timesteps: '+str(self.timesteps))
+        # print(i)
         # print('timesteps: '+str(self.timesteps))
         end_time = self.timesteps * self.sample_time
         print('tempo totale: '+str(end_time))
+        # print('timedelta: '+str(timedelta(minutes=self.patient.t)))
+        
         # done = BG < 70 or BG > 350 or minutes > end_time
         done = BG < 70 or BG > 350
+        # done = BG < 20 or BG > 600
 
         # obs = Observation(CGM=CGM, dCGM=dCGM) # aggiungere derivata
         obs = np.array(Observation([CGM, dCGM, h_zone, food, IOB]))
@@ -680,9 +694,43 @@ class PPOSimEnv(object):
         # if i == self.timesteps:
         # if self.timesteps
         
-        if done or self.time==datetime.strptime('3/8/2022 11:59 AM', '%m/%d/%Y %I:%M %p'):
-            self.show_history()
+        # import openpyxl
 
+        # folder_path = "C:/GitHub/simglucose/Simulazioni_RL"  # sostituire con il percorso della cartella da controllare
+        # total_length = 0
+
+
+        # for filename in os.listdir(folder_path):
+        #     if filename.endswith("#009_0.05_history.xlsx"):
+        #         file_path = os.path.join(folder_path, filename)
+        #         df = pd.read_excel(file_path)
+        #         file_length = len(df)
+        #         total_length += file_length
+
+        # print("La lunghezza totale dei file è:", total_length)
+        
+        # if done or self.time==datetime.strptime('4/7/2022 3:12 PM', '%m/%d/%Y %I:%M %p'):
+        # if done or str(self.time)=='2022-04-07 00:32:00':
+        # if done or total_length + self.timesteps==2048: 
+        #     self.show_history()
+        
+        
+        # FOR CONTINNUAL LEARNING
+        # if done: 
+        #     self.show_history()
+        #     self.df_cap['elapsed_time'] = float(self.df_cap['elapsed_time']) + minutes
+        #     self.df_cap.to_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index=False)
+        #     print('done: '+str(minutes), int(self.df_cap['elapsed_time']))
+        # elif minutes== self.target_timesteps*3 or (float(self.df_cap['elapsed_time']) + minutes) == self.timesteps*3:
+        #     self.show_history()
+            
+            
+            
+        # if minutes==6144.0 or (float(self.df_cap['elapsed_time']) + minutes) ==6144.0:            
+        #     self.show_history()
+        #     print('done: '+str(minutes), int(self.df_cap['elapsed_time']))
+            
+        
         # self.df_CGM['CGM'] = self.df_CGM['CGM'].append(pd.Series(CGM), ignore_index=True)
         # self.df_CGM.to_excel(os.path.join(model_path, self.paziente+'_'+str(self.cap)+'_CGM.xlsx'),index=False)
         
@@ -832,6 +880,7 @@ class PPOSimEnv(object):
         self.viewer.render(self.show_history())
 
     def show_history(self):
+        
         df = pd.DataFrame()
         df['Time'] = pd.Series(self.time_hist)
         df['BG'] = pd.Series(self.BG_hist)
@@ -849,7 +898,7 @@ class PPOSimEnv(object):
         df['LBGI'] = pd.Series(self.LBGI_hist)
         df['HBGI'] = pd.Series(self.HBGI_hist)
         df['Risk'] = pd.Series(self.risk_hist)
-        df = df.set_index('Time')
+        # df = df.set_index('Time')
         
         # df_final = self.df_final
         
@@ -871,9 +920,9 @@ class PPOSimEnv(object):
         # self.df_final['Risk'] = pd.concat([self.df_final['Risk'], pd.Series(self.risk_hist)], axis=0, ignore_index=True)
         # self.df_final = df_final.set_index('Time')
         
-        self.df_final = pd.concat([self.df_final, df])
-        
-        self.df_final.to_excel(os.path.join(self.model_path, str(self.time.strftime('%Y_%m_%d_%H_%M_%S'))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
+        # self.df_final = pd.concat([self.df_final, df])
+        now = datetime.now()
+        df.to_excel(os.path.join(self.model_path, str(now.strftime("%Y_%m_%d_%H_%M_%S_%f"))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
         
         # df.to_excel(os.path.join(self.model_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
         

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pkg_resources
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 CONTROL_QUEST = pkg_resources.resource_filename('simglucose',
@@ -73,6 +74,10 @@ class BBController(Controller):
             bolus = (
                 (meal * env_sample_time) / quest.CR.values + (glucose > 150) *
                 (glucose - self.target) / quest.CF.values).item()  # unit: U
+            
+            # SIMULAZIONE ERRORE UMANO         
+            # bolus*= random.uniform(0.7, 1.3)
+            
         else:
             bolus = 0  # unit: U
 

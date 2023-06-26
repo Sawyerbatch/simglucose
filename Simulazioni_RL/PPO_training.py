@@ -134,26 +134,40 @@ model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 #                  'adult#006', 'adult#007', 'adult#008', 'adult#009', 'adult#010']
 
 # tmstp_list = [1440]#, 2048] [1440, 2,400]
-n_steps_list = [1024] # 1 non si può
-tmstps_list = [1024]
+n_steps_list = [32768] # 1 non si può
+# tmstps_list = [1024]
+
+tmstps_list = [32768]
 
 
 # poi 1024/2048 e test di 10 ripetzioni
 # 512/2048
 
-opt_dict = {
-            'adult#001':[0.08, 0.06,0.09],
-            'adult#002':[0.08,0.14],
-            'adult#003':[0.08, 0.06,0.11],
-            'adult#004':[0.07, 0.05,0.09],
-            'adult#005':[0.08,0.13],
-            'adult#006':[0.09, 0.07,0.15],
-            'adult#007':[0.07,0.11],
-            'adult#008':[0.07, 0.06,0.1],
-            'adult#009':[0.07, 0.14,0.05],
-            'adult#010':[0.07,0.14],
-            }
+# opt_dict = {
+            # 'adult#001':[0.07], # 0.06,0.09],
+            # 'adult#002':[0.07], #,0.14],
+            # 'adult#003':[0.07], # 0.06,0.11],
+            # 'adult#004':[0.07], # 0.05,0.09],
+            # 'adult#005':[0.08], #,0.13],
+            # 'adult#006':[0.08], # 0.07,0.15],
+            # 'adult#007':[0.08], # 0.11],
+            # 'adult#008':[0.08], # 0.06,0.1],
+            # 'adult#009':[0.08], #, 0.14,0.05],
+            # 'adult#010':[0.07], #,0.14],
+            # }
 
+opt_dict = {
+            # 'adult#001':[0.08], # 0.06,0.09],
+            # 'adult#002':[0.08], #,0.14],
+            'adult#003':[0.08], # 0.06,0.11],
+            # 'adult#004':[0.07], # 0.05,0.09],
+            # 'adult#005':[0.08], #,0.13],
+            # 'adult#006':[0.09], # 0.07,0.15],
+            # 'adult#007':[0.07], # 0.11],
+            # 'adult#008':[0.07], # 0.06,0.1],
+            # 'adult#009':[0.07], #, 0.14,0.05],
+            # 'adult#010':[0.07], #,0.14],
+            }
     
 for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
     
@@ -168,31 +182,33 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
         
                 df_cap = pd.DataFrame(dizionario, index=[0])
                 df_cap['timesteps'] = total_timesteps
+                df_cap['target timesteps'] = total_timesteps
+                df_cap['elapsed_time'] = 0
                 df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
-            
+                
                 paziente = p
-                n_days = 5
+                n_days = 70
                 n_hours = n_days*24
 
                 scen_long = create_scenario(n_days)
                 scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
     
                 # registrazione per train singolo
-                # register(
-                #     # id='simglucose-adolescent2-v0',
-                #     id='simglucose-adult2-v0',
-                #     # entry_point='simglucose.envs:T1DSimEnv',
-                #     entry_point='simglucose.envs:PPOSimEnv',
-                #     kwargs={'patient_name': paziente,
-                #             'reward_fun': new_reward,
-                #             'custom_scenario': scenario})
+                register(
+                    # id='simglucose-adolescent2-v0',
+                    id='simglucose-adult2-v0',
+                    # entry_point='simglucose.envs:T1DSimEnv',
+                    entry_point='simglucose.envs:PPOSimEnv',
+                    kwargs={'patient_name': paziente,
+                            'reward_fun': new_reward,
+                            'custom_scenario': scenario})
     
     
     
                 # make env
                 env = gym.make('simglucose-adult2-v0')
                 env.action_space
-                env.reset()
+                # env.reset()
         
                 # iperparametri
                 gamma = 0.99 #  gamma = 0 -> ritorno nell'immediato futuro
