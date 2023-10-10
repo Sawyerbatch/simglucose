@@ -15,13 +15,12 @@ class Viewer(object):
 
     def initialize(self):
         plt.ion()
-        fig, axes = plt.subplots(4) #(5)
+        fig, axes = plt.subplots(4)
 
         axes[0].set_ylabel('BG (mg/dL)')
         axes[1].set_ylabel('CHO (g/min)')
         axes[2].set_ylabel('Insulin (U/min)')
         axes[3].set_ylabel('Risk Index')
-        # axes[4].set_ylabel('dCGM')
 
         lineBG, = axes[0].plot([], [], label='BG')
         lineCGM, = axes[0].plot([], [], label='CGM')
@@ -30,16 +29,13 @@ class Viewer(object):
         lineLBGI, = axes[3].plot([], [], label='Hypo Risk')
         lineHBGI, = axes[3].plot([], [], label='Hyper Risk')
         lineRI, = axes[3].plot([], [], label='Risk Index')
-        
-        # line_dCGM, = axes[4].plot([], [], label='dCGM')
 
-        lines = [lineBG, lineCGM, lineCHO, lineIns, lineLBGI, lineHBGI, lineRI]#, line_dCGM]
+        lines = [lineBG, lineCGM, lineCHO, lineIns, lineLBGI, lineHBGI, lineRI]
 
         axes[0].set_ylim([70, 180])
         axes[1].set_ylim([-5, 30])
         axes[2].set_ylim([-0.5, 1])
         axes[3].set_ylim([0, 5])
-        # axes[4].set_ylim([-20, 20])
 
         for ax in axes:
             ax.set_xlim(
@@ -62,7 +58,6 @@ class Viewer(object):
         axes[3].xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
 
         axes[0].set_title(self.patient_name)
-        # axes[4].set_title(self.patient_name)
 
         return fig, axes, lines
 
@@ -110,9 +105,6 @@ class Viewer(object):
 
         self.lines[6].set_xdata(data.index.values)
         self.lines[6].set_ydata(data['Risk'].values)
-        
-        # self.lines[7].set_xdata(data.index.values)
-        # self.lines[7].set_ydata(data['dCGM'].values)
 
         self.axes[3].draw_artist(self.axes[3].patch)
         self.axes[3].draw_artist(self.lines[4])

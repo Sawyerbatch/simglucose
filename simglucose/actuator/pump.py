@@ -3,13 +3,11 @@ import pkg_resources
 import logging
 import numpy as np
 
-
 INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/pump_params.csv')
-
 logger = logging.getLogger(__name__)
 
-# gestione boli e basale
+
 class InsulinPump(object):
     U2PMOL = 6000
 
@@ -23,7 +21,6 @@ class InsulinPump(object):
         return cls(params)
 
     def bolus(self, amount):
-        # print(amount)
         bol = amount * self.U2PMOL  # convert from U/min to pmol/min
         bol = np.round(bol / self._params['inc_bolus']
                        ) * self._params['inc_bolus']
@@ -34,16 +31,10 @@ class InsulinPump(object):
 
     def basal(self, amount):
         bas = amount * self.U2PMOL  # convert from U/min to pmol/min
-        # bas = float(amount) * self.U2PMOL # con trasformazione in float
         bas = np.round(bas / self._params['inc_basal']
-                        ) * self._params['inc_basal']
-        # bas = np.round(float(bas / self._params['inc_basal'] # con trasformazione float
-        #                 )) * self._params['inc_basal']
+                       ) * self._params['inc_basal']
         bas = bas / self.U2PMOL     # convert from pmol/min to U/min
-        # print(bas)
-        print(self._params['max_basal'])
         bas = min(bas, self._params['max_basal'])
-        
         bas = max(bas, self._params['min_basal'])
         return bas
 

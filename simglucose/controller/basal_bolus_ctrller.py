@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pkg_resources
 import logging
-import random
 
 logger = logging.getLogger(__name__)
 CONTROL_QUEST = pkg_resources.resource_filename('simglucose',
@@ -28,11 +27,8 @@ class BBController(Controller):
         sample_time = kwargs.get('sample_time', 1)
         pname = kwargs.get('patient_name')
         meal = kwargs.get('meal')  # unit: g/min
-        # print(sample_time, pname, meal)
-        # action = self._bb_policy(pname, meal, observation.CGM, sample_time)
-        # action = self._bb_policy(pname, meal, observation[0][0], sample_time)
+
         action = self._bb_policy(pname, meal, observation.CGM, sample_time)
-        # action = self._bb_policy('adult#001', meal, observation[0][0], sample_time)
         return action
 
     def _bb_policy(self, name, meal, glucose, env_sample_time):
@@ -70,14 +66,9 @@ class BBController(Controller):
             logger.info('Calculating bolus ...')
             logger.info(f'Meal = {meal} g/min')
             logger.info(f'glucose = {glucose}')
-            
             bolus = (
                 (meal * env_sample_time) / quest.CR.values + (glucose > 150) *
                 (glucose - self.target) / quest.CF.values).item()  # unit: U
-            
-            # SIMULAZIONE ERRORE UMANO         
-            # bolus*= random.uniform(0.7, 1.3)
-            
         else:
             bolus = 0  # unit: U
 
@@ -87,7 +78,6 @@ class BBController(Controller):
         # (U/min).
         bolus = bolus / env_sample_time  # unit: U/min
         return Action(basal=basal, bolus=bolus)
-        # return bolus
-    
+
     def reset(self):
         pass

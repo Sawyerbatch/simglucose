@@ -1,7 +1,6 @@
 from simglucose.simulation.sim_engine import SimObj, batch_sim
-from simglucose.simulation.env import T1DSimEnv, PPOSimEnv
+from simglucose.simulation.env import T1DSimEnv
 from simglucose.controller.basal_bolus_ctrller import BBController
-from simglucose.controller.random_ctrller import RandomController
 from simglucose.sensor.cgm import CGMSensor
 from simglucose.actuator.pump import InsulinPump
 from simglucose.patient.t1dpatient import T1DPatient
@@ -26,8 +25,6 @@ SENSOR_PARA_FILE = pkg_resources.resource_filename('simglucose',
 INSULIN_PUMP_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/pump_params.csv')
 
-df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
-strategy = df_strategy['strategy'][0]
 
 def pick_patients():
     patient_params = pd.read_csv(PATIENT_PARA_FILE)
@@ -140,7 +137,7 @@ def pick_cgm_seed():
     return seed
 
 
-def pick_insulin_pump(): # aggiunta pompa nuova: dobbiamo prendere i semi interi
+def pick_insulin_pump():
     pump_params = pd.read_csv(INSULIN_PUMP_PARA_FILE)
     pump_names = list(pump_params['Name'].values)
     while True:
@@ -167,9 +164,9 @@ def pick_insulin_pump(): # aggiunta pompa nuova: dobbiamo prendere i semi interi
 
 def pick_scenario(start_time=None):
     while True:
-        print('Select scenario:')
-        print('[1] Random Scenario')
-        print('[2] Custom Scenario')
+        print('Select scnenario:')
+        print('[1] Random Scnenario')
+        print('[2] Custom Scnenario')
         input_value = input('>>>')
         try:
             selection = int(input_value)
@@ -250,21 +247,18 @@ def pick_controller():
     while True:
         print('Select controller:')
         print('[1] Basal-Bolus Controller')
-        print('[2] Random Controller')
         input_value = input('>>>')
         try:
             selection = int(input_value)
         except ValueError:
             print('Please input an integer!')
             continue
-        if selection < 1 or selection > 2:
+        if selection < 1 or selection > 1:
             print('Please input a number from the list!')
         else:
             break
     if selection == 1:
         controller = BBController()
-    elif selection == 2:
-        controller = RandomController()
     return controller
 
 
@@ -317,7 +311,6 @@ def simulate(sim_time=None,
              save_path=None,
              animate=None,
              parallel=None):
-             # strategy=None):
     '''
     Main user interface.
     ----
@@ -368,17 +361,13 @@ def simulate(sim_time=None,
     if controller is None:
         controller = pick_controller()
 
+    cgm_sensor = CGMSensor.withName(cgm_name, seed=cgm_seed)
+
     def local_build_env(pname):
         patient = T1DPatient.withName(pname)
-        cgm_sensor = CGMSensor.withName(cgm_name, seed=cgm_seed)
         insulin_pump = InsulinPump.withName(insulin_pump_name)
         scen = copy.deepcopy(scenario)
-        
-        if strategy == 'PPO':
-            env = PPOSimEnv(patient, cgm_sensor, insulin_pump, scen)
-        else:
-            # env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen, strategy)
-            env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
+        env = T1DSimEnv(patient, cgm_sensor, insulin_pump, scen)
         return env
 
     envs = [local_build_env(p) for p in patient_names]
@@ -386,14 +375,13 @@ def simulate(sim_time=None,
     ctrllers = [copy.deepcopy(controller) for _ in range(len(envs))]
     sim_instances = [
         SimObj(e, c, sim_time, animate=animate, path=save_path)
-        # SimObj(e, c, sim_time, animate=animate, path=save_path, strategy=strategy)
         for (e, c) in zip(envs, ctrllers)
     ]
 
     results = batch_sim(sim_instances, parallel=parallel)
 
     df = pd.concat(results, keys=[s.env.patient.name for s in sim_instances])
-    results, ri_per_hour, zone_stats, figs, axes = report(df, save_path)
+    results, ri_per_hour, zone_stats, figs, axes = report(df, cgm_sensor, save_path)
 
     return results
 

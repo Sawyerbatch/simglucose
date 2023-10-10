@@ -7,20 +7,8 @@ import matplotlib.dates as mdates
 from matplotlib.collections import PatchCollection
 # from pandas.plotting import lag_plot
 import logging
-from simglucose.simulation.env import T1DSimEnv as _T1DSimEnv
-from simglucose.simulation.env import PPOSimEnv as _PPOSimEnv
-
-from datetime import datetime
-date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 logger = logging.getLogger(__name__)
-
-df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
-df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx')        
-strategy = df_strategy['strategy'][0]
-patient = df_strategy['patient'][0]
-# cap = df_cap.loc[df_cap['paziente']==patient].iloc[:,1]
-# cap = cap.iloc[0]
 
 
 def ensemble_BG(BG, ax=None, plot_var=False, nstd=3):
@@ -44,7 +32,7 @@ def ensemble_BG(BG, ax=None, plot_var=False, nstd=3):
     ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
     ax.xaxis.set_major_locator(mdates.DayLocator())
     ax.xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
-    
+
     ax.axhline(70, c='green', linestyle='--', label='Hypoglycemia', lw=1)
     ax.axhline(180, c='red', linestyle='--', label='Hyperglycemia', lw=1)
 
@@ -60,59 +48,27 @@ def ensemblePlot(df):
     df_BG = df.unstack(level=0).BG
     df_CGM = df.unstack(level=0).CGM
     df_CHO = df.unstack(level=0).CHO
-    df_dCGM = df.unstack(level=0).dCGM
-    insulin = df.unstack(level=0).insulin
-    ins_mean = df.unstack(level=0).ins_mean
-    
-    fig = plt.figure(figsize=(14, 12), dpi=100)
-    ax1 = fig.add_subplot(411)
-    ax2 = fig.add_subplot(412)
-    ax3 = fig.add_subplot(413)
-    ax4 = fig.add_subplot(414)
-    # ax5 = fig.add_subplot(515)
-    
-    # fig_2 = plt.figure(figsize=(14, 12), dpi=100)
-    # ax_4_2 = fig_2.add_subplot(111)
-    
+    fig = plt.figure()
+    ax1 = fig.add_subplot(311)
+    ax2 = fig.add_subplot(312)
+    ax3 = fig.add_subplot(313)
     ax1 = ensemble_BG(df_BG, ax=ax1, plot_var=True, nstd=1)
     ax2 = ensemble_BG(df_CGM, ax=ax2, plot_var=True, nstd=1)
     # t = df_CHO.index.to_pydatetime()
     t = pd.to_datetime(df_CHO.index)
     ax3.plot(t, df_CHO)
-    
-    t_dCGM = pd.to_datetime(df_dCGM.index)
-    # ax4.plot(t_dCGM, df_CGM-150)
-    # ax4.plot(t_dCGM, df_dCGM)
-    # ax4.plot(t_dCGM, df_dCGM*0)
-    
-    ax4.plot(t_dCGM, insulin)
-    ax4.plot(t_dCGM, ins_mean)
-    
-    # ax_4_2.plot(t_dCGM, df_CGM)
-    # ax_4_2.plot(t_dCGM, df_dCGM*20)
-    # ax_4_2.plot(t_dCGM, df_dCGM*0)
 
     ax1.tick_params(labelbottom=False)
     ax2.tick_params(labelbottom=False)
     ax3.xaxis.set_minor_locator(mdates.AutoDateLocator())
     ax3.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M\n'))
-    
-    # locator = mdates.AutoDateLocator()
-    # formatter = mdates.ConciseDateFormatter(locator)
-    # ax4.xaxis.set_major_locator(locator)
-    # ax4.xaxis.set_major_formatter(formatter)
+    ax3.xaxis.set_major_locator(mdates.DayLocator())
+    ax3.xaxis.set_major_formatter(mdates.DateFormatter('\n%b %d'))
     ax3.set_xlim([t[0], t[-1]])
     ax1.set_ylabel('Blood Glucose (mg/dl)')
     ax2.set_ylabel('CGM (mg/dl)')
-    ax3.set_ylabel('CHO (g)', labelpad=10)
-    
-    # ax4.set_xlim([t[0], t[-1]])
-    # ax4.set_ylabel('dCGM (mg/dl*s)')
-    
-    ax4.set_xlim([t[0], t[-1]])
-    ax4.set_ylabel('insulin')
-    
-    return fig, ax1, ax2, ax3, ax4
+    ax3.set_ylabel('CHO (g)')
+    return fig, ax1, ax2, ax3
 
 
 def percent_stats(BG, ax=None):
@@ -136,17 +92,22 @@ def percent_stats(BG, ax=None):
     return p_stats, fig, ax
 
 
-def risk_index_trace(df_BG, visualize=False):
-    chunk_BG = [df_BG.iloc[i:i + 60, :] for i in range(0, len(df_BG), 60)]
+def risk_index_trace(df_BG, sample_time=3, window_length=60, visualize=False):
+    step_size = int(window_length / sample_time)  # window size set to 1 hour for calculating Risk Index
+    chunk_BG = [df_BG.iloc[i:i + step_size, :] for i in range(0, len(df_BG), step_size)]
+
+    if len(chunk_BG[-1]) != step_size:  # Remove the last chunk which is not full
+        chunk_BG.pop()
 
     fBG = [
-        np.mean(1.509 * (np.log(BG[BG > 0])**1.084 - 5.381)) for BG in chunk_BG
+        1.509 * (np.log(BG[BG > 0]) ** 1.084 - 5.381) for BG in chunk_BG
     ]
 
-    fBG_df = pd.concat(fBG, axis=1).transpose()
+    rl = [(10 * (fbg * (fbg < 0)) ** 2).mean() for fbg in fBG]
+    rh = [(10 * (fbg * (fbg > 0)) ** 2).mean() for fbg in fBG]
 
-    LBGI = 10 * (fBG_df * (fBG_df < 0))**2
-    HBGI = 10 * (fBG_df * (fBG_df > 0))**2
+    LBGI = pd.concat(rl, axis=1).transpose()
+    HBGI = pd.concat(rh, axis=1).transpose()
     RI = LBGI + HBGI
 
     ri_per_hour = pd.concat(
@@ -278,7 +239,7 @@ def CVGA(BG_list, label=None):
             edgecolors='k',
             zorder=4,
             label='%s (A: %d%%, B: %d%%, C: %d%%, D: %d%%, E: %d%%)' %
-            (l, 100 * A, 100 * B, 100 * C, 100 * D, 100 * E))
+                  (l, 100 * A, 100 * B, 100 * C, 100 * D, 100 * E))
         zone_stats.append((A, B, C, D, E))
 
     zone_stats = pd.DataFrame(zone_stats, columns=['A', 'B', 'C', 'D', 'E'])
@@ -287,41 +248,29 @@ def CVGA(BG_list, label=None):
     return zone_stats, fig, ax
 
 
-def report(df, save_path=None):
+def report(df, cgm_sensor=None, save_path=None):
     BG = df.unstack(level=0).BG
 
-    fig_ensemble, ax1, ax2, ax3, ax_insulin = ensemblePlot(df)
+    fig_ensemble, ax1, ax2, ax3 = ensemblePlot(df)
     pstats, fig_percent, ax4 = percent_stats(BG)
-    ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
+    if cgm_sensor is not None:
+        ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, sample_time=cgm_sensor.sample_time, visualize=False)
+    else:
+        ri_per_hour, ri_mean, fig_ri, ax5 = risk_index_trace(BG, visualize=False)
     zone_stats, fig_cvga, ax6 = CVGA(BG, label='')
-    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax_insulin]
+    axes = [ax1, ax2, ax3, ax4, ax5, ax6]
     figs = [fig_ensemble, fig_percent, fig_ri, fig_cvga]
-    
     results = pd.concat([pstats, ri_mean], axis=1)
 
     if save_path is not None:
-        
-        # results.to_csv(os.path.join(save_path, 'performance_stats_'+date_time+'.csv'))
-        # ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace_'+date_time+'.csv'))
-        # zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats_'+date_time+'.csv'))
-        
-        # T1D_strategy = _T1DSimEnv()
-        # fare excel con strategy e utilizzarla qui
-        # try:
-        
+        results.to_csv(os.path.join(save_path, 'performance_stats.csv'))
+        ri_per_hour.to_csv(os.path.join(save_path, 'risk_trace.csv'))
+        zone_stats.to_csv(os.path.join(save_path, 'CVGA_stats.csv'))
 
-        # except:
-        #     strategy = 'PPO'
-        # print(strategy)
-        
-        results.to_excel(os.path.join(save_path, patient+'_performance_stats_'+strategy+'_'+date_time+'.xlsx'))
-        ri_per_hour.to_excel(os.path.join(save_path, patient+'_risk_trace_'+strategy+'_'+date_time+'.xlsx'))
-        zone_stats.to_excel(os.path.join(save_path, patient+'_CVGA_stats_'+strategy+'_'+date_time+'.xlsx'))
-
-        fig_ensemble.savefig(os.path.join(save_path, patient+'_BG_trace_'+strategy+'_'+date_time+'.png'))
-        fig_percent.savefig(os.path.join(save_path, patient+'_zone_stats_'+strategy+'_'+date_time+'.png'))
-        fig_ri.savefig(os.path.join(save_path, patient+'_risk_stats_'+strategy+'_'+date_time+'.png'))
-        fig_cvga.savefig(os.path.join(save_path, patient+'_CVGA_'+strategy+'_'+date_time+'.png'))
+        fig_ensemble.savefig(os.path.join(save_path, 'BG_trace.png'))
+        fig_percent.savefig(os.path.join(save_path, 'zone_stats.png'))
+        fig_ri.savefig(os.path.join(save_path, 'risk_stats.png'))
+        fig_cvga.savefig(os.path.join(save_path, 'CVGA.png'))
 
     plt.show()
     return results, ri_per_hour, zone_stats, figs, axes

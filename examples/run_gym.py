@@ -1,7 +1,5 @@
 import gym
-'''
-PROVA MODIFICA
-'''
+
 # Register gym environment. By specifying kwargs,
 # you are able to choose which patient to simulate.
 # patient_name must be 'adolescent#001' to 'adolescent#010',

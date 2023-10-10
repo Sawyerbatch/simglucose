@@ -1,11 +1,6 @@
 import logging
 import time
 import os
-from datetime import datetime
-import pandas as pd
-date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
-
-
 
 pathos = True
 try:
@@ -21,45 +16,24 @@ class SimObj(object):
     def __init__(self,
                  env,
                  controller,
-                 # controller1, # DOUBLE PPO
-                 # controller2,
                  sim_time,
                  animate=True,
                  path=None):
-                 # strategy=None):
         self.env = env
         self.controller = controller
         self.sim_time = sim_time
         self.animate = animate
         self._ctrller_kwargs = None
         self.path = path
-        # self.strategy = strategy
-        
-        df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
-        self.strategy = df_strategy['strategy'][0]
 
     def simulate(self):
         self.controller.reset()
-        if self.strategy == 'PPO':
-            obs = self.env.reset() # PPO
-        else:
-            obs, reward, done, info = self.env.reset() # BBC
-
-        done = False
-        reward = 0
-        
-        
+        obs, reward, done, info = self.env.reset()
         tic = time.time()
         while self.env.time < self.env.scenario.start_time + self.sim_time:
             if self.animate:
                 self.env.render()
-            if self.strategy == 'PPO':
-                action = self.controller.policy(obs, reward, done) # PPO
-                
-                # if obs[0][0]
-            else:
-                action = self.controller.policy(obs, reward, done, **info) # BBC
-
+            action = self.controller.policy(obs, reward, done, **info)
             obs, reward, done, info = self.env.step(action)
         toc = time.time()
         logger.info('Simulation took {} seconds.'.format(toc - tic))
@@ -71,14 +45,8 @@ class SimObj(object):
         df = self.results()
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
-        # filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
-        self.path = 'C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy'
-        filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+self.strategy+'_'+date_time+'.xlsx')
-        # filename_exc = os.path.join(self.path, str(self.env.patient.name) +'_'+date_time+'.xlsx')
-        # df.to_csv(filename)
-        df.to_excel(filename_exc)
-        print(filename_exc)
-        print(df)
+        filename = os.path.join(self.path, str(self.env.patient.name) + '.csv')
+        df.to_csv(filename)
 
     def reset(self):
         self.env.reset()
