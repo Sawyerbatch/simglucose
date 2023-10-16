@@ -25,6 +25,8 @@ from simglucose.patient.t1dpatient import T1DPatient
 from simglucose.simulation.env import T1DSimEnv
 from simglucose.controller.basal_bolus_ctrller import BBController
 
+from datetime import datetime
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 
 def quad_func(a,x):
@@ -63,17 +65,65 @@ def insert_dot(string, index):
 
 data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
 
+def create_scenario(n_days, cho_daily=100):
+
+  scenario = []
+  # cho_sum = 0
+  mu_break, sigma_break = 8, 3 
+  mu_lunch, sigma_lunch = 13, 1
+  mu_snack, sigma_snack = 17, 2
+  mu_dinner, sigma_dinner = 21, 2
+  mu_night, sigma_night = 24, 2
+
+  for i in range(n_days):
+
+    mu_cho_break, sigma_cho_break = cho_daily*0.15, 15
+    mu_cho_lunch, sigma_cho_lunch = cho_daily*0.45, 45
+    mu_cho_snack, sigma_cho_snack = cho_daily*0.05, 5
+    mu_cho_dinner, sigma_cho_dinner = cho_daily*0.35, 35
+    mu_cho_night, sigma_cho_night = cho_daily*0.05, 5
+
+    hour_break = int(np.random.normal(mu_break, sigma_break/2)) + 24*i
+    hour_lunch = int(np.random.normal(mu_lunch, sigma_lunch/2)) + 24*i
+    hour_snack = int(np.random.normal(mu_snack, sigma_snack/2)) + 24*i
+    hour_dinner = int(np.random.normal(mu_dinner, sigma_dinner/2)) + 24*i
+    hour_night = int(np.random.normal(mu_night, sigma_night/2)) + 24*i
+
+    cho_break = int(np.random.normal(mu_cho_break, sigma_cho_break/2))
+    cho_lunch = int(np.random.normal(mu_cho_lunch, sigma_cho_lunch/2))
+    cho_snack = int(np.random.normal(mu_cho_snack, sigma_cho_snack/2))
+    cho_dinner = int(np.random.normal(mu_cho_dinner, sigma_cho_dinner/2))
+    cho_night = int(np.random.normal(mu_cho_night, sigma_cho_night/2))
+
+    if int(np.random.randint(100)) < 60:
+      scenario.append((hour_break,cho_break))
+    if int(np.random.randint(100)) < 100:
+      scenario.append((hour_lunch,cho_lunch))
+    if int(np.random.randint(100)) < 30:
+      scenario.append((hour_snack,cho_snack))
+    if int(np.random.randint(100)) < 95:
+      scenario.append((hour_dinner,cho_dinner))
+    if int(np.random.randint(100)) < 3:
+      scenario.append((hour_night,cho_night))
+
+    #cho_sum += cho_break + cho_lunch + cho_snack + cho_dinner + cho_night
+
+  return scenario
+
 
 # test parameters
 
-# n_days = 10
+n_days = 1
 # n_hours = n_days*24
 test_timesteps = 2400 # 5 giorni
 # test_timesteps = 4800 # 10 giorni
-start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+
+now = datetime.now() # gestire una qualsiasi data di input
+start_time = datetime.combine(now.date(), datetime.min.time())
+# start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
-ripetizioni = 100
+ripetizioni = 10
 
 
 
@@ -99,7 +149,7 @@ pazienti = ['adult#001', 'adult#002', 'adult#003', 'adult#004',
 # pazienti = ['adult#007']
 
 
-writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_bbc_errore_test_timesteps_'+str(test_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_bbc_errore_180cho_randomstart_1day_test_timesteps_'+str(test_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
 
 tir_mean_dict = {
             'paziente':[],
@@ -142,8 +192,12 @@ for paziente in pazienti:
     for i, scen in zip(range(ripetizioni), scenarios.values()):
         
         
-        scen = [tuple(x) for x in scen]
-        scenario = CustomScenario(start_time=start_time, scenario=scen)
+        # scen = [tuple(x) for x in scen]
+        # scenario = CustomScenario(start_time=start_time, scenario=scen)
+        
+           
+        scen_long = create_scenario(n_days)
+        scenario = CustomScenario(start_time=start_time, scenario=scen_long)
            
         # simglucose parameters
         patient = T1DPatient.withName(paziente)
