@@ -12,13 +12,17 @@ from gym.utils import seeding
 from datetime import datetime
 import gymnasium
 
+# MARL-pettingzoo
+# https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/classic/tictactoe/tictactoe.py
+from pettingzoo.utils import agent_selector, wrappers
+
 
 PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
 
 
-class T1DSimEnv(gym.Env):
+class T1DSimEnv_MARL(gym.Env):
     """
     A wrapper of simglucose.simulation.env.T1DSimEnv to support gym API
     """
@@ -120,7 +124,7 @@ class T1DSimEnv(gym.Env):
         return self.env.pump._params["max_basal"]
 
 
-class T1DSimGymnaisumEnv(gymnasium.Env):
+class T1DSimGymnasiumEnv_MARL(gymnasium.Env):
     metadata = {"render_modes": ["human"]}
     MAX_BG = 1000
 
@@ -134,18 +138,47 @@ class T1DSimGymnaisumEnv(gymnasium.Env):
     ) -> None:
         super().__init__()
         self.render_mode = render_mode
-        self.env = T1DSimEnv(
+        self.env = T1DSimEnv_MARL(
             patient_name=patient_name,
             custom_scenario=custom_scenario,
             reward_fun=reward_fun,
             seed=seed,
         )
-        self.observation_space = gymnasium.spaces.Box(
-            low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
-        )
-        self.action_space = gymnasium.spaces.Box(
-            low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
-        )
+        
+        self.agents = ["Rick", "Morty"]
+        self.possible_agents = self.agents[:]
+        
+        
+        self.action_spaces = {i: spaces.Box(0, self.env.max_basal) for i in self.agents}
+        self.observation_spaces = {
+            i: spaces.Dict(
+                {
+                    "observation": spaces.Box(
+                        low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
+                    ),
+                    "action_mask": spaces.Box(
+                        low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
+                    ),
+                }
+            )
+            for i in self.agents
+        }
+
+        self.rewards = {i: 0 for i in self.agents}
+        self.terminations = {i: False for i in self.agents}
+        self.truncations = {i: False for i in self.agents}
+        self.infos = {i: {"legal_moves": list(range(0, 9))} for i in self.agents}
+
+        self._agent_selector = agent_selector(self.agents)
+        self.agent_selection = self._agent_selector.reset()
+        
+        # self.observation_space = gymnasium.spaces.Box(
+        #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
+        # )
+        
+        # self.action_space = gymnasium.spaces.Box(
+        #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
+        # )
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -153,7 +186,7 @@ class T1DSimGymnaisumEnv(gymnasium.Env):
         # For example,
         # register(
         #     id="simglucose/adolescent2-v0",
-        #     entry_point="simglucose.envs:T1DSimGymnaisumEnv",
+        #     entry_point="simglucose.envs:T1DSimGymnaisumEnv_MARL",
         #     max_episode_steps=10,
         #     kwargs={"patient_name": "adolescent#002"},
         # )

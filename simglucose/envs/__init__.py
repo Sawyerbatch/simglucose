@@ -1,2 +1,2 @@
-from simglucose.envs.simglucose_gym_env import T1DSimEnv
-from simglucose.envs.simglucose_gym_env import T1DSimGymnaisumEnv
+from simglucose.envs.simglucose_gym_env import T1DSimEnv_MARL
+from simglucose.envs.simglucose_gym_env import T1DSimGymnasiumEnv_MARL
