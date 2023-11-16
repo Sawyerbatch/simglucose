@@ -33,7 +33,7 @@ def risk_diff(BG_last_hour):
         return risk_prev - risk_current
 
 
-class T1DSimEnv(object):
+class T1DSimEnv_MARL(object):
     def __init__(self, patient, sensor, pump, scenario):
         self.patient = patient
         self.sensor = sensor

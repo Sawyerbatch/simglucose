@@ -1,4 +1,4 @@
-from simglucose.simulation.env import T1DSimEnv as _T1DSimEnv
+from simglucose.simulation.env import T1DSimEnv_MARL as _T1DSimEnv_MARL
 from simglucose.patient.t1dpatient import T1DPatient
 from simglucose.sensor.cgm import CGMSensor
 from simglucose.actuator.pump import InsulinPump
@@ -24,7 +24,7 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
 
 class T1DSimEnv_MARL(gym.Env):
     """
-    A wrapper of simglucose.simulation.env.T1DSimEnv to support gym API
+    A wrapper of simglucose.simulation.env.T1DSimEnv_MARL to support gym API
     """
 
     metadata = {"render.modes": ["human"]}
@@ -100,7 +100,7 @@ class T1DSimEnv_MARL(gym.Env):
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv(patient, sensor, pump, scenario)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -149,20 +149,29 @@ class T1DSimGymnasiumEnv_MARL(gymnasium.Env):
         self.possible_agents = self.agents[:]
         
         
-        self.action_spaces = {i: spaces.Box(0, self.env.max_basal) for i in self.agents}
-        self.observation_spaces = {
+        self.action_space = {i: spaces.Discrete(100) for i in self.agents}
+        # self.action_space = {i: spaces.Box(0, self.env.max_basal, shape=(1,)) for i in self.agents}
+        self.observation_space = {
             i: spaces.Dict(
                 {
                     "observation": spaces.Box(
-                        low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
+                        low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
                     ),
+                    # "action_mask": spaces.Box(
+                    #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
                     "action_mask": spaces.Box(
-                        low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
+                        low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
                     ),
                 }
             )
             for i in self.agents
         }
+        
+        def observation_space(self, agent):
+            return self.observation_spaces[agent]
+
+        def action_space(self, agent):
+            return self.action_spaces[agent]
 
         self.rewards = {i: 0 for i in self.agents}
         self.terminations = {i: False for i in self.agents}
