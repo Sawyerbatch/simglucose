@@ -24,7 +24,6 @@ env = PettingZooEnv(gymnasium.make("simglucose/adolescent2-v0", render_mode="hum
 # env = gymnasium.make("simglucose/adolescent2-v0", render_mode="human")
 
 
-
 observation, info = env.reset()
 for t in range(200):
     env.render()
