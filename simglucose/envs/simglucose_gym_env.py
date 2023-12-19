@@ -13,11 +13,14 @@ from gym.utils import seeding
 from datetime import datetime
 import gymnasium
 
-
+from gymnasium.spaces import Discrete, MultiDiscrete
 # MARL-pettingzoo
 # https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/classic/tictactoe/tictactoe.py
 from pettingzoo.utils import agent_selector, wrappers
 from pettingzoo import ParallelEnv
+
+from typing import Any, Dict, Generic, Iterable, Iterator, TypeVar
+ObsType = TypeVar("ObsType")
 
 PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
@@ -25,6 +28,9 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
 
 
 class T1DSimEnv_MARL(gym.Env):
+    metadata = {"render_modes": ["human"],
+                    'name': 'T1DSimGymnasiumEnv_MARL'
+                    }
     """
     A wrapper of simglucose.simulation.env.T1DSimEnv_MARL to support gym API
     """
@@ -164,8 +170,9 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.action_space = {i: spaces.Dict({'action':spaces.Discrete(100)}) for i in self.agents}
         # self.action_space = {i: spaces.Discrete(100) for i in self.agents}
         
-        
-        self.action_space = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, self.env.max_basal, 
+        # self.action_space = gymnasium.spaces.Space({i: gymnasium.spaces.Box(0, self.env.max_basal, 
+        #                                             shape=(1,)) for i in self.agents})
+        self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, self.env.max_basal, 
                                                     shape=(1,)) for i in self.agents})
         # self.action_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Box(0, self.env.max_basal, 
         #                                             shape=(1,)) for i in self.agents})
@@ -183,7 +190,24 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.observation_space = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(
         #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32) for i in self.agents})
         
-        self.observation_space = gymnasium.spaces.Dict({i: gymnasium.spaces.Dict(
+        # self.observation_space = gymnasium.spaces.Space({i: gymnasium.spaces.Box(0, self.env.max_basal, 
+        #                                             shape=(1,)) for i in self.agents})
+        
+        # self.observation_spaces = gymnasium.spaces.Space({i: gymnasium.spaces.Dict(
+        #         {
+        #             "observation": gymnasium.spaces.Box(
+        #                 low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
+        #             ),
+        #             # "action_mask": spaces.Box(
+        #             #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
+        #             "action_mask": gymnasium.spaces.Box(
+        #                 low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
+        #             ),
+        #         }
+        #     )
+        #     for i in self.agents})
+        
+        self.observation_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Dict(
                 {
                     "observation": gymnasium.spaces.Box(
                         low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
@@ -196,6 +220,11 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
                 }
             )
             for i in self.agents})
+        
+        # self.observation_spaces = {
+        #     a:gymnasium.spaces.Box(low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32)
+        #     for a in self.agents}
+        
         
         # self.observation_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Dict(
         #         {
@@ -219,13 +248,23 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.action_space = gymnasium.spaces.Box(
         #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
         # )
+    
+    def action_space(self, agent):
+        return self.action_spaces[agent]
         
-        
-        def observation_space(self, agent):
-            return self.observation_space[agent]
+    def observation_space(self, agent):
+        return self.observation_spaces[agent]
 
-        def action_space(self, agent):
-            return self.action_space[agent]
+    
+    
+    # def observation_space(self, agent):
+    #     # return self.observation_spaces[agent]
+    #     return MultiDiscrete([7 * 7] * 3)
+
+    # def action_space(self, agent):
+    #     print('ciao')
+    #     # return self.action_spaces[agent]
+    #     return MultiDiscrete([7 * 7] * 3)
 
         # self.rewards = {i: 0 for i in self.agents}
         # self.terminations = {i: False for i in self.agents}
@@ -242,9 +281,11 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.action_space = gymnasium.spaces.Box(
         #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
         # )
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
+        
+    # def step(self, action):
+    def step(self, actions):
+        # obs, reward, done, info = self.env.step(action)
+        obs, reward, done, info = self.env.step(actions)
         # Truncated will be controlled by TimeLimit wrapper when registering the env.
         # For example,
         # register(
@@ -255,12 +296,41 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # )
         # Once the max_episode_steps is set, the truncated value will be overridden.
         truncated = False
-        return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
+        rewards ={i:0 for i in self.agents}
+        # rewards ={i:reward for i in self.agents}
+        # terminations = {i:done for i in self.agents}
+        terminations = {i:done for i in self.agents}
+        # truncations = {i:done for i in self.agents}
+        truncations = {i:truncated for i in self.agents}
+        infos = {i:info for i in self.agents}
+        
+        return observations, rewards, terminations, truncations, infos
+    
+
 
     def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
+        # super().reset(seed=seed)
+        
+        # self.observation_spaces = gymnasium.spaces.Space({i: gymnasium.spaces.Dict(
+        #         {
+        #             "observation": gymnasium.spaces.Box(
+        #                 low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
+        #             ),
+        #             # "action_mask": spaces.Box(
+        #             #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
+        #             "action_mask": gymnasium.spaces.Box(
+        #                 low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
+        #             ),
+        #         }
+        #     )
+        #     for i in self.agents})
+        
+        
         obs, _, _, info = self.env._raw_reset()
-        return np.array([obs.CGM], dtype=np.float32), info
+        # return np.array([obs.CGM], dtype=np.float32), info
+        return {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}, {i:info for i in self.agents}
 
     def render(self):
         if self.render_mode == "human":
