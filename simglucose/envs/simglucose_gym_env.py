@@ -12,7 +12,7 @@ from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
 import gymnasium
-
+from copy import copy
 from gymnasium.spaces import Discrete, MultiDiscrete
 # MARL-pettingzoo
 # https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/classic/tictactoe/tictactoe.py
@@ -160,6 +160,8 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         self.agents = ["Rick", "Morty"]
         self.possible_agents = self.agents[:]
         
+        self.communication_channel = {"Rick": None, "Morty": None}
+        
         # self.action_space = {
         #     i: gymnasium.spaces.Box(
         #         low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
@@ -176,7 +178,6 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
                                                     shape=(1,)) for i in self.agents})
         # self.action_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Box(0, self.env.max_basal, 
         #                                             shape=(1,)) for i in self.agents})
-        
         
         
          # self.action_space = spaces.Tuple(
@@ -220,7 +221,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
                 }
             )
             for i in self.agents})
-        
+    
         # self.observation_spaces = {
         #     a:gymnasium.spaces.Box(low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32)
         #     for a in self.agents}
@@ -284,8 +285,21 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
     # def step(self, action):
     def step(self, actions):
+        
+        rick_action = actions["Rick"]
+        morty_action = actions["Morty"]
+        
+        rick_obs, rick_reward, rick_done, rick_info = self.env.step(rick_action)
+        morty_obs, morty_reward, morty_done, morty_info = self.env.step(morty_action)
+        
+        # Aggiorna la comunicazione tra agenti
+        self.communication_channel["Rick"] = morty_obs.CGM
+        self.communication_channel["Morty"] = rick_obs.CGM
+        
+        current_communication = self.communication_channel.copy()
         # obs, reward, done, info = self.env.step(action)
-        obs, reward, done, info = self.env.step(actions)
+        # obs, reward, done, info = self.env.step(actions)
+        
         # Truncated will be controlled by TimeLimit wrapper when registering the env.
         # For example,
         # register(
@@ -294,17 +308,79 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         #     max_episode_steps=10,
         #     kwargs={"patient_name": "adolescent#002"},
         # )
+        
+        
         # Once the max_episode_steps is set, the truncated value will be overridden.
-        truncated = False
+        # truncated = False
+        rick_truncated = False
+        morty_truncated = False
+        
+        
         # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
-        observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
-        rewards ={i:0 for i in self.agents}
+        # observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
+        observations = {'Rick':np.array([rick_obs.CGM], dtype=np.float32),
+                        'Morty':np.array([morty_obs.CGM], dtype=np.float32)}
+        
+        observations = {
+            'Rick': {
+                "observation": np.array([rick_obs.CGM], dtype=np.float32),
+                # "action_mask": np.array([rick_obs.CGM], dtype=np.float32),
+                "communication_channel": current_communication
+            },
+            'Morty': {
+                "observation": np.array([morty_obs.CGM], dtype=np.float32),
+                # "action_mask": np.array([morty_obs.CGM], dtype=np.float32),
+                "communication_channel": current_communication
+            }
+        }
+        
+        
+        # rewards ={i:0 for i in self.agents}
+        rewards = {'Rick':rick_reward,
+                   'Morty':morty_reward}
+        
+        # Modifica le condizioni di terminazione
+        max_allowed_bg = 250  # Modifica questo valore secondo i tuoi criteri
+        rick_done = rick_obs.CGM > max_allowed_bg
+        morty_done = morty_obs.CGM > max_allowed_bg
+
+        
         # rewards ={i:reward for i in self.agents}
         # terminations = {i:done for i in self.agents}
-        terminations = {i:done for i in self.agents}
+        
+        # terminations = {i:done for i in self.agents}
+        terminations = {'Rick':rick_done,
+                        'Morty':morty_done}
+        
+        # done = any([rick_done, morty_done])
+        
         # truncations = {i:done for i in self.agents}
-        truncations = {i:truncated for i in self.agents}
-        infos = {i:info for i in self.agents}
+        # truncations = {i:truncated for i in self.agents}
+        truncations = {'Rick':rick_truncated,
+                        'Morty':morty_truncated}
+        
+        
+        # infos = {i:info for i in self.agents}
+        infos = {'Rick':rick_info,
+                 'Morty':morty_info}
+        
+        # iper_s = 160
+        # ipo_s = 85
+        
+        # Logica delle azioni basata sulla CGM
+        # if rick_obs.CGM < ipo_s:
+        #     rick_action = azione_in_base_a_ipo_s
+        # elif rick_obs.CGM > iper_s:
+        #     rick_action = azione_in_base_a_iper_s
+        
+        # if np.array([obs.CGM], dtype=np.float32) < ipo_s:
+        #     return np.array([obs.CGM], dtype=np.float32), rick_reward, rick_done, rick_truncated, rick_info
+        # elif np.array([obs.CGM], dtype=np.float32) > iper_s:
+        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        # else:
+        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        
+        
         
         return observations, rewards, terminations, truncations, infos
     
@@ -312,7 +388,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
 
     def reset(self, seed=None, options=None):
         # super().reset(seed=seed)
-        
+        self.agents = copy(self.possible_agents)
         # self.observation_spaces = gymnasium.spaces.Space({i: gymnasium.spaces.Dict(
         #         {
         #             "observation": gymnasium.spaces.Box(
@@ -329,8 +405,19 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         
         obs, _, _, info = self.env._raw_reset()
+        
+        observations = {
+            "Rick": {"observation": obs},#, "action_mask": [0, 1, 1, 0]},
+            "Morty": {"observation": obs},#, "action_mask": [1, 0, 0, 1]},
+        }
+
+        # Get dummy infos. Necessary for proper parallel_to_aec conversion
+        infos = {a: {} for a in self.agents}
+
+        return observations, infos
+        
         # return np.array([obs.CGM], dtype=np.float32), info
-        return {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}, {i:info for i in self.agents}
+        # return {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}, {i:info for i in self.agents}
 
     def render(self):
         if self.render_mode == "human":
