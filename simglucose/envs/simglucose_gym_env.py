@@ -288,13 +288,54 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         rick_action = actions["Rick"]
         morty_action = actions["Morty"]
+        safe_action = np.array([[0.0]])
         
-        rick_obs, rick_reward, rick_done, rick_info = self.env.step(rick_action)
-        morty_obs, morty_reward, morty_done, morty_info = self.env.step(morty_action)
+        iper_s = 120
+        ipo_s = 85
+        
+        # # Logica delle azioni basata sulla CGM
+        # if rick_obs.CGM < ipo_s:
+        #     rick_action = azione_in_base_a_ipo_s
+        # elif rick_obs.CGM > iper_s:
+        #     rick_action = azione_in_base_a_iper_s
+        
+        # if np.array([obs.CGM], dtype=np.float32) < ipo_s:
+        #     return np.array([obs.CGM], dtype=np.float32), rick_reward, rick_done, rick_truncated, rick_info
+        # elif np.array([obs.CGM], dtype=np.float32) > iper_s:
+        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        # else:
+        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        
+        if self.obs.CGM > iper_s:     
+            self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
+            print('Rick obs', self.rick_obs)
+            self.obs = self.rick_obs
+            self.communication_channel["Morty"] = self.rick_obs.CGM
+        elif ipo_s < self.obs.CGM < iper_s:
+            self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
+            print('Morty obs', self.morty_obs)
+            self.obs = self.morty_obs
+            self.communication_channel["Rick"] = self.morty_obs.CGM
+        else:
+            self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
+            print('Morty obs', self.morty_obs)
+            self.obs = self.morty_obs
+            self.communication_channel["Morty"] = self.morty_obs.CGM
+            self.communication_channel["Rick"] = self.morty_obs.CGM
+            
+        # rick_obs, rick_reward, rick_done, rick_info = self.env.step(rick_action)
+        # print('Rick obs', rick_obs)
+        # morty_obs, morty_reward, morty_done, morty_info = self.env.step(morty_action)
+        # print('Morty obs', morty_obs)
+        
+        # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
+        # print('Rick obs', self.rick_obs)
+        # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
+        # print('Morty obs', self.morty_obs)
         
         # Aggiorna la comunicazione tra agenti
-        self.communication_channel["Rick"] = morty_obs.CGM
-        self.communication_channel["Morty"] = rick_obs.CGM
+        # self.communication_channel["Morty"] = self.rick_obs.CGM
+        # self.communication_channel["Rick"] = self.morty_obs.CGM
         
         current_communication = self.communication_channel.copy()
         # obs, reward, done, info = self.env.step(action)
@@ -318,17 +359,17 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
         # observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
-        observations = {'Rick':np.array([rick_obs.CGM], dtype=np.float32),
-                        'Morty':np.array([morty_obs.CGM], dtype=np.float32)}
+        observations = {'Rick':np.array([self.rick_obs.CGM], dtype=np.float32),
+                        'Morty':np.array([self.morty_obs.CGM], dtype=np.float32)}
         
         observations = {
             'Rick': {
-                "observation": np.array([rick_obs.CGM], dtype=np.float32),
+                "observation": np.array([self.rick_obs.CGM], dtype=np.float32),
                 # "action_mask": np.array([rick_obs.CGM], dtype=np.float32),
                 "communication_channel": current_communication
             },
             'Morty': {
-                "observation": np.array([morty_obs.CGM], dtype=np.float32),
+                "observation": np.array([self.morty_obs.CGM], dtype=np.float32),
                 # "action_mask": np.array([morty_obs.CGM], dtype=np.float32),
                 "communication_channel": current_communication
             }
@@ -336,49 +377,33 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         
         # rewards ={i:0 for i in self.agents}
-        rewards = {'Rick':rick_reward,
-                   'Morty':morty_reward}
+        rewards = {'Rick':self.rick_reward,
+                   'Morty':self.morty_reward}
         
         # Modifica le condizioni di terminazione
         max_allowed_bg = 250  # Modifica questo valore secondo i tuoi criteri
-        rick_done = rick_obs.CGM > max_allowed_bg
-        morty_done = morty_obs.CGM > max_allowed_bg
+        rick_done = self.rick_obs.CGM > max_allowed_bg
+        morty_done = self.morty_obs.CGM > max_allowed_bg
 
         
         # rewards ={i:reward for i in self.agents}
         # terminations = {i:done for i in self.agents}
         
         # terminations = {i:done for i in self.agents}
-        terminations = {'Rick':rick_done,
-                        'Morty':morty_done}
+        terminations = {'Rick':self.rick_done,
+                        'Morty':self.morty_done}
         
         # done = any([rick_done, morty_done])
         
         # truncations = {i:done for i in self.agents}
         # truncations = {i:truncated for i in self.agents}
-        truncations = {'Rick':rick_truncated,
-                        'Morty':morty_truncated}
+        truncations = {'Rick':self.rick_truncated,
+                        'Morty':self.morty_truncated}
         
         
         # infos = {i:info for i in self.agents}
-        infos = {'Rick':rick_info,
-                 'Morty':morty_info}
-        
-        # iper_s = 160
-        # ipo_s = 85
-        
-        # Logica delle azioni basata sulla CGM
-        # if rick_obs.CGM < ipo_s:
-        #     rick_action = azione_in_base_a_ipo_s
-        # elif rick_obs.CGM > iper_s:
-        #     rick_action = azione_in_base_a_iper_s
-        
-        # if np.array([obs.CGM], dtype=np.float32) < ipo_s:
-        #     return np.array([obs.CGM], dtype=np.float32), rick_reward, rick_done, rick_truncated, rick_info
-        # elif np.array([obs.CGM], dtype=np.float32) > iper_s:
-        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
-        # else:
-        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
+        infos = {'Rick':self.rick_info,
+                 'Morty':self.morty_info}
         
         
         
@@ -404,11 +429,25 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         #     for i in self.agents})
         
         
-        obs, _, _, info = self.env._raw_reset()
+        
+        # obs, _, _, info = self.env._raw_reset()
+        
+        # observations = {
+        #     "Rick": {"observation": obs},#, "action_mask": [0, 1, 1, 0]},
+        #     "Morty": {"observation": obs},#, "action_mask": [1, 0, 0, 1]},
+        # }
+        
+        self.rick_reward, self.rick_done, self.rick_truncated, self.rick_info = 0.0, False, False, {}
+        self.morty_reward, self.morty_done, self.morty_truncated, self.morty_info = 0.0, False, False, {}
+        
+        self.obs, _, _, info = self.env._raw_reset()
+        
+        self.rick_obs = self.obs
+        self.morty_obs = self.obs
         
         observations = {
-            "Rick": {"observation": obs},#, "action_mask": [0, 1, 1, 0]},
-            "Morty": {"observation": obs},#, "action_mask": [1, 0, 0, 1]},
+            "Rick": {"observation": self.rick_obs},#, "action_mask": [0, 1, 1, 0]},
+            "Morty": {"observation": self.morty_obs},#, "action_mask": [1, 0, 0, 1]},
         }
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion

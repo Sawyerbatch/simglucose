@@ -64,9 +64,9 @@ env = T1DSimGymnasiumEnv_MARL()
 
 
 observation, info = env.reset()
-print(observation, info)
+# print(observation, info)
 
-parallel_api_test(env)
+# parallel_api_test(env)
 # api_test(env)
 
 
@@ -92,15 +92,17 @@ import time
 # ...
 
 # Definisci il numero di passi da eseguire nella simulazione
-num_steps = 10
+num_steps = 50
 
 # Esegui la simulazione
 for step in range(num_steps):
+    print('Step numero', step)
     # Esegui un passo dell'ambiente
     # actions = {agent: env.action_space[agent].sample() for agent in env.agents}
     actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+    print(actions)
     observations, rewards, done, truncations, infos = env.step(actions)
-
+    # print(observations)
     # Aggiorna l'ambiente e visualizza le informazioni
     env.render()
     time.sleep(0.1)
