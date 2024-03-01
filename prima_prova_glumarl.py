@@ -15,10 +15,12 @@ from pettingzoo import ParallelEnv
 from simglucose.envs import T1DSimGymnasiumEnv_MARL
 from pettingzoo.test import parallel_api_test, api_test
 import warnings
-
-
+import json
+from simglucose.simulation.scenario import CustomScenario
 from tianshou.env import PettingZooEnv
 from pettingzoo import AECEnv
+from datetime import datetime
+
 
 # # Definisci una classe wrapper per adattare l'ambiente multi-agente a pettingzoo.AECEnv
 # class T1DSimGymnasiumWrapper(AECEnv):
@@ -56,21 +58,18 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 # env = PettingZooEnv(T1DSimGymnasiumEnv_MARL())
-env = T1DSimGymnasiumEnv_MARL()
+# env = T1DSimGymnasiumEnv_MARL()
 # env = PettingZooEnv("simglucose/adolescent2-v0")
 # env = PettingZooEnv(gymnasium.make("simglucose/adolescent2-v0", render_mode="human"))
 # env = MultiAgentEnv(gymnasium.make("simglucose/adolescent2-v0", render_mode="human"))
 # env = gymnasium.make("simglucose/adolescent2-v0", render_mode="human")
 
 
-observation, info = env.reset()
+# observation, info = env.reset()
 # print(observation, info)
 
 # parallel_api_test(env)
 # api_test(env)
-
-
-
 
 
 
@@ -89,7 +88,46 @@ observation, info = env.reset()
 
 import time
 
-# ...
+def new_func(x):
+    return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+def new_reward(BG_last_hour):
+    return new_func(BG_last_hour[-1])
+
+start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+
+with open('scenarios_5_days_1000_times.json') as json_file:
+    scenarios = json.load(json_file)
+    
+scen = list(scenarios.values())[0]
+    
+scen = [tuple(x) for x in scen]
+scenario = CustomScenario(start_time=start_time, scenario=scen)
+
+register(
+        # id='simglucose-adolescent2-v0',
+        id='simglucose-adult2-v0',
+        # entry_point='simglucose.envs:T1DSimEnv',
+        entry_point='simglucose.envs:T1DSimGymnasiumEnv_MARL',
+        kwargs={'patient_name': 'adult#001',\
+                'reward_fun': new_reward,
+                'custom_scenario': scenario
+                })
+
+    
+# Create a list of environment names
+env_names = ['simglucose-adult2-v0'] * 2  # Adjust the number of environments as needed
+
+# Create a parallel environment
+env = ParallelEnv(env_names)
+    
+# env = PettingZooEnv("simglucose-adult2-v0")
+# env = ParallelEnv("simglucose-adult2-v0")
+# env = ParallelEnv()
+# env = gym.make('simglucose-adult2-v0')
+# env = T1DSimGymnasiumEnv_MARL()
+
+observation, info = env.reset()
 
 # Definisci il numero di passi da eseguire nella simulazione
 num_steps = 50

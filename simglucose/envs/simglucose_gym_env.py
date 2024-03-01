@@ -308,17 +308,17 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         if self.obs.CGM > iper_s:     
             self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
-            print('Rick obs', self.rick_obs)
+            print('Rick action, obs', self.rick_obs)
             self.obs = self.rick_obs
             self.communication_channel["Morty"] = self.rick_obs.CGM
         elif ipo_s < self.obs.CGM < iper_s:
             self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
-            print('Morty obs', self.morty_obs)
+            print('Morty action, obs', self.morty_obs)
             self.obs = self.morty_obs
             self.communication_channel["Rick"] = self.morty_obs.CGM
         else:
             self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
-            print('Morty obs', self.morty_obs)
+            print('Safe action, obs', self.morty_obs)
             self.obs = self.morty_obs
             self.communication_channel["Morty"] = self.morty_obs.CGM
             self.communication_channel["Rick"] = self.morty_obs.CGM
