@@ -105,10 +105,12 @@ class T1DSimEnv_MARL(gym.Env):
                 if self.custom_scenario is None
                 else self.custom_scenario
             )
+        
+        reward_fun = self.reward_fun
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -157,6 +159,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             seed=seed,
         )
         
+        
         self.agents = ["Rick", "Morty"]
         self.possible_agents = self.agents[:]
         
@@ -174,10 +177,13 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         # self.action_space = gymnasium.spaces.Space({i: gymnasium.spaces.Box(0, self.env.max_basal, 
         #                                             shape=(1,)) for i in self.agents})
-        self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, self.env.max_basal, 
-                                                    shape=(1,)) for i in self.agents})
+        # self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, self.env.max_basal, 
+        #                                             shape=(1,)) for i in self.agents})
         # self.action_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Box(0, self.env.max_basal, 
         #                                             shape=(1,)) for i in self.agents})
+        
+        self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, 1, 
+                                                    shape=(1,)) for i in self.agents})
         
         
          # self.action_space = spaces.Tuple(
@@ -308,17 +314,23 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         if self.obs.CGM > iper_s:     
             self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
-            print('Rick action, obs', self.rick_obs)
+            print('Rick action', rick_action)
+            # self.obs, self.reward, self.done, self.info = self.env.step(rick_action)
+            print('obs', self.rick_obs)
             self.obs = self.rick_obs
             self.communication_channel["Morty"] = self.rick_obs.CGM
         elif ipo_s < self.obs.CGM < iper_s:
             self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
-            print('Morty action, obs', self.morty_obs)
+            print('Morty action', morty_action)
+            # self.obs, self.reward, self.done, self.info = self.env.step(morty_action)
+            print('obs', self.morty_obs)
             self.obs = self.morty_obs
             self.communication_channel["Rick"] = self.morty_obs.CGM
         else:
             self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
-            print('Safe action, obs', self.morty_obs)
+            print('Safe action', safe_action)
+            # self.obs, self.reward, self.done, self.info = self.env.step(safe_action)
+            print('obs', self.morty_obs)
             self.obs = self.morty_obs
             self.communication_channel["Morty"] = self.morty_obs.CGM
             self.communication_channel["Rick"] = self.morty_obs.CGM
@@ -379,11 +391,13 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # rewards ={i:0 for i in self.agents}
         rewards = {'Rick':self.rick_reward,
                    'Morty':self.morty_reward}
+        print(rewards)
         
         # Modifica le condizioni di terminazione
         max_allowed_bg = 250  # Modifica questo valore secondo i tuoi criteri
-        rick_done = self.rick_obs.CGM > max_allowed_bg
-        morty_done = self.morty_obs.CGM > max_allowed_bg
+        min_allowed_bg = 40
+        rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
+        morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
 
         
         # rewards ={i:reward for i in self.agents}

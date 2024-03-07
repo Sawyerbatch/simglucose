@@ -34,11 +34,12 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv_MARL(object):
-    def __init__(self, patient, sensor, pump, scenario):
+    def __init__(self, patient, sensor, pump, scenario, reward_fun):
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
+        self.reward_fun = reward_fun
         self._reset()
 
     @property
@@ -48,10 +49,13 @@ class T1DSimEnv_MARL(object):
     def mini_step(self, action):
         # current action
         patient_action = self.scenario.get_action(self.time)
+        print('patient action', patient_action)
+        
         basal = self.pump.basal(action.basal)
         bolus = self.pump.bolus(action.bolus)
         insulin = basal + bolus
         CHO = patient_action.meal
+        print('CHO', CHO)
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
 
         # State update
