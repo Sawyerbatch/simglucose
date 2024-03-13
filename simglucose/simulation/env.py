@@ -50,14 +50,14 @@ class T1DSimEnv_MARL(object):
         # current action
         patient_action = self.scenario.get_action(self.time)
         print('patient action', patient_action)
-        
+        # print(self.scenario)
         basal = self.pump.basal(action.basal)
         bolus = self.pump.bolus(action.bolus)
         insulin = basal + bolus
         CHO = patient_action.meal
         print('CHO', CHO)
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
-
+        # print(self.patient)
         # State update
         self.patient.step(patient_mdl_act)
 

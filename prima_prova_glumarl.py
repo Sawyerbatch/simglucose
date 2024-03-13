@@ -22,7 +22,8 @@ import pettingzoo
 from pettingzoo import AECEnv
 from datetime import datetime
 import gym
-
+from stable_baselines3 import PPO
+from stable_baselines3.ppo import CnnPolicy, MlpPolicy
 
 # # Definisci una classe wrapper per adattare l'ambiente multi-agente a pettingzoo.AECEnv
 # class T1DSimGymnasiumWrapper(AECEnv):
@@ -96,7 +97,7 @@ def new_func(x):
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
 
-start_time = datetime.strptime('3/4/2022 8:50 AM', '%m/%d/%Y %I:%M %p')
+start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 
 with open('scenarios_5_days_1000_times.json') as json_file:
     scenarios = json.load(json_file)
@@ -104,6 +105,7 @@ with open('scenarios_5_days_1000_times.json') as json_file:
 scen = list(scenarios.values())[0]
     
 scen = [tuple(x) for x in scen]
+# scen[0]  = (1,30)
 scenario = CustomScenario(start_time=start_time, scenario=scen)
 
 # register(
@@ -141,12 +143,32 @@ env = T1DSimGymnasiumEnv_MARL(
     render_mode="human",
 )
 
+# # Definisci il numero di passi da eseguire nella simulazione
+num_steps = 5000
+
+
+#%%
+
+gamma = 0.99 #  gamma = 0 -> ritorno nell'immediato futuro
+# 1, 0.99, 0.95, 0.9, 0.7, 0.5
+# gae_gamma # tradeoff bias varianza 0 = maggiore varianza e minor bias (più precisi ma più instabili)
+# net_arch = dict(pi=[64, 64, 64], vf=[64, 64, 64])
+learning_rate = 0.0003
+# learning_rate = 0.00003 # new lr
+model = PPO(MlpPolicy, env, verbose=0, n_steps=num_steps,
+            gamma=gamma, learning_rate=learning_rate)
+
+total_timesteps = 1000
+
+model.learn(total_timesteps=total_timesteps, progress_bar=True)
+
+
+
+#%%
+
 # parallel_api_test(env)
 
-observation, info = env.reset()
-
-# Definisci il numero di passi da eseguire nella simulazione
-num_steps = 5000
+observation, info = env.reset(seed=42)
 
 # Esegui la simulazione
 for step in range(num_steps):

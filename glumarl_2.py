@@ -94,17 +94,17 @@ for episode in range(num_episodes):
             print(f"La simulazione è terminata dopo {step+1} passi nell'episodio {episode + 1}")
             break
 
-    # # Converti i dati raccolti in Batch per l'addestramento
-    # batch = Batch(
-    #     obs=obs_list,
-    #     act=act_list,
-    #     rew=rew_list,
-    #     done=np.array(done_list),
-    #     obs_next=observations
-    # )
+    # Converti i dati raccolti in Batch per l'addestramento
+    batch = Batch(
+        obs=obs_list,
+        act=act_list,
+        rew=rew_list,
+        done=np.array(done_list),
+        obs_next=observations
+    )
 
-        # Esegui l'aggiornamento del modello
-        result = policy.learn()
+    # Esegui l'aggiornamento del modello
+    result = policy.learn()
 
-        # Stampa informazioni sull'addestramento
-        print(f"Addestramento episodio {episode + 1}: {result}")
+    # Stampa informazioni sull'addestramento
+    print(f"Addestramento episodio {episode + 1}: {result}")

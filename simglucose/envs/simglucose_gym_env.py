@@ -99,6 +99,7 @@ class T1DSimEnv_MARL(gym.Env):
 
         if isinstance(self.custom_scenario, list):
             scenario = self.np_random.choice(self.custom_scenario)
+            
         else:
             scenario = (
                 RandomScenario(start_time=start_time, seed=seed3)
@@ -182,7 +183,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.action_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Box(0, self.env.max_basal, 
         #                                             shape=(1,)) for i in self.agents})
         
-        self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, 1, 
+        self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, 0.1, 
                                                     shape=(1,)) for i in self.agents})
         
         
