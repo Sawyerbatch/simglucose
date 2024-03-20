@@ -61,10 +61,10 @@ policy = PPOPolicy(env)
 # ...
 
 # Numero totale di episodi da eseguire
-num_episodes = 2
+num_episodes = 1
 
 # Numero di passi per ogni episodio
-num_steps_per_episode = 10
+num_steps_per_episode = 1
 
 for episode in range(num_episodes):
     print(f'Inizio episodio {episode + 1}')

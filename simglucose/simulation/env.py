@@ -66,6 +66,7 @@ class T1DSimEnv_MARL(object):
         CGM = self.sensor.measure(self.patient)
 
         return CHO, insulin, BG, CGM
+    
 
     def step(self, action, reward_fun=risk_diff):
         """

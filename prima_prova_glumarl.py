@@ -7,21 +7,21 @@ Created on Mon Nov 13 14:07:29 2023
 
 # import pettingzoo
 # import tianshou
-from tianshou.env import PettingZooEnv
+# from tianshou.env import PettingZooEnv
 # from tianshou.env import MultiAgentEnv
-import gymnasium
-from gymnasium.envs.registration import register
-from pettingzoo import ParallelEnv
+# import gymnasium
+# from gymnasium.envs.registration import register
+# from pettingzoo import ParallelEnv
 from simglucose.envs import T1DSimGymnasiumEnv_MARL
-from pettingzoo.test import parallel_api_test, api_test
+# from pettingzoo.test import parallel_api_test, api_test
 import warnings
 import json
 from simglucose.simulation.scenario import CustomScenario
-from tianshou.env import PettingZooEnv
-import pettingzoo
-from pettingzoo import AECEnv
+# from tianshou.env import PettingZooEnv
+# import pettingzoo
+# from pettingzoo import AECEnv
 from datetime import datetime
-import gym
+# import gym
 from stable_baselines3 import PPO
 from stable_baselines3.ppo import CnnPolicy, MlpPolicy
 
@@ -133,6 +133,28 @@ scenario = CustomScenario(start_time=start_time, scenario=scen)
 
 # env = pettingzoo.make('simglucose-adult2-v0')
 
+# import gym
+
+# class CustomEnvWrapper(gym.Env):
+#     def __init__(self, original_env):
+#         self.env = original_env
+
+#     def step(self, action):
+#         return self.env.step(action)
+
+#     def reset(self):
+#         return self.env.reset()
+
+#     def render(self, mode='human'):
+#         return self.env.render(mode)
+
+# # Now, wrap your environment
+# env = CustomEnvWrapper(T1DSimGymnasiumEnv_MARL(patient_name='adult#001',
+# custom_scenario=scenario,
+# # custom_scenario=None,
+# reward_fun=new_reward,
+# seed=123,
+# render_mode="human"))
 
 env = T1DSimGymnasiumEnv_MARL(
     patient_name='adult#001',

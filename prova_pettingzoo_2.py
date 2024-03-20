@@ -25,24 +25,25 @@ import supersuit as ss
 from stable_baselines3 import PPO
 from stable_baselines3.ppo import CnnPolicy, MlpPolicy
 
-from pettingzoo.butterfly import knights_archers_zombies_v10
+# from pettingzoo.butterfly import knights_archers_zombies_v10
 
 
 def train(env_fn, steps: int = 10_000, seed: int | None = 0, **env_kwargs):
     # Train a single model to play as each agent in an AEC environment
-    env = env_fn.parallel_env(**env_kwargs)
-
+    # env = env_fn.parallel_env(**env_kwargs)
+    # env = env_fn.env(**env_kwargs)
+    env = env_fn
     # Add black death wrapper so the number of agents stays constant
     # MarkovVectorEnv does not support environments with varying numbers of active agents unless black_death is set to True
-    env = ss.black_death_v3(env)
+    # env = ss.black_death_v3(env)
 
-    # Pre-process using SuperSuit
-    visual_observation = not env.unwrapped.vector_state
-    if visual_observation:
-        # If the observation space is visual, reduce the color channels, resize from 512px to 84px, and apply frame stacking
-        env = ss.color_reduction_v0(env, mode="B")
-        env = ss.resize_v1(env, x_size=84, y_size=84)
-        env = ss.frame_stack_v1(env, 3)
+    # # Pre-process using SuperSuit
+    # visual_observation = not env.unwrapped.vector_state
+    # if visual_observation:
+    #     # If the observation space is visual, reduce the color channels, resize from 512px to 84px, and apply frame stacking
+    #     env = ss.color_reduction_v0(env, mode="B")
+    #     env = ss.resize_v1(env, x_size=84, y_size=84)
+    #     env = ss.frame_stack_v1(env, 3)
 
     env.reset(seed=seed)
 
@@ -53,12 +54,14 @@ def train(env_fn, steps: int = 10_000, seed: int | None = 0, **env_kwargs):
 
     # Use a CNN policy if the observation space is visual
     model = PPO(
-        CnnPolicy if visual_observation else MlpPolicy,
+        # CnnPolicy if visual_observation else MlpPolicy,
+        MlpPolicy,
         env,
         verbose=3,
         batch_size=256,
     )
-
+    
+    print('start learning...')
     model.learn(total_timesteps=steps)
 
     model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
@@ -74,13 +77,13 @@ def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwa
     # Evaluate a trained agent vs a random agent
     env = env_fn.env(render_mode=render_mode, **env_kwargs)
 
-    # Pre-process using SuperSuit
-    visual_observation = not env.unwrapped.vector_state
-    if visual_observation:
-        # If the observation space is visual, reduce the color channels, resize from 512px to 84px, and apply frame stacking
-        env = ss.color_reduction_v0(env, mode="B")
-        env = ss.resize_v1(env, x_size=84, y_size=84)
-        env = ss.frame_stack_v1(env, 3)
+    # # Pre-process using SuperSuit
+    # visual_observation = not env.unwrapped.vector_state
+    # if visual_observation:
+    #     # If the observation space is visual, reduce the color channels, resize from 512px to 84px, and apply frame stacking
+    #     env = ss.color_reduction_v0(env, mode="B")
+    #     env = ss.resize_v1(env, x_size=84, y_size=84)
+    #     env = ss.frame_stack_v1(env, 3)
 
     print(
         f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})"
@@ -131,13 +134,48 @@ def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwa
 
 
 if __name__ == "__main__":
-    env_fn = knights_archers_zombies_v10
+    # env_fn = knights_archers_zombies_v10
+
+    
+    
+    from simglucose.envs import T1DSimGymnasiumEnv_MARL
+    from simglucose.simulation.scenario import CustomScenario
+    from datetime import datetime
+    import json
+
+    def new_func(x):
+        return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+    def new_reward(BG_last_hour):
+        return new_func(BG_last_hour[-1])
+
+    start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+
+    with open('scenarios_5_days_1000_times.json') as json_file:
+        scenarios = json.load(json_file)
+        
+    scen = list(scenarios.values())[0]
+        
+    scen = [tuple(x) for x in scen]
+    # scen[0]  = (1,30)
+    scenario = CustomScenario(start_time=start_time, scenario=scen)
+    
+    env_fn = T1DSimGymnasiumEnv_MARL(
+        patient_name='adult#001',
+        custom_scenario=scenario,
+        # custom_scenario=None,
+        reward_fun=new_reward,
+        seed=123,
+        render_mode="human",
+    )
 
     # Set vector_state to false in order to use visual observations (significantly longer training time)
-    env_kwargs = dict(max_cycles=100, max_zombies=4, vector_state=True)
+    # env_kwargs = dict(max_cycles=100, max_zombies=4, vector_state=True)
+
+    env_kwargs = dict(max_cycles=100, vector_state=True)
 
     # Train a model (takes ~5 minutes on a laptop CPU)
-    train(env_fn, steps=81_920, seed=0, **env_kwargs)
+    train(env_fn, steps=10, seed=0, **env_kwargs)
 
     # Evaluate 10 games (takes ~10 seconds on a laptop CPU)
     eval(env_fn, num_games=10, render_mode=None, **env_kwargs)

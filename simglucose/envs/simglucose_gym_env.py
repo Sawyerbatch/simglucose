@@ -166,6 +166,16 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         self.communication_channel = {"Rick": None, "Morty": None}
         
+        # self.rick_obs = None
+        # self.rick_reward = 0.0
+        # self.rick_done = False
+        # self.rick_info = {}
+        
+        # self.morty_obs = None
+        # self.morty_reward = 0.0
+        # self.morty_done = False
+        # self.morty_info = {}
+        
         # self.action_space = {
         #     i: gymnasium.spaces.Box(
         #         low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
@@ -223,7 +233,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
                     # "action_mask": spaces.Box(
                     #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
                     "action_mask": gymnasium.spaces.Box(
-                        low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
+                        low=0, high=self.env.max_basal, shape=(1,) #dtype=np.float32
                     ),
                 }
             )
@@ -290,6 +300,30 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
         # )
         
+    # def step(self, actions):
+    #     current_glucose_level = self.obs['CGM']  # Assicurati che self.obs sia un dizionario
+        
+    #     # Determina quale azione applicare in base al livello di glucosio
+    #     if current_glucose_level > 120:
+    #         action_to_apply = actions["Rick"]
+    #     elif current_glucose_level < 85:
+    #         action_to_apply = 0.0  # Assumendo che l'ambiente accetti un'azione scalare
+    #     else:
+    #         action_to_apply = actions["Morty"]
+        
+    #     # Supponendo che self.env.step accetti e restituisca il formato corretto per l'azione
+    #     obs, reward, done, info = self.env.step(action_to_apply)
+        
+    #     # Assicurati che il formato di `obs` sia gestibile per il tuo caso d'uso
+    #     # Qui si assume che `obs` possa essere direttamente utilizzato per entrambi gli agenti
+        
+    #     observations = {'Rick': obs, 'Morty': obs}
+    #     rewards = {'Rick': reward, 'Morty': reward}
+    #     dones = {'Rick': done, 'Morty': done}
+    #     truncations = {'Rick': done, 'Morty': done}  # Uguale a `dones` se non distingui tra done e truncation
+    #     infos = {'Rick': info, 'Morty': info}
+    
+    #     return observations, rewards, dones, truncations, infos
     # def step(self, action):
     def step(self, actions):
         
@@ -313,7 +347,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # else:
         #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
         
-        if self.obs.CGM > iper_s:     
+        if self.obs.CGM > iper_s:
             self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
             print('Rick action', rick_action)
             # self.obs, self.reward, self.done, self.info = self.env.step(rick_action)
@@ -372,26 +406,26 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
         # observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
-        observations = {'Rick':np.array([self.rick_obs.CGM], dtype=np.float32),
-                        'Morty':np.array([self.morty_obs.CGM], dtype=np.float32)}
+        # observations = {'Rick':np.array([self.rick_obs.CGM], dtype=np.float32),
+        #                 'Morty':np.array([self.morty_obs.CGM], dtype=np.float32)}
         
         observations = {
             'Rick': {
                 "observation": np.array([self.rick_obs.CGM], dtype=np.float32),
-                # "action_mask": np.array([rick_obs.CGM], dtype=np.float32),
-                "communication_channel": current_communication
+                "action_mask": np.array([self.rick_obs.CGM], dtype=np.float32),
+                # "communication_channel": current_communication
             },
             'Morty': {
                 "observation": np.array([self.morty_obs.CGM], dtype=np.float32),
-                # "action_mask": np.array([morty_obs.CGM], dtype=np.float32),
-                "communication_channel": current_communication
+                "action_mask": np.array([self.morty_obs.CGM], dtype=np.float32),
+                # "communication_channel": current_communication
             }
         }
         
         
         # rewards ={i:0 for i in self.agents}
         rewards = {'Rick':self.rick_reward,
-                   'Morty':self.morty_reward}
+                    'Morty':self.morty_reward}
         print(rewards)
         
         # Modifica le condizioni di terminazione
@@ -418,13 +452,31 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         # infos = {i:info for i in self.agents}
         infos = {'Rick':self.rick_info,
-                 'Morty':self.morty_info}
+                  'Morty':self.morty_info}
         
         
         
         return observations, rewards, terminations, truncations, infos
     
-
+    # def reset(self, seed=None, options=None):
+    #     self.agents = copy(self.possible_agents)
+        
+    #     # Reset dell'ambiente sottostante e ottieni l'osservazione iniziale
+    #     self.obs, _, _, _ = self.env._raw_reset()  # Aggiorna questo in base alla funzionalità esatta di _raw_reset
+        
+    #     # Inizializza i valori per "Rick" e "Morty"
+    #     self.rick_reward, self.rick_done, self.rick_truncated, self.rick_info = 0.0, False, False, {}
+    #     self.morty_reward, self.morty_done, self.morty_truncated, self.morty_info = 0.0, False, False, {}
+        
+    #     # Assumi che 'self.obs' sia l'osservazione iniziale corretta da utilizzare per entrambi gli agenti
+    #     observations = {
+    #         'Rick': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)},
+    #         'Morty': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)}
+    #     }
+        
+    #     infos = {a: {} for a in self.agents}  # Prepara gli 'infos' iniziali per ogni agente
+    
+    #     return observations, infos
 
     def reset(self, seed=None, options=None):
         # super().reset(seed=seed)
@@ -460,10 +512,31 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         self.rick_obs = self.obs
         self.morty_obs = self.obs
         
+        # observations = {
+        #     "Rick": {"observation": self.rick_obs, "action_mask": [0]},
+        #     "Morty": {"observation": self.morty_obs, "action_mask": [0]},
+        # }
+        
         observations = {
-            "Rick": {"observation": self.rick_obs},#, "action_mask": [0, 1, 1, 0]},
-            "Morty": {"observation": self.morty_obs},#, "action_mask": [1, 0, 0, 1]},
+            'Rick': {
+                "observation": np.array([self.rick_obs.CGM], dtype=np.float32),
+                "action_mask": np.array([0], dtype=np.float32),
+                # "communication_channel": self.communication_channel
+            },
+            'Morty': {
+                "observation": np.array([self.morty_obs.CGM], dtype=np.float32),
+                "action_mask": np.array([0], dtype=np.float32),
+                # "communication_channel": self.communication_channel
+            }
         }
+        
+        # observations = {
+        #         'Rick': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)},
+        #         'Morty': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)}
+        #     }
+            
+        
+        # print(observations)
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
