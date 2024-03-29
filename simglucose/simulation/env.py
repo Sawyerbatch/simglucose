@@ -34,12 +34,13 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv_MARL(object):
-    def __init__(self, patient, sensor, pump, scenario, reward_fun):
+    def __init__(self, patient, sensor, pump, scenario, reward_fun): #n_steps,
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
         self.reward_fun = reward_fun
+        # self.n_steps = n_steps
         self._reset()
 
     @property

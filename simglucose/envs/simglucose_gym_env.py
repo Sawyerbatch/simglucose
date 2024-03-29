@@ -150,6 +150,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         reward_fun=None,
         seed=None,
         render_mode=None,
+        # n_steps=None
     ) -> None:
         super().__init__()
         self.render_mode = render_mode
@@ -158,6 +159,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             custom_scenario=custom_scenario,
             reward_fun=reward_fun,
             seed=seed,
+            # n_steps=n_steps,
         )
         
         
@@ -348,27 +350,36 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
         
         if self.obs.CGM > iper_s:
-            self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
-            print('Rick action', rick_action)
+            # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
+            self.obs, self.rick_reward, self.done, self.info = self.env.step(rick_action)
             # self.obs, self.reward, self.done, self.info = self.env.step(rick_action)
+            print('Rick action', rick_action)
+            # self.obs = self.rick_obs
+            self.rick_obs = self.obs
+            self.morty_obs = self.obs
             print('obs', self.rick_obs)
-            self.obs = self.rick_obs
-            self.communication_channel["Morty"] = self.rick_obs.CGM
+            # self.communication_channel["Morty"] = self.rick_obs.CGM
         elif ipo_s < self.obs.CGM < iper_s:
-            self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
-            print('Morty action', morty_action)
+            # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
+            self.obs, self.morty_reward, self.done, self.info = self.env.step(morty_action)
             # self.obs, self.reward, self.done, self.info = self.env.step(morty_action)
+            print('Morty action', morty_action)
+            # self.obs = self.morty_obs
+            self.rick_obs = self.obs
+            self.morty_obs = self.obs
             print('obs', self.morty_obs)
-            self.obs = self.morty_obs
-            self.communication_channel["Rick"] = self.morty_obs.CGM
+            # self.communication_channel["Rick"] = self.morty_obs.CGM
         else:
-            self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
-            print('Safe action', safe_action)
+            # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
+            self.obs, _, self.done, self.info = self.env.step(safe_action)
             # self.obs, self.reward, self.done, self.info = self.env.step(safe_action)
+            print('Safe action', safe_action)
+            self.rick_obs = self.obs
+            self.morty_obs = self.obs
             print('obs', self.morty_obs)
-            self.obs = self.morty_obs
-            self.communication_channel["Morty"] = self.morty_obs.CGM
-            self.communication_channel["Rick"] = self.morty_obs.CGM
+            # self.obs = self.morty_obs
+            # self.communication_channel["Morty"] = self.morty_obs.CGM
+            # self.communication_channel["Rick"] = self.morty_obs.CGM
             
         # rick_obs, rick_reward, rick_done, rick_info = self.env.step(rick_action)
         # print('Rick obs', rick_obs)
@@ -400,8 +411,8 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         
         # Once the max_episode_steps is set, the truncated value will be overridden.
         # truncated = False
-        rick_truncated = False
-        morty_truncated = False
+        # self.rick_truncated = False
+        # self.morty_truncated = False
         
         
         # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
@@ -433,7 +444,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         min_allowed_bg = 40
         rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
         morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
-
+        print('!!! rick: ', self.rick_obs, rick_done, '; morty:', self.morty_obs, morty_done)
         
         # rewards ={i:reward for i in self.agents}
         # terminations = {i:done for i in self.agents}

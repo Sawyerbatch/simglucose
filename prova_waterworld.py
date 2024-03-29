@@ -14,7 +14,7 @@ For more information, see https://stable-baselines3.readthedocs.io/en/master/mod
 Author: Elliot (https://github.com/elliottower)
 """
 
-
+import csv
 import glob
 import os
 import time
@@ -143,12 +143,22 @@ def eval(env_fn, num_games: int = 100, render_mode: Optional[str] = None, **env_
         print("Policy not found.")
         exit(0)
 
-    model = PPO.load(latest_policy)
-
+    # model = PPO.load(latest_policy)
+    model = PPO.load('T1DSimGymnasiumEnv_MARL_20240320-183729.zip')
     total_rewards = {agent: 0 for agent in env.possible_agents}
+    
+    with open('evaluation_results.csv', 'w', newline='') as csvfile:
+        fieldnames = ['Timestep', 'Obs', 'Morty_Obs', 'Rick_Obs',
+                      'Morty_Reward', 'Rick_Reward',
+                      'Morty_Done', 'Rick_Done',
+                      'Morty_Trunc', 'Rick_Trunc',
+                      ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
     
     for i in range(num_games):
         obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
+        # print(obs)
         observ = obs[0]
         done = False
         while not done:
@@ -165,15 +175,33 @@ def eval(env_fn, num_games: int = 100, render_mode: Optional[str] = None, **env_
                 total_rewards[agent] += reward  # Aggiorna il totale dei premi
             
             done = all(dones.values())  # Controlla se tutti gli agenti hanno terminato
+            
+            writer.writerow({
+                    'Timestep': env.env_steps,
+                    'Obs': obs,
+                    'Morty_Obs': observ['morty'],
+                    'Morty_Reward': rewards['morty'],
+                    'Rick_Obs': observ['rick'],
+                    'Rick_Reward': rewards['rick'],
+                    'Rick_Done': dones['rick'],
+                    'Morty_Done': dones['morty'],
+                    'Rick_Trunc': truncs['rick'],
+                    'Morty_Trunc': truncs['morty'],
+                    
+                    
+                })
     
     env.close()
 
     avg_reward = sum(total_rewards.values()) / len(total_rewards.values())
     print("Total rewards:", total_rewards)
     print(f"Average reward: {avg_reward}")
+    
     return avg_reward
 
 if __name__ == "__main__":
+    
+    n_steps = 2400
     
     env_fn = T1DSimGymnasiumEnv_MARL(
         patient_name='adult#001',
@@ -181,16 +209,17 @@ if __name__ == "__main__":
         reward_fun=new_reward,
         seed=123,
         render_mode="human",
+        n_steps=n_steps
     )
     
     # env_fn = waterworld_v4
     env_kwargs = {}
-
+    
     # Train a model (takes ~3 minutes on GPU)
     train_butterfly_supersuit(env_fn, steps=3, seed=0, **env_kwargs)
-
+    
     # Evaluate 10 games (average reward should be positive but can vary significantly)
-    eval(env_fn, num_games=1, render_mode=None, **env_kwargs)
+    eval(env_fn, n_steps=n_steps, num_games=1, render_mode=None, **env_kwargs)
 
-    # Watch 2 games
-    eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
+# Watch 2 games
+# eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
