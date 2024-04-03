@@ -440,11 +440,12 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         print(rewards)
         
         # Modifica le condizioni di terminazione
-        max_allowed_bg = 250  # Modifica questo valore secondo i tuoi criteri
-        min_allowed_bg = 40
+        max_allowed_bg =  100 # 250  
+        min_allowed_bg = 70 # 40
         rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
         morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
         print('!!! rick: ', self.rick_obs, rick_done, '; morty:', self.morty_obs, morty_done)
+        print()
         
         # rewards ={i:reward for i in self.agents}
         # terminations = {i:done for i in self.agents}
