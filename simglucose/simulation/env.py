@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def risk_diff(BG_last_hour):
+    # print('REWARD BASE')
     if len(BG_last_hour) < 2:
         return 0
     else:
@@ -50,13 +51,13 @@ class T1DSimEnv_MARL(object):
     def mini_step(self, action):
         # current action
         patient_action = self.scenario.get_action(self.time)
-        print('patient action', patient_action)
+        # print('patient action', patient_action)
         # print(self.scenario)
         basal = self.pump.basal(action.basal)
         bolus = self.pump.bolus(action.bolus)
         insulin = basal + bolus
         CHO = patient_action.meal
-        print('CHO', CHO)
+        # print('CHO', CHO)
         patient_mdl_act = Action(insulin=insulin, CHO=CHO)
         # print(self.patient)
         # State update
@@ -80,6 +81,7 @@ class T1DSimEnv_MARL(object):
 
         for _ in range(int(self.sample_time)):
             # Compute moving average as the sample measurements
+            
             tmp_CHO, tmp_insulin, tmp_BG, tmp_CGM = self.mini_step(action)
             CHO += tmp_CHO / self.sample_time
             insulin += tmp_insulin / self.sample_time
@@ -106,7 +108,10 @@ class T1DSimEnv_MARL(object):
         window_size = int(60 / self.sample_time)
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
-        done = BG < 10 or BG > 600
+        print('ACTION', action)
+        print('REWARD', reward)
+        done = BG < 70 or BG > 250
+        print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
         obs = Observation(CGM=CGM)
 
         return Step(
@@ -122,6 +127,7 @@ class T1DSimEnv_MARL(object):
             lbgi=LBGI,
             hbgi=HBGI,
             risk=risk,
+            insulin=insulin
         )
 
     def _reset(self):
@@ -190,4 +196,5 @@ class T1DSimEnv_MARL(object):
         df["HBGI"] = pd.Series(self.HBGI_hist)
         df["Risk"] = pd.Series(self.risk_hist)
         df = df.set_index("Time")
+        # print('DDDDFFFFFF', df)
         return df

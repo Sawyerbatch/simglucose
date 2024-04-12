@@ -116,6 +116,9 @@ class T1DSimEnv_MARL(gym.Env):
 
     def _render(self, mode="human", close=False):
         self.env.render(close=close)
+        
+    def show_history(self):
+        self.env.show_history()
 
     def _close(self):
         super()._close()
@@ -237,6 +240,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
                     "action_mask": gymnasium.spaces.Box(
                         low=0, high=self.env.max_basal, shape=(1,) #dtype=np.float32
                     ),
+                    
                 }
             )
             for i in self.agents})
@@ -333,6 +337,10 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         morty_action = actions["Morty"]
         safe_action = np.array([[0.0]])
         
+        # Aggiorna lo stato del canale di comunicazione
+        self.communication_channel["Rick"] = self.obs.CGM
+        self.communication_channel["Morty"] = self.obs.CGM
+        
         iper_s = 120
         ipo_s = 85
         
@@ -350,32 +358,52 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
         
         if self.obs.CGM > iper_s:
+            morty_action =  [0.0]
             # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
+            # self.obs, self.rick_reward, self.done, self.info = self.env.step(rick_action)
             self.obs, self.rick_reward, self.done, self.info = self.env.step(rick_action)
+            # self.obs, self.rick_reward, self.done, self.info = self.env.step([1.0])
+
             # self.obs, self.reward, self.done, self.info = self.env.step(rick_action)
             print('Rick action', rick_action)
             # self.obs = self.rick_obs
             self.rick_obs = self.obs
             self.morty_obs = self.obs
+            self.rick_done = self.done
+            self.morty_done = self.done
+            self.rick_info = self.info
+            self.morty_info = self.info
             print('obs', self.rick_obs)
             # self.communication_channel["Morty"] = self.rick_obs.CGM
         elif ipo_s < self.obs.CGM < iper_s:
+            rick_action =  [0.0]
             # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
             self.obs, self.morty_reward, self.done, self.info = self.env.step(morty_action)
+            # self.obs, self.morty_reward, self.done, self.info = self.env.step([[0.08483092]])
             # self.obs, self.reward, self.done, self.info = self.env.step(morty_action)
             print('Morty action', morty_action)
             # self.obs = self.morty_obs
             self.rick_obs = self.obs
             self.morty_obs = self.obs
+            self.rick_done = self.done
+            self.morty_done = self.done
+            self.rick_info = self.info
+            self.morty_info = self.info
             print('obs', self.morty_obs)
             # self.communication_channel["Rick"] = self.morty_obs.CGM
         else:
+            rick_action =  [0.0]
+            morty_action =  [0.0]
             # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(safe_action)
             self.obs, _, self.done, self.info = self.env.step(safe_action)
             # self.obs, self.reward, self.done, self.info = self.env.step(safe_action)
             print('Safe action', safe_action)
             self.rick_obs = self.obs
             self.morty_obs = self.obs
+            self.rick_done = self.done
+            self.morty_done = self.done
+            self.rick_info = self.info
+            self.morty_info = self.info
             print('obs', self.morty_obs)
             # self.obs = self.morty_obs
             # self.communication_channel["Morty"] = self.morty_obs.CGM
@@ -395,7 +423,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # self.communication_channel["Morty"] = self.rick_obs.CGM
         # self.communication_channel["Rick"] = self.morty_obs.CGM
         
-        current_communication = self.communication_channel.copy()
+        # current_communication = self.communication_channel.copy()
         # obs, reward, done, info = self.env.step(action)
         # obs, reward, done, info = self.env.step(actions)
         
@@ -424,11 +452,13 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             'Rick': {
                 "observation": np.array([self.rick_obs.CGM], dtype=np.float32),
                 "action_mask": np.array([self.rick_obs.CGM], dtype=np.float32),
+                "communication_channel": self.communication_channel
                 # "communication_channel": current_communication
             },
             'Morty': {
                 "observation": np.array([self.morty_obs.CGM], dtype=np.float32),
                 "action_mask": np.array([self.morty_obs.CGM], dtype=np.float32),
+                "communication_channel": self.communication_channel
                 # "communication_channel": current_communication
             }
         }
@@ -440,11 +470,11 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         print(rewards)
         
         # Modifica le condizioni di terminazione
-        max_allowed_bg =  100 # 250  
-        min_allowed_bg = 70 # 40
-        rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
-        morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
-        print('!!! rick: ', self.rick_obs, rick_done, '; morty:', self.morty_obs, morty_done)
+        # max_allowed_bg =  100.0 # 250  
+        # min_allowed_bg = 90.0 # 40
+        # rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
+        # morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
+        # print('!!! rick: ', self.rick_obs, self.rick_done, '; morty:', self.morty_obs, self.morty_done)
         print()
         
         # rewards ={i:reward for i in self.agents}
@@ -465,9 +495,9 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         # infos = {i:info for i in self.agents}
         infos = {'Rick':self.rick_info,
                   'Morty':self.morty_info}
-        
-        
-        
+        # print('INFOOOOO', infos)
+
+    
         return observations, rewards, terminations, truncations, infos
     
     # def reset(self, seed=None, options=None):
@@ -561,6 +591,9 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
     def render(self):
         if self.render_mode == "human":
             self.env.render()
+            
+    def show_history(self):
+        self.env.show_history()
 
     def close(self):
         self.env.close()
