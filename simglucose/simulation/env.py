@@ -108,10 +108,10 @@ class T1DSimEnv_MARL(object):
         window_size = int(60 / self.sample_time)
         BG_last_hour = self.CGM_hist[-window_size:]
         reward = reward_fun(BG_last_hour)
-        print('ACTION', action)
-        print('REWARD', reward)
+        # print('ACTION', action)
+        # print('REWARD', reward)
         done = BG < 70 or BG > 250
-        print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
+        # print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
         obs = Observation(CGM=CGM)
 
         return Step(
