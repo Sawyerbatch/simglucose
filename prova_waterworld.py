@@ -45,7 +45,6 @@ def new_func(x):
     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
 def new_reward(BG_last_hour):
-    # print('USIAMO LA NOSTRA REWAAAAAAAAAAARD')
     return new_func(BG_last_hour[-1])
 
 def create_scenario(n_days, cho_daily=230):
@@ -124,7 +123,7 @@ def mean_std(valori):
     if n == 0:
         return 0.0
 
-def training_supersuit(
+def train_butterfly_supersuit(
     env_fn, paziente, time_suffix, n_steps: int = 2400,
     seed: int | None = 0, **env_kwargs
 ):
@@ -196,8 +195,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
     
         
         
-    tir_dict = {'ripetizione':[],
-                'death hypo':[],
+    tir_dict = {'death hypo':[],
                 'ultra hypo':[],
                 'heavy hypo':[],
                 'severe hypo':[],
@@ -208,10 +206,10 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 'heavy hyper':[],                    
                 'ultra hyper':[], 
                 'death hyper':[],
-                'HBGI mean':[],
-                'HBGI std':[],
                 'LBGI mean':[],
                 'LBGI std':[],
+                'HBGI mean':[],
+                'HBGI std':[],
                 'RI mean':[],
                 'RI std':[], 
                 # 'cap iper':[],
@@ -222,6 +220,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 # 'training n steps':[],
                 # 'training timesteps':[],
                 'test timesteps':[],
+                'ripetizione':[],
                 'scenario':[],
                 # 'tempo esecuzione':[],
                 }
@@ -255,14 +254,10 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
             
             done = False
             
-            df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS'
-                                       'BG','HBGI','LBGI', 'RISK',
-                                       #'Morty_Obs', 'Rick_Obs',
-                                       'Rick_Action', 'Rick_Reward',
-                                       'Morty_Action', 'Morty_Reward',     
-                                       'Morty_Done', 'Rick_Done',
-                                       'Morty_Trunc', 'Rick_Trunc',
-                                       'Obs'])
+            df = pd.DataFrame(columns=['Timestep', 'Obs', 'Morty_Obs', 'Rick_Obs',
+                                        'Morty_Reward', 'Rick_Reward',
+                                        'Morty_Done', 'Rick_Done',
+                                        'Morty_Trunc', 'Rick_Trunc'])
             
             data_list = []
             
@@ -287,141 +282,122 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 
                 print(f'test n {game}, timestep {t}')
                 
-                # if not done:
+                if not done:
                     
-                # print('oooobs', obs)
-                
-                # se obs è una tupla vuol dire che viene dal reset,
-                # e devo scartare un secondo elemento vuoto
-                # se è un dizionario siamo al secondo ciclo e va bene così
-                if type(obs) == tuple:
-                    # print('lunghezza obs', len(obs))
-                    observ = obs[0]
-                else:
-                    # print('lunghezza obs', len(obs), '/n')
-                    observ = obs
+                    # print('oooobs', obs)
                     
-                # {'Rick': {'observation': array([142.04321], dtype=float32),
-                # 'action_mask': array([0.], dtype=float32)},
-                # 'Morty': {'observation': array([142.04321], dtype=float32),
-                # 'action_mask': array([0.], dtype=float32)}}
-                actions = {}
-     
-                # print(a, type(a))
-                for agent, agent_obs in observ.items():
+                    # se obs è una tupla vuol dire che viene dal reset,
+                    # e devo scartare un secondo elemento vuoto
+                    # se è un dizionario siamo al secondo ciclo e va bene così
+                    if type(obs) == tuple:
+                        # print('lunghezza obs', len(obs))
+                        observ = obs[0]
+                    else:
+                        # print('lunghezza obs', len(obs), '/n')
+                        observ = obs
+                        
+                    # {'Rick': {'observation': array([142.04321], dtype=float32),
+                    # 'action_mask': array([0.], dtype=float32)},
+                    # 'Morty': {'observation': array([142.04321], dtype=float32),
+                    # 'action_mask': array([0.], dtype=float32)}}
+                    actions = {}
+         
+                    # print(a, type(a))
+                    for agent, agent_obs in observ.items():
+                        action, _ = model.predict(agent_obs, deterministic=True)  # Ottieni l'azione per ogni agente
+                        # esempio agent_obs = 
+                        # {'observation': array([142.04321], dtype=float32), 
+                        # 'action_mask': array([0.], dtype=float32)}
+                        actions[agent] = action
                     
-                    action, _ = model.predict(agent_obs, deterministic=True)  # Ottieni l'azione per ogni agente
-                    # esempio agent_obs = 
-                    # {'observation': array([142.04321], dtype=float32), 
-                    # 'action_mask': array([0.], dtype=float32)}
-                    actions[agent] = action
-                    # print('aaaactions', actions)
-                
-                obs, rewards, dones, truncs, infos = env.step(actions)  # Esegui un passo dell'ambiente con le azioni degli agenti
-                # {'Rick': {'observation': array([141.73483], dtype=float32),
-                # 'action_mask': array([141.73483], dtype=float32)}, 
-                # 'Morty': {'observation': array([141.73483], dtype=float32),
-                # 'action_mask': array([141.73483], dtype=float32)}}
-                
-                # CON QUESTA IMPLEMENTAZIONE I TRUNC SONO INUTILI
-                # PERCHE' ITERO SUI TIMESTEPS?
-                
-                for agent, reward in rewards.items():
-                    total_rewards[agent] += reward  # Aggiorna il totale dei premi
+                    obs, rewards, dones, truncs, infos = env.step(actions)  # Esegui un passo dell'ambiente con le azioni degli agenti
+                    # {'Rick': {'observation': array([141.73483], dtype=float32),
+                    # 'action_mask': array([141.73483], dtype=float32)}, 
+                    # 'Morty': {'observation': array([141.73483], dtype=float32),
+                    # 'action_mask': array([141.73483], dtype=float32)}}
                     
-                observation = obs['Rick']['observation'][0]
-                
-                if observation <= 21:
-                    counter_death_hypo += 1
-                elif 21 < observation < 30:
-                    counter_under_30 += 1
-                elif 30 <= observation < 40:
-                    counter_under_40 += 1
-                elif 40 <= observation < 50:
-                    counter_under_50 += 1
-                elif 50 <= observation< 70:
-                    counter_under_70 += 1
-                elif 70 <= observation <= 180:
-                    counter_euglycem += 1
-                elif 180 < observation <= 250:
-                    counter_over_180 += 1
-                elif 250 < observation <= 400:
-                    counter_over_250 += 1
-                elif 400 < observation <= 500:
-                    counter_over_400 += 1
-                elif 500 < observation < 595:
-                    counter_over_500 += 1
-                elif observation >= 595:
-                    counter_death_hyper += 1
-            
-                counter_total += 1
-                # print(paziente)
-                # print(i+1)
-                tir[0] = (counter_death_hypo/counter_total)*100
-                print('death_hypo:',tir[0])
-                tir[1] = (counter_under_30 / counter_total) * 100
-                print('under_30:', tir[1])               
-                tir[2] = (counter_under_40 / counter_total) * 100
-                print('under_40:', tir[2])            
-                tir[3] = (counter_under_50 / counter_total) * 100
-                print('under_50:', tir[3])            
-                tir[4] = (counter_under_70 / counter_total) * 100
-                print('under_70:', tir[4])              
-                tir[5] = (counter_euglycem / counter_total) * 100
-                print('euglycem:', tir[5])              
-                tir[6] = (counter_over_180 / counter_total) * 100
-                print('over_180:', tir[6])             
-                tir[7] = (counter_over_250 / counter_total) * 100
-                print('over_250:', tir[7])                
-                tir[8] = (counter_over_400 / counter_total) * 100
-                print('over_400:', tir[8])               
-                tir[9] = (counter_over_500 / counter_total) * 100
-                print('over_500:', tir[9])            
-                tir[10] = (counter_death_hyper / counter_total) * 100
-                print('death_hyper:', tir[10])
-                
-                
-                lista_BG.append(observation)
-                
-                done = all(dones.values())  # Controlla se tutti gli agenti hanno terminato
-                
-                infos = infos['Rick']
-                
-                print('ACTIONS', actions)
-                
-                data_list.append({
-                        'Timestep': t,
-                        'CGM': round(env.obs.CGM, 3),
-                        'BG': infos['bg'],
-                        'LBGI': infos['hbgi'],
-                        'HBGI': infos['lbgi'],
-                        'RISK': infos['risk'],
-                        'INS': infos['insulin'][0],
-                        # 'Rick_Obs': str(obs['Rick']),
-                        'Rick_Action': str(round(actions['Rick'][0],3)),
-                        'Rick_Reward': str(round(rewards['Rick'],3)),
-                        # 'Morty_Obs': str(obs['Morty']),
-                        'Morty_Action': str(round(actions['Morty'][0],3)),
-                        'Morty_Reward': str(round(rewards['Morty'],3)),
-                        'Rick_Done': dones['Rick'],
-                        'Morty_Done': dones['Morty'],
-                        'Rick_Trunc': truncs['Rick'],
-                        'Morty_Trunc': truncs['Morty'],
-                        'Obs': str(obs),
-                    })
-                
-                df = pd.DataFrame(data_list)
-                # print(df['Rick_Reward'])
-                
-                # env.close()
+                    # CON QUESTA IMPLEMENTAZIONE I TRUNC SONO INUTILI
+                    # PERCHE' ITERO SUI TIMESTEPS?
                     
-                df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
-
-                # if done == True:
-                #     break
+                    for agent, reward in rewards.items():
+                        total_rewards[agent] += reward  # Aggiorna il totale dei premi
+                        
+                    observation = obs['Rick']['observation'][0]
+                    
+                    if observation <= 21:
+                        counter_death_hypo += 1
+                    elif 21 < observation < 30:
+                        counter_under_30 += 1
+                    elif 30 <= observation < 40:
+                        counter_under_40 += 1
+                    elif 40 <= observation < 50:
+                        counter_under_50 += 1
+                    elif 50 <= observation< 70:
+                        counter_under_70 += 1
+                    elif 70 <= observation <= 180:
+                        counter_euglycem += 1
+                    elif 180 < observation <= 250:
+                        counter_over_180 += 1
+                    elif 250 < observation <= 400:
+                        counter_over_250 += 1
+                    elif 400 < observation <= 500:
+                        counter_over_400 += 1
+                    elif 500 < observation < 595:
+                        counter_over_500 += 1
+                    elif observation >= 595:
+                        counter_death_hyper += 1
                 
-                df_hist = env.show_history()
-    
+                    counter_total += 1
+                    # print(paziente)
+                    # print(i+1)
+                    tir[0] = (counter_death_hypo/counter_total)*100
+                    print('death_hypo:',tir[0])
+                    tir[1] = (counter_under_30 / counter_total) * 100
+                    print('under_30:', tir[1])               
+                    tir[2] = (counter_under_40 / counter_total) * 100
+                    print('under_40:', tir[2])            
+                    tir[3] = (counter_under_50 / counter_total) * 100
+                    print('under_50:', tir[3])            
+                    tir[4] = (counter_under_70 / counter_total) * 100
+                    print('under_70:', tir[4])              
+                    tir[5] = (counter_euglycem / counter_total) * 100
+                    print('euglycem:', tir[5])              
+                    tir[6] = (counter_over_180 / counter_total) * 100
+                    print('over_180:', tir[6])             
+                    tir[7] = (counter_over_250 / counter_total) * 100
+                    print('over_250:', tir[7])                
+                    tir[8] = (counter_over_400 / counter_total) * 100
+                    print('over_400:', tir[8])               
+                    tir[9] = (counter_over_500 / counter_total) * 100
+                    print('over_500:', tir[9])            
+                    tir[10] = (counter_death_hyper / counter_total) * 100
+                    print('death_hyper:', tir[10])
+                    
+                    
+                    lista_BG.append(observation)
+                    
+                    done = all(dones.values())  # Controlla se tutti gli agenti hanno terminato
+                    
+                    
+                    data_list.append({
+                            'Timestep': t,
+                            'Obs': str(obs),
+                            # 'Morty_Obs': str(obs['Morty']),
+                            'Morty_Reward': str(rewards['Morty']),
+                            # 'Rick_Obs': str(obs['Rick']),
+                            'Rick_Reward': str(rewards['Rick']),
+                            'Rick_Done': dones['Rick'],
+                            'Morty_Done': dones['Morty'],
+                            'Rick_Trunc': truncs['Rick'],
+                            'Morty_Trunc': truncs['Morty']
+                        })
+                    
+                    df = pd.DataFrame(data_list)
+                    # print(df['Rick_Reward'])
+                    
+                    env.close()
+                        
+                    df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
 
             with pd.ExcelWriter(os.path.join(folder_name,f'risultati_finali_{time_suffix}.xlsx')) as final_writer:  
             
@@ -431,7 +407,6 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 print("Total rewards:", total_rewards)
                 print(f"Average reward: {avg_reward}")
                 
-                tir_dict['ripetizione'].append(game)
                 tir_dict['death hypo'].append(tir[0])
                 tir_dict['ultra hypo'].append(tir[1])
                 tir_dict['heavy hypo'].append(tir[2])
@@ -443,10 +418,10 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 tir_dict['heavy hyper'].append(tir[8])
                 tir_dict['ultra hyper'].append(tir[9])
                 tir_dict['death hyper'].append(tir[10])
-                tir_dict['HBGI mean'].append(HBGI_mean)
-                tir_dict['HBGI std'].append(HBGI_std)
                 tir_dict['LBGI mean'].append(LBGI_mean)
                 tir_dict['LBGI std'].append(LBGI_std)
+                tir_dict['HBGI mean'].append(HBGI_mean)
+                tir_dict['HBGI std'].append(HBGI_std)
                 tir_dict['RI mean'].append(RI_mean)
                 tir_dict['RI std'].append(RI_std)
                 # iper_mod = insert_dot(iper, 1)
@@ -461,7 +436,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 # tir_dict['training n steps'].append(training_n_steps)
                 # tir_dict['training timesteps'].append(training_total_timesteps)
                 tir_dict['test timesteps'].append(test_timesteps)
-
+                tir_dict['ripetizione'].append(game)
                 tir_dict['scenario'].append(scen)
                 # tir_dict['tempo esecuzione'].append(tempo_impiegato)
                 
@@ -469,9 +444,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
             
                 df_result.to_excel(final_writer, sheet_name='risultati_'+paziente, index=False)
                 # final_writer.save()
-                
-                
-    return avg_reward, tir_dict, df_hist
+    
+    return avg_reward, tir_dict
 
 #%%
 
@@ -490,8 +464,8 @@ if __name__ == "__main__":
     
     n_days = 5
     train_timesteps = 2400
-    num_games = 2
-    test_timesteps = 1000
+    num_games = 5
+    test_timesteps = 100
     
     pazienti = ['adult#001']
     
@@ -525,10 +499,10 @@ if __name__ == "__main__":
                 'ultra hyper st dev':[],
                 'death hyper mean':[],
                 'death hyper st dev':[],
-                'HBGI mean of means':[],
-                'HBGI mean of std':[],
                 'LBGI mean of means':[],
                 'LBGI mean of std':[],
+                'HBGI mean of means':[],
+                'HBGI mean of std':[],
                 'RI mean of means':[],
                 'RI mean of std':[],      
                 # 'cap iper mean':[],
@@ -564,14 +538,14 @@ if __name__ == "__main__":
         )
              
         # Train a model (takes ~3 minutes on GPU)
-        # training_supersuit(env_fn, p, time_suffix, steps=train_timesteps, seed=42, **env_kwargs)
+        # train_butterfly_supersuit(env_fn, p, time_suffix, steps=train_timesteps, seed=42, **env_kwargs)
         
         # se ho già il modello
         # model = PPO.load('T1DSimGymnasiumEnv_MARL_20240320-183729')
         model = PPO.load('T1DSimGymnasiumEnv_MARL_adult#001_20240330-021206')
     
         # test
-        avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 
+        avg_reward, tir_dict = evaluation(p, model, test_scenarios, 
                                     tir_mean_dict, time_suffix, folder_name,
                                     num_games=num_games, 
                                     test_timesteps=test_timesteps, 
@@ -627,4 +601,3 @@ if __name__ == "__main__":
             df_cap_mean.to_excel(final_writer, sheet_name='risultati_finali', index=False)
         
             # final_writer.save()
-
