@@ -5,12 +5,15 @@ from simglucose.actuator.pump import InsulinPump
 from simglucose.simulation.scenario_gen import RandomScenario
 from simglucose.controller.base import Action
 import numpy as np
+import pandas as pd
+import os
+import glob
 import pkg_resources
 import gym
 from gym import spaces
 # from gymnasium import spaces
 from gym.utils import seeding
-from datetime import datetime
+from datetime import datetime, timedelta
 import gymnasium
 from copy import copy
 from gymnasium.spaces import Discrete, MultiDiscrete
@@ -18,6 +21,7 @@ from gymnasium.spaces import Discrete, MultiDiscrete
 # https://github.com/Farama-Foundation/PettingZoo/blob/master/pettingzoo/classic/tictactoe/tictactoe.py
 from pettingzoo.utils import agent_selector, wrappers
 from pettingzoo import ParallelEnv
+import shutil
 
 from typing import Any, Dict, Generic, Iterable, Iterator, TypeVar
 ObsType = TypeVar("ObsType")
@@ -25,6 +29,7 @@ ObsType = TypeVar("ObsType")
 PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
+
 
 
 class T1DSimEnv_MARL(gym.Env):
@@ -41,7 +46,7 @@ class T1DSimEnv_MARL(gym.Env):
     INSULIN_PUMP_HARDWARE = "Insulet"
 
     def __init__(
-        self, patient_name=None, custom_scenario=None, reward_fun=None, seed=None
+        self, patient_name=None, custom_scenario=None, reward_fun=None, seed=None, training=None
     ):
         """
         patient_name must be 'adolescent#001' to 'adolescent#010',
@@ -54,9 +59,13 @@ class T1DSimEnv_MARL(gym.Env):
 
         self.patient_name = patient_name
         self.reward_fun = reward_fun
+        self.step_num = 1
+        self.training = training
         self.np_random, _ = seeding.np_random(seed=seed)
         self.custom_scenario = custom_scenario
         self.env, _, _, _ = self._create_env()
+        
+        
 
     def _step(self, action: float):
         # This gym only controls basal insulin
@@ -108,10 +117,12 @@ class T1DSimEnv_MARL(gym.Env):
             )
         
         reward_fun = self.reward_fun
+        
+        training = self.training
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -154,6 +165,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         seed=None,
         render_mode=None,
         # n_steps=None
+        training=None
     ) -> None:
         super().__init__()
         self.render_mode = render_mode
@@ -163,72 +175,43 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             reward_fun=reward_fun,
             seed=seed,
             # n_steps=n_steps,
+            training=training
         )
         
+        if self.env.training == True:
+            current_time = datetime.now()
+            time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
+            self.subfolder_name = f"training_{time_suffix_Min}"        
+            # self.df_training = pd.read_csv('risultati_training.csv')
+            
+            data_diz = {
+                'step': [],
+                'BG': [],
+                'Rick_Action': [],
+                'Rick_Reward': [],
+                'Morty_Action': [],
+                'Morty_Reward': [],
+                'Rick_Done': [],
+                'Morty_Done': [],
+                'Rick_Trunc': [],
+                'Morty_Trunc': [],
+                'Obs': []
+            }
+        
+            # Crea un DataFrame vuoto con le colonne specificate nel dizionario
+            self.df_training = pd.DataFrame(data_diz)
+            
+            
         
         self.agents = ["Rick", "Morty"]
         self.possible_agents = self.agents[:]
         
         self.communication_channel = {"Rick": None, "Morty": None}
         
-        # self.rick_obs = None
-        # self.rick_reward = 0.0
-        # self.rick_done = False
-        # self.rick_info = {}
-        
-        # self.morty_obs = None
-        # self.morty_reward = 0.0
-        # self.morty_done = False
-        # self.morty_info = {}
-        
-        # self.action_space = {
-        #     i: gymnasium.spaces.Box(
-        #         low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
-        #         )
-        #     for i in self.agents
-        #     }
-        
-        # self.action_space = {i: spaces.Dict({'action':spaces.Discrete(100)}) for i in self.agents}
-        # self.action_space = {i: spaces.Discrete(100) for i in self.agents}
-        
-        # self.action_space = gymnasium.spaces.Space({i: gymnasium.spaces.Box(0, self.env.max_basal, 
-        #                                             shape=(1,)) for i in self.agents})
-        # self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, self.env.max_basal, 
-        #                                             shape=(1,)) for i in self.agents})
-        # self.action_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Box(0, self.env.max_basal, 
-        #                                             shape=(1,)) for i in self.agents})
-        
+      
         self.action_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(0, 0.1, 
                                                     shape=(1,)) for i in self.agents})
         
-        
-         # self.action_space = spaces.Tuple(
-    # [spaces.Dict({'action': spaces.Discrete(100)}) for _ in range(len(self.agents))])
-        
-        # self.action_space = spaces.Dict({
-        #     i: spaces.Discrete(100) for i in self.agents
-        # })
-        
-        
-        # self.observation_space = gymnasium.spaces.Dict({i: gymnasium.spaces.Box(
-        #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32) for i in self.agents})
-        
-        # self.observation_space = gymnasium.spaces.Space({i: gymnasium.spaces.Box(0, self.env.max_basal, 
-        #                                             shape=(1,)) for i in self.agents})
-        
-        # self.observation_spaces = gymnasium.spaces.Space({i: gymnasium.spaces.Dict(
-        #         {
-        #             "observation": gymnasium.spaces.Box(
-        #                 low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
-        #             ),
-        #             # "action_mask": spaces.Box(
-        #             #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
-        #             "action_mask": gymnasium.spaces.Box(
-        #                 low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
-        #             ),
-        #         }
-        #     )
-        #     for i in self.agents})
         
         self.observation_spaces = gymnasium.spaces.Dict({i: gymnasium.spaces.Dict(
                 {
@@ -245,33 +228,6 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             )
             for i in self.agents})
     
-        # self.observation_spaces = {
-        #     a:gymnasium.spaces.Box(low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32)
-        #     for a in self.agents}
-        
-        
-        # self.observation_space = ParallelEnv.spaces.Dict({i: ParallelEnv.spaces.Dict(
-        #         {
-        #             "observation": ParallelEnv.spaces.Box(
-        #                 low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
-        #             ),
-        #             # "action_mask": spaces.Box(
-        #             #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
-        #             "action_mask": ParallelEnv.spaces.Box(
-        #                 low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
-        #             ),
-        #         }
-        #     )
-        #     for i in self.agents})
-        
-        
-        # self.observation_space = gymnasium.spaces.Box(
-        #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
-        # )
-        
-        # self.action_space = gymnasium.spaces.Box(
-        #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
-        # )
     
     def action_space(self, agent):
         return self.action_spaces[agent]
@@ -280,59 +236,48 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         return self.observation_spaces[agent]
 
     
+    def delete_files_except_last(self, folder_path, file_prefix):
+        # Costruisci il percorso completo dei file
+        files = glob.glob(os.path.join(folder_path, f"{file_prefix}*"))
+        
+        # Mantieni solo l'ultimo file nella lista
+        if len(files) > 2:
+            try:
+                files_to_keep = max(files, key=os.path.getmtime)
+                # Elimina tutti i file tranne l'ultimo
+                for file_path in files:
+                    if file_path != files_to_keep:
+                        try:
+                            os.remove(file_path)
+                        # except PermissionError as e:
+                        # except FileNotFoundError as e:
+                        except (PermissionError, FileNotFoundError) as e:
+                            print(f"Errore di permesso: {e}. Impossibile eliminare il file {file_path}.")
+            except (PermissionError, FileNotFoundError) as e:
+                print(f"Errore di permesso o di file non trovato.")
+
     
-    # def observation_space(self, agent):
-    #     # return self.observation_spaces[agent]
-    #     return MultiDiscrete([7 * 7] * 3)
-
-    # def action_space(self, agent):
-    #     print('ciao')
-    #     # return self.action_spaces[agent]
-    #     return MultiDiscrete([7 * 7] * 3)
-
-        # self.rewards = {i: 0 for i in self.agents}
-        # self.terminations = {i: False for i in self.agents}
-        # self.truncations = {i: False for i in self.agents}
-        # self.infos = {i: {"legal_moves": list(range(0, 9))} for i in self.agents}
-
-        # self._agent_selector = agent_selector(self.agents)
-        # self.agent_selection = self._agent_selector.reset()
-        
-        # self.observation_space = gymnasium.spaces.Box(
-        #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
-        # )
-        
-        # self.action_space = gymnasium.spaces.Box(
-        #     low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
-        # )
-        
-    # def step(self, actions):
-    #     current_glucose_level = self.obs['CGM']  # Assicurati che self.obs sia un dizionario
-        
-    #     # Determina quale azione applicare in base al livello di glucosio
-    #     if current_glucose_level > 120:
-    #         action_to_apply = actions["Rick"]
-    #     elif current_glucose_level < 85:
-    #         action_to_apply = 0.0  # Assumendo che l'ambiente accetti un'azione scalare
-    #     else:
-    #         action_to_apply = actions["Morty"]
-        
-    #     # Supponendo che self.env.step accetti e restituisca il formato corretto per l'azione
-    #     obs, reward, done, info = self.env.step(action_to_apply)
-        
-    #     # Assicurati che il formato di `obs` sia gestibile per il tuo caso d'uso
-    #     # Qui si assume che `obs` possa essere direttamente utilizzato per entrambi gli agenti
-        
-    #     observations = {'Rick': obs, 'Morty': obs}
-    #     rewards = {'Rick': reward, 'Morty': reward}
-    #     dones = {'Rick': done, 'Morty': done}
-    #     truncations = {'Rick': done, 'Morty': done}  # Uguale a `dones` se non distingui tra done e truncation
-    #     infos = {'Rick': info, 'Morty': info}
-    
-    #     return observations, rewards, dones, truncations, infos
-    # def step(self, action):
     def step(self, actions):
-        
+
+        if self.env.training == True:
+            current_time = datetime.now()
+            # Formatta la data nel formato desiderato (ad esempio, YYYYMMDD_HHMMSS)
+            day_suffix = current_time.strftime("%Y%m%d")
+            time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
+            # time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
+            # Sottrai un secondo dall'ora attuale
+            # previous_time = current_time - timedelta(seconds=1)
+            # folder_name = f"results_{day_suffix}/{time_suffix_Min}"
+            folder_name = f"training_{day_suffix}"
+            # subfolder_name = f"{time_suffix_Min1}"
+            # Formatta la data e l'ora nel formato desiderato
+            # time_suffix_prec = previous_time.strftime("%Y%m%d_%H%M%S")
+            
+            
+            ''' MODIFICA PER SALVARE DF'''
+            self.delete_files_except_last(os.path.join(folder_name, self.subfolder_name), 'risultati_training_')
+
+
         rick_action = actions["Rick"]
         morty_action = actions["Morty"]
         safe_action = np.array([[0.0]])
@@ -344,19 +289,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         iper_s = 120
         ipo_s = 85
         
-        # # Logica delle azioni basata sulla CGM
-        # if rick_obs.CGM < ipo_s:
-        #     rick_action = azione_in_base_a_ipo_s
-        # elif rick_obs.CGM > iper_s:
-        #     rick_action = azione_in_base_a_iper_s
-        
-        # if np.array([obs.CGM], dtype=np.float32) < ipo_s:
-        #     return np.array([obs.CGM], dtype=np.float32), rick_reward, rick_done, rick_truncated, rick_info
-        # elif np.array([obs.CGM], dtype=np.float32) > iper_s:
-        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
-        # else:
-        #     return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
-        
+    
         if self.obs.CGM > iper_s:
             morty_action =  [0.0]
             # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
@@ -409,44 +342,6 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             # self.communication_channel["Morty"] = self.morty_obs.CGM
             # self.communication_channel["Rick"] = self.morty_obs.CGM
             
-        # rick_obs, rick_reward, rick_done, rick_info = self.env.step(rick_action)
-        # print('Rick obs', rick_obs)
-        # morty_obs, morty_reward, morty_done, morty_info = self.env.step(morty_action)
-        # print('Morty obs', morty_obs)
-        
-        # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
-        # print('Rick obs', self.rick_obs)
-        # self.morty_obs, self.morty_reward, self.morty_done, self.morty_info = self.env.step(morty_action)
-        # print('Morty obs', self.morty_obs)
-        
-        # Aggiorna la comunicazione tra agenti
-        # self.communication_channel["Morty"] = self.rick_obs.CGM
-        # self.communication_channel["Rick"] = self.morty_obs.CGM
-        
-        # current_communication = self.communication_channel.copy()
-        # obs, reward, done, info = self.env.step(action)
-        # obs, reward, done, info = self.env.step(actions)
-        
-        # Truncated will be controlled by TimeLimit wrapper when registering the env.
-        # For example,
-        # register(
-        #     id="simglucose/adolescent2-v0",
-        #     entry_point="simglucose.envs:T1DSimGymnaisumEnv_MARL",
-        #     max_episode_steps=10,
-        #     kwargs={"patient_name": "adolescent#002"},
-        # )
-        
-        
-        # Once the max_episode_steps is set, the truncated value will be overridden.
-        # truncated = False
-        # self.rick_truncated = False
-        # self.morty_truncated = False
-        
-        
-        # return np.array([obs.CGM], dtype=np.float32), reward, done, truncated, info
-        # observations = {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}
-        # observations = {'Rick':np.array([self.rick_obs.CGM], dtype=np.float32),
-        #                 'Morty':np.array([self.morty_obs.CGM], dtype=np.float32)}
         
         observations = {
             'Rick': {
@@ -470,10 +365,10 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         print(rewards)
         
         # Modifica le condizioni di terminazione
-        max_allowed_bg =  100.0 # 250  
-        min_allowed_bg = 90.0 # 40
-        rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
-        morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
+        # max_allowed_bg =  100.0 # 250  
+        # min_allowed_bg = 90.0 # 40
+        # rick_done = self.rick_obs.CGM > max_allowed_bg or self.rick_obs.CGM < min_allowed_bg
+        # morty_done = self.morty_obs.CGM > max_allowed_bg or self.morty_obs.CGM < min_allowed_bg
         # print('!!! rick: ', self.rick_obs, self.rick_done, '; morty:', self.morty_obs, self.morty_done)
         print()
         
@@ -496,55 +391,45 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         infos = {'Rick':self.rick_info,
                   'Morty':self.morty_info}
         # print('INFOOOOO', infos)
-
-    
+        
+        
+        if self.env.training == True:
+            # Dizionario con i dati da inserire nel DataFrame
+            data_list = {
+                'step': int(self.step_num),
+                'BG': self.obs.CGM,
+                'Rick_Action': rick_action,
+                'Rick_Reward': self.rick_reward,
+                'Morty_Action': morty_action,
+                'Morty_Reward': self.morty_reward,
+                'Rick_Done': self.rick_done, 
+                'Morty_Done': self.morty_done,
+                'Rick_Trunc': self.rick_truncated,
+                'Morty_Trunc': self.morty_truncated,
+                'Obs': self.obs
+            }
+            
+            # Crea un DataFrame con i nuovi dati
+            new_df = pd.DataFrame(data_list)
+        
+            # Appendi il nuovo DataFrame al DataFrame esistente
+            self.df_training = pd.concat([self.df_training, new_df])
+            
+            # Salva il DataFrame aggiornato in un file CSV
+            self.df_training.to_csv(os.path.join(folder_name, self.subfolder_name,f'risultati_training_{time_suffix}.csv'), index=False)
+            
+            self.step_num += 1
+        
+        
         return observations, rewards, terminations, truncations, infos
-    
-    # def reset(self, seed=None, options=None):
-    #     self.agents = copy(self.possible_agents)
-        
-    #     # Reset dell'ambiente sottostante e ottieni l'osservazione iniziale
-    #     self.obs, _, _, _ = self.env._raw_reset()  # Aggiorna questo in base alla funzionalità esatta di _raw_reset
-        
-    #     # Inizializza i valori per "Rick" e "Morty"
-    #     self.rick_reward, self.rick_done, self.rick_truncated, self.rick_info = 0.0, False, False, {}
-    #     self.morty_reward, self.morty_done, self.morty_truncated, self.morty_info = 0.0, False, False, {}
-        
-    #     # Assumi che 'self.obs' sia l'osservazione iniziale corretta da utilizzare per entrambi gli agenti
-    #     observations = {
-    #         'Rick': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)},
-    #         'Morty': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)}
-    #     }
-        
-    #     infos = {a: {} for a in self.agents}  # Prepara gli 'infos' iniziali per ogni agente
-    
-    #     return observations, infos
+
 
     def reset(self, seed=None, options=None):
         # super().reset(seed=seed)
         self.agents = copy(self.possible_agents)
-        # self.observation_spaces = gymnasium.spaces.Space({i: gymnasium.spaces.Dict(
-        #         {
-        #             "observation": gymnasium.spaces.Box(
-        #                 low=0, high=self.MAX_BG, shape=(1,) #dtype=np.float32
-        #             ),
-        #             # "action_mask": spaces.Box(
-        #             #     low=0, high=self.env.max_basal, shape=(1,), #dtype=np.float32
-        #             "action_mask": gymnasium.spaces.Box(
-        #                 low=0, high=self.env.max_basal, shape=(100,) #dtype=np.float32
-        #             ),
-        #         }
-        #     )
-        #     for i in self.agents})
         
-        
-        
-        # obs, _, _, info = self.env._raw_reset()
-        
-        # observations = {
-        #     "Rick": {"observation": obs},#, "action_mask": [0, 1, 1, 0]},
-        #     "Morty": {"observation": obs},#, "action_mask": [1, 0, 0, 1]},
-        # }
+        self.infos = {'Rick': {}, 'Morty': {}}
+        self.rewards = {'Rick': 0, 'Morty': 0}
         
         self.rick_reward, self.rick_done, self.rick_truncated, self.rick_info = 0.0, False, False, {}
         self.morty_reward, self.morty_done, self.morty_truncated, self.morty_info = 0.0, False, False, {}
@@ -554,10 +439,8 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         self.rick_obs = self.obs
         self.morty_obs = self.obs
         
-        # observations = {
-        #     "Rick": {"observation": self.rick_obs, "action_mask": [0]},
-        #     "Morty": {"observation": self.morty_obs, "action_mask": [0]},
-        # }
+        self.step_num = 1
+        
         
         observations = {
             'Rick': {
@@ -572,21 +455,12 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             }
         }
         
-        # observations = {
-        #         'Rick': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)},
-        #         'Morty': {"observation": np.array([self.obs.CGM], dtype=np.float32), "action_mask": np.array([0], dtype=np.float32)}
-        #     }
-            
-        
-        # print(observations)
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
 
         return observations, infos
-        
-        # return np.array([obs.CGM], dtype=np.float32), info
-        # return {i:np.array([obs.CGM], dtype=np.float32) for i in self.agents}, {i:info for i in self.agents}
+
 
     def render(self):
         if self.render_mode == "human":

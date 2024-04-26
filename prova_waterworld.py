@@ -14,7 +14,7 @@ For more information, see https://stable-baselines3.readthedocs.io/en/master/mod
 Author: Elliot (https://github.com/elliottower)
 """
 
-
+import shutil
 import scipy
 import openpyxl
 import csv
@@ -125,11 +125,12 @@ def mean_std(valori):
         return 0.0
 
 def training_supersuit(
-    env_fn, paziente, time_suffix, n_steps: int = 2400,
+    env_fn, paziente, time_suffix, n_steps: int = 2400, steps: int = 2400,
     seed: int | None = 0, **env_kwargs
 ):
     # Train a single model to play as each agent in a cooperative Parallel environment
     # env = env_fn.parallel_env(**env_kwargs)
+    
     env = env_fn
 
     env.reset(seed=seed)
@@ -146,10 +147,10 @@ def training_supersuit(
         gamma=0.99,
         verbose=3,
         learning_rate=1e-3,
-        batch_size=256,
+        batch_size=64,
     )
 
-    model.learn(total_timesteps=n_steps, progress_bar=True)
+    model.learn(total_timesteps=steps, progress_bar=True)
 
     # model.save(f"model_{paziente}_{time_suffix}")
     
@@ -192,7 +193,6 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
     
         # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         # writer.writeheader()
-    
     
         
         
@@ -246,6 +246,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_na
                 reward_fun=new_reward,
                 # seed=123,
                 render_mode="human",
+                training = False
                 # n_steps=n_steps
             )
             
@@ -480,17 +481,21 @@ if __name__ == "__main__":
     
     # Ottieni la data corrente
     current_time = datetime.now()
-    
     # Formatta la data nel formato desiderato (ad esempio, YYYYMMDD_HHMMSS)
     day_suffix = current_time.strftime("%Y%m%d")
     time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
+    time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
     # Crea il nome della cartella usando il suffisso di tempo
     folder_name = f"results_{day_suffix}"
+    # folder_name = f"results_{day_suffix}/{time_suffix_Min}"
+    subfolder_name = f"{time_suffix_Min}"
     # Crea la cartella se non esiste già
-    os.makedirs(folder_name, exist_ok=True)
+    os.makedirs(os.path.join(folder_name, subfolder_name), exist_ok=True)
     
     n_days = 5
-    train_timesteps = 2400
+    # train_timesteps = 2400
+    # train_timesteps = 100
+    train_timesteps = 3200
     num_games = 2
     test_timesteps = 1000
     
@@ -561,15 +566,18 @@ if __name__ == "__main__":
             reward_fun=new_reward,
             # seed=123,
             render_mode="human",
+            training = True
             # n_steps=n_steps
         )
              
         # Train a model (takes ~3 minutes on GPU)
-        # training_supersuit(env_fn, p, time_suffix, steps=train_timesteps, seed=42, **env_kwargs)
-        
+        training_supersuit(env_fn, p, time_suffix, steps=train_timesteps, seed=42, **env_kwargs)
+
+#%%        
+
         # se ho già il modello
         # model = PPO.load('T1DSimGymnasiumEnv_MARL_20240320-183729')
-        model = PPO.load('T1DSimGymnasiumEnv_MARL_adult#001_20240330-021206')
+        # model = PPO.load('T1DSimGymnasiumEnv_MARL_adult#001_20240330-021206')
     
         # test
         avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 
