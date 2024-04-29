@@ -181,8 +181,11 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         if self.env.training == True:
             current_time = datetime.now()
             time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
-            self.subfolder_name = f"training_{time_suffix_Min}"        
+            day_suffix = current_time.strftime("%Y%m%d")
+            self.folder = f"Training\Training_{time_suffix_Min}\Training_{self.env.patient_name}_{time_suffix_Min}"
+            # self.subfolder_name_train = f"training_{self.env.patient_name}_{time_suffix_Min}"        
             # self.df_training = pd.read_csv('risultati_training.csv')
+            os.makedirs(os.path.join(self.folder), exist_ok=True)
             
             data_diz = {
                 'step': [],
@@ -262,20 +265,20 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         if self.env.training == True:
             current_time = datetime.now()
             # Formatta la data nel formato desiderato (ad esempio, YYYYMMDD_HHMMSS)
-            day_suffix = current_time.strftime("%Y%m%d")
+            # day_suffix = current_time.strftime("%Y%m%d")
             time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
             # time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
             # Sottrai un secondo dall'ora attuale
             # previous_time = current_time - timedelta(seconds=1)
             # folder_name = f"results_{day_suffix}/{time_suffix_Min}"
-            folder_name = f"training_{day_suffix}"
+            # folder_name = f"results_{day_suffix}"
             # subfolder_name = f"{time_suffix_Min1}"
             # Formatta la data e l'ora nel formato desiderato
             # time_suffix_prec = previous_time.strftime("%Y%m%d_%H%M%S")
             
             
             ''' MODIFICA PER SALVARE DF'''
-            self.delete_files_except_last(os.path.join(folder_name, self.subfolder_name), 'risultati_training_')
+            self.delete_files_except_last(os.path.join(self.folder), 'risultati_training_')
 
 
         rick_action = actions["Rick"]
@@ -416,7 +419,7 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             self.df_training = pd.concat([self.df_training, new_df])
             
             # Salva il DataFrame aggiornato in un file CSV
-            self.df_training.to_csv(os.path.join(folder_name, self.subfolder_name,f'risultati_training_{time_suffix}.csv'), index=False)
+            self.df_training.to_csv(os.path.join(self.folder, f'risultati_training_{self.env.patient_name}_{time_suffix}.csv'), index=False)
             
             self.step_num += 1
         

@@ -1,19 +1,11 @@
-from __future__ import annotations
-
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 18 16:09:12 2024
+Created on Mon Apr 29 01:37:29 2024
 
 @author: Daniele
 """
 
-"""Uses Stable-Baselines3 to train agents to play the Waterworld environment using SuperSuit vector envs.
-
-For more information, see https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html
-
-Author: Elliot (https://github.com/elliottower)
-"""
-
+from __future__ import annotations
 import shutil
 import scipy
 import openpyxl
@@ -48,50 +40,6 @@ def new_reward(BG_last_hour):
     # print('USIAMO LA NOSTRA REWAAAAAAAAAAARD')
     return new_func(BG_last_hour[-1])
 
-def create_scenario(n_days, cho_daily=230):
-
-  scenario = []
-  cho_sum = 0
-  mu_break, sigma_break = 8, 3 
-  mu_lunch, sigma_lunch = 13, 1
-  mu_snack, sigma_snack = 17, 2
-  mu_dinner, sigma_dinner = 21, 2
-  mu_night, sigma_night = 24, 2
-
-  for i in range(n_days):
-
-    mu_cho_break, sigma_cho_break = cho_daily*0.15, 15 
-    mu_cho_lunch, sigma_cho_lunch = cho_daily*0.45, 45
-    mu_cho_snack, sigma_cho_snack = cho_daily*0.05, 5
-    mu_cho_dinner, sigma_cho_dinner = cho_daily*0.35, 35
-    mu_cho_night, sigma_cho_night = cho_daily*0.05, 5
-
-    hour_break = int(np.random.normal(mu_break, sigma_break/2)) + 24*i
-    hour_lunch = int(np.random.normal(mu_lunch, sigma_lunch/2)) + 24*i
-    hour_snack = int(np.random.normal(mu_snack, sigma_snack/2)) + 24*i
-    hour_dinner = int(np.random.normal(mu_dinner, sigma_dinner/2)) + 24*i
-    hour_night = int(np.random.normal(mu_night, sigma_night/2)) + 24*i
-
-    cho_break = int(np.random.normal(mu_cho_break, sigma_cho_break/2))
-    cho_lunch = int(np.random.normal(mu_cho_lunch, sigma_cho_lunch/2))
-    cho_snack = int(np.random.normal(mu_cho_snack, sigma_cho_snack/2))
-    cho_dinner = int(np.random.normal(mu_cho_dinner, sigma_cho_dinner/2))
-    cho_night = int(np.random.normal(mu_cho_night, sigma_cho_night/2))
-
-    if int(np.random.randint(100)) < 60:
-      scenario.append((hour_break,cho_break))
-    if int(np.random.randint(100)) < 100:
-      scenario.append((hour_lunch,cho_lunch))
-    if int(np.random.randint(100)) < 30:
-      scenario.append((hour_snack,cho_snack))
-    if int(np.random.randint(100)) < 95:
-      scenario.append((hour_dinner,cho_dinner))
-    if int(np.random.randint(100)) < 3:
-      scenario.append((hour_night,cho_night))
-
-    #cho_sum += cho_break + cho_lunch + cho_snack + cho_dinner + cho_night
-
-  return scenario
 
 def risk_index_mod(BG, horizon):
     # BG is in mg/dL
@@ -123,67 +71,42 @@ def mean_std(valori):
     n = len(valori)
     if n == 0:
         return 0.0
-
-def training_supersuit(
-    env_fn, paziente, folder_test, n_steps: int = 2400, steps: int = 2400,
-    seed: int | None = 0, **env_kwargs
-):
-    # Train a single model to play as each agent in a cooperative Parallel environment
-    # env = env_fn.parallel_env(**env_kwargs)
     
-    env = env_fn
-
-    env.reset(seed=seed)
-
-    print(f"Starting training on {paziente} with {str(env.metadata['name'])}.")
-
-    env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 8, num_cpus=4, base_class="stable_baselines3")
-
-    # Note: Waterworld's observation space is discrete (242,) so we use an MLP policy rather than CNN
-    model = PPO(
-        MlpPolicy,
-        env,
-        gamma=0.99,
-        verbose=3,
-        learning_rate=1e-3,
-        batch_size=64,
-    )
-
-    model.learn(total_timesteps=steps, progress_bar=True, reset_num_timesteps=False)
-
-    
-    model.save(os.path.join(folder_test, f"{env.unwrapped.metadata.get('name')}_{paziente}_{time.strftime('%Y%m%d-%H%M%S')}"))
-    
-    
-    print("Model has been saved.")
-
-    print(f"Finished training on {paziente} with {str(env.unwrapped.metadata['name'])}.")
-
-    env.close()
-    
-    return model
-
-
 def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_test,
          num_games: int = 100, test_timesteps=10, 
          render_mode: Optional[str] = None, **env_kwargs):
     
-    # Initialize the environment
-    env = env_fn  # Assicurati che env_fn restituisca un'istanza dell'ambiente
-
-    print(f"\nStarting evaluation on {env.metadata['name']} (num_games={num_games}, render_mode={render_mode})")
-
-    try:
-        latest_policy = max(glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime)
-    except ValueError:
-        print("Policy not found.")
-        exit(0)
-
-    if model == None:
-        model = PPO.load(latest_policy)
+    # start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
     
-    total_rewards = {agent: 0 for agent in env.possible_agents}
+    # # train random scenario
+    # scen_long = create_scenario(n_days)
+    # train_scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
+    
+    # env_fn = T1DSimGymnasiumEnv_MARL(
+    #     patient_name=p,
+    #     custom_scenario=train_scenario,
+    #     reward_fun=new_reward,
+    #     # seed=123,
+    #     render_mode="human",
+    #     training = True
+    #     # n_steps=n_steps
+    # )
+    
+    # # Initialize the environment
+    # env = env_fn  # Assicurati che env_fn restituisca un'istanza dell'ambiente
+
+    # print(f"\nStarting evaluation on {env.metadata['name']} (num_games={num_games}, render_mode={render_mode})")
+
+    # try:
+    #     latest_policy = max(glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime)
+    # except ValueError:
+    #     print("Policy not found.")
+    #     exit(0)
+
+    # if model == None:
+    #     model = PPO.load(latest_policy)
+    
+    # total_rewards = {agent: 0 for agent in env.possible_agents}
     
         
         
@@ -223,7 +146,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             # print(scen)
             lista_BG = []
             
-            total_rewards = {agent: 0 for agent in env.possible_agents}
+            
             sheet_name = f'Game_{game}'
             
             # writer.writerow({'Game': f'Game {game}'})
@@ -241,6 +164,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 # n_steps=n_steps
             )
             
+            total_rewards = {agent: 0 for agent in env.possible_agents}
             
             obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
             # print(obs)
@@ -416,7 +340,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                     break
     
 
-            with pd.ExcelWriter(os.path.join(folder_test, general_results_path), mode='a') as middle_writer:  
+            with pd.ExcelWriter(os.path.join(folder_test, f'results_{paziente}_{time_suffix_Min}.xlsx')) as middle_writer:  
             
                 LBGI_mean, HBGI_mean, RI_mean, LBGI_std, HBGI_std, RI_std = risk_index_mod(lista_BG, len(lista_BG))
         
@@ -460,11 +384,12 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 
                 df_result = pd.DataFrame(tir_dict)
             
-                df_result.to_excel(middle_writer, sheet_name='results_'+paziente, index=False)
+                df_result.to_excel(middle_writer, sheet_name='general_results', index=False)
                 # middle_writer.close()
                 
                 
     return avg_reward, tir_dict, df_hist
+
 
 #%%
 
@@ -480,7 +405,7 @@ if __name__ == "__main__":
     # folder_name = f"results_{day_suffix}"
     # folder_name = f"results_{day_suffix}/{time_suffix_Min}"
     # subfolder_test_name = f"test_{time_suffix_Min}"
-    general_results_path = f'test_results{time_suffix_Min}.xlsx'
+    general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
     folder_test = f"Test\\Test_{time_suffix_Min}"
     # Crea la cartella se non esiste già
     os.makedirs(folder_test, exist_ok=True)
@@ -488,20 +413,20 @@ if __name__ == "__main__":
     n_days = 5
     # train_timesteps = 2400
     # train_timesteps = 100
-    train_timesteps = 1024
-    num_games = 20
-    test_timesteps = 2400
+
+    num_games = 2
+    test_timesteps = 240
     
     pazienti = ['adult#001',
                 'adult#002',
-                'adult#003',
-                'adult#004',
-                'adult#005',
-                'adult#006',
-                'adult#007',
-                'adult#008',
-                'adult#009',
-                'adult#010',
+                # 'adult#003',
+                # 'adult#004',
+                # 'adult#005',
+                # 'adult#006',
+                # 'adult#007',
+                # 'adult#008',
+                # 'adult#009',
+                # 'adult#010',
                 ]
     
     # test fixed scenario
@@ -559,33 +484,8 @@ if __name__ == "__main__":
         
         start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
         
-        folder_train = f"Training\\Training_{p}_{time_suffix_Min}"
+        model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
         
-        # train random scenario
-        scen_long = create_scenario(n_days)
-        train_scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-        
-        env_fn = T1DSimGymnasiumEnv_MARL(
-            patient_name=p,
-            custom_scenario=train_scenario,
-            reward_fun=new_reward,
-            # seed=123,
-            render_mode="human",
-            training = True
-            # n_steps=n_steps
-        )
-             
-        # Train a model (takes ~3 minutes on GPU)
-        trained_model = training_supersuit(env_fn, p, folder_train, steps=train_timesteps, seed=42, **env_kwargs)
-        model = trained_model
-#%%        
-
-        # se ho già il modello
-        # model = PPO.load('T1DSimGymnasiumEnv_MARL_20240320-183729')
-        # model = PPO.load('T1DSimGymnasiumEnv_MARL_adult#001_20240330-021206')
-        
-        # model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
-    
         # test
         avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 
                                     tir_mean_dict, time_suffix, folder_test,
@@ -593,7 +493,7 @@ if __name__ == "__main__":
                                     test_timesteps=test_timesteps, 
                                     render_mode=None, **env_kwargs)
         
-        with pd.ExcelWriter(os.path.join(folder_test, general_results_path), mode='a') as final_writer:
+        with pd.ExcelWriter(os.path.join(folder_test, general_results_path)) as final_writer:
             
             tir_mean_dict['paziente'].append(p)
             tir_mean_dict['avg reward'].append(avg_reward)
