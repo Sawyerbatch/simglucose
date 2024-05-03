@@ -179,9 +179,11 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
     except ValueError:
         print("Policy not found.")
         exit(0)
+        
 
     if model == None:
         model = PPO.load(latest_policy)
+        # model = PPO.load('C:\\Users\Daniele\anaconda3\envs\glumarl\Lib\site-packages\simglucose\Training\Training_adult#007_20240503_1423\T1DSimGymnasiumEnv_MARL_adult#007_20240503-142827.zip')
     
     total_rewards = {agent: 0 for agent in env.possible_agents}
     
@@ -412,8 +414,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 
                 df_hist = env.show_history()
                 
-                if done == True:
-                    break
+                # if done == True:
+                #     break
     
 
             with pd.ExcelWriter(os.path.join(folder_test, general_results_path), mode='a') as middle_writer:  
@@ -489,19 +491,20 @@ if __name__ == "__main__":
     # train_timesteps = 2400
     # train_timesteps = 100
     train_timesteps = 1024
-    num_games = 20
+    num_games = 10
     test_timesteps = 2400
     
-    pazienti = ['adult#001',
-                'adult#002',
-                'adult#003',
-                'adult#004',
-                'adult#005',
-                'adult#006',
+    pazienti = [
+                # 'adult#001',
+                # 'adult#002',
+                # 'adult#003',
+                # 'adult#004',
+                # 'adult#005',
+                # 'adult#006',
                 'adult#007',
-                'adult#008',
-                'adult#009',
-                'adult#010',
+                # 'adult#008',
+                # 'adult#009',
+                # 'adult#010',
                 ]
     
     # test fixed scenario
@@ -571,7 +574,8 @@ if __name__ == "__main__":
             reward_fun=new_reward,
             # seed=123,
             render_mode="human",
-            training = True
+            training = True,
+            folder=folder_train
             # n_steps=n_steps
         )
              

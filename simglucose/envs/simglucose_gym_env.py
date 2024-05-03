@@ -46,7 +46,8 @@ class T1DSimEnv_MARL(gym.Env):
     INSULIN_PUMP_HARDWARE = "Insulet"
 
     def __init__(
-        self, patient_name=None, custom_scenario=None, reward_fun=None, seed=None, training=None
+        self, patient_name=None, custom_scenario=None, reward_fun=None,
+        seed=None, training=None, folder=None
     ):
         """
         patient_name must be 'adolescent#001' to 'adolescent#010',
@@ -61,6 +62,7 @@ class T1DSimEnv_MARL(gym.Env):
         self.reward_fun = reward_fun
         self.step_num = 1
         self.training = training
+        self.folder = folder
         self.np_random, _ = seeding.np_random(seed=seed)
         self.custom_scenario = custom_scenario
         self.env, _, _, _ = self._create_env()
@@ -119,10 +121,11 @@ class T1DSimEnv_MARL(gym.Env):
         reward_fun = self.reward_fun
         
         training = self.training
+        folder = self.folder
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training, folder)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -165,7 +168,8 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         seed=None,
         render_mode=None,
         # n_steps=None
-        training=None
+        training=None,
+        folder=None
     ) -> None:
         super().__init__()
         self.render_mode = render_mode
@@ -175,14 +179,16 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             reward_fun=reward_fun,
             seed=seed,
             # n_steps=n_steps,
-            training=training
+            training=training,
+            folder=folder
         )
         
         if self.env.training == True:
             current_time = datetime.now()
             time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
             day_suffix = current_time.strftime("%Y%m%d")
-            self.folder = f"Training\Training_{time_suffix_Min}\Training_{self.env.patient_name}_{time_suffix_Min}"
+            self.folder = folder
+            # self.folder = f"Training\Training_{time_suffix_Min}\Training_{self.env.patient_name}_{time_suffix_Min}"
             # self.subfolder_name_train = f"training_{self.env.patient_name}_{time_suffix_Min}"        
             # self.df_training = pd.read_csv('risultati_training.csv')
             os.makedirs(os.path.join(self.folder), exist_ok=True)
@@ -276,8 +282,6 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             # Formatta la data e l'ora nel formato desiderato
             # time_suffix_prec = previous_time.strftime("%Y%m%d_%H%M%S")
             
-            
-            ''' MODIFICA PER SALVARE DF'''
             self.delete_files_except_last(os.path.join(self.folder), 'risultati_training_')
 
 
@@ -296,12 +300,13 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
         if self.obs.CGM > iper_s:
             morty_action =  [0.0]
             # self.rick_obs, self.rick_reward, self.rick_done, self.rick_info = self.env.step(rick_action)
-            # self.obs, self.rick_reward, self.done, self.info = self.env.step(rick_action)
             self.obs, self.rick_reward, self.done, self.info = self.env.step(rick_action)
+
             # self.obs, self.rick_reward, self.done, self.info = self.env.step([1.0])
 
             # self.obs, self.reward, self.done, self.info = self.env.step(rick_action)
-            print('Rick action', rick_action)
+            # print('Rick action', rick_action)
+            # print('Morty action', morty_action)
             # self.obs = self.rick_obs
             self.rick_obs = self.obs
             self.morty_obs = self.obs
@@ -317,7 +322,8 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             self.obs, self.morty_reward, self.done, self.info = self.env.step(morty_action)
             # self.obs, self.morty_reward, self.done, self.info = self.env.step([[0.08483092]])
             # self.obs, self.reward, self.done, self.info = self.env.step(morty_action)
-            print('Morty action', morty_action)
+            # print('Rick action', rick_action)
+            # print('Morty action', morty_action)
             # self.obs = self.morty_obs
             self.rick_obs = self.obs
             self.morty_obs = self.obs
@@ -344,6 +350,12 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             # self.obs = self.morty_obs
             # self.communication_channel["Morty"] = self.morty_obs.CGM
             # self.communication_channel["Rick"] = self.morty_obs.CGM
+        
+        # print('obs', self.morty_obs)
+        
+        # actions = {'Rick':rick_action,
+        #             'Morty':morty_action}
+        # print('actions',actions)
             
         
         observations = {
@@ -401,10 +413,10 @@ class T1DSimGymnasiumEnv_MARL(ParallelEnv):
             data_list = {
                 'step': int(self.step_num),
                 'BG': self.obs.CGM,
-                'Rick_Action': rick_action,
-                'Rick_Reward': self.rick_reward,
-                'Morty_Action': morty_action,
-                'Morty_Reward': self.morty_reward,
+                'Rick_Action': round(rick_action[0],3),
+                'Rick_Reward': round(self.rick_reward,3),
+                'Morty_Action': round(morty_action[0],3),
+                'Morty_Reward': round(self.morty_reward,3),
                 'Rick_Done': self.rick_done, 
                 'Morty_Done': self.morty_done,
                 'Rick_Trunc': self.rick_truncated,

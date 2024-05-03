@@ -141,12 +141,15 @@ def training_supersuit(
         verbose=3,
         learning_rate=1e-3,
         batch_size=64,
+        # batch_size=32,
+        n_epochs= 10,
+        n_steps= n_steps
     )
 
     model.learn(total_timesteps=steps, progress_bar=True, reset_num_timesteps=False)
 
-    model_folder = f"Training\Training_{time_suffix_Min}\Model_{p}_{time_suffix_Min}"
-    model.save(os.path.join(model_folder, f"{env.unwrapped.metadata.get('name')}_{paziente}_{time.strftime('%Y%m%d-%H%M%S')}"))
+    model_folder = f"Training\Training_{time_suffix_Min}"
+    model.save(os.path.join(model_folder, f"{env.unwrapped.metadata.get('name')}_{paziente}_{n_steps}_{time_suffix_Min}"))
     
     
     print("Model has been saved.")
@@ -174,18 +177,23 @@ if __name__ == "__main__":
     n_days = 5
     # train_timesteps = 2400
     # train_timesteps = 100
+    # train_timesteps = 1024
     train_timesteps = 1024
+    # n_steps=2
+    # n_steps = 1024
+    n_steps = 2048
+    
     
     pazienti = [
-                # 'adult#001',
-                # 'adult#002',
-                # 'adult#003',
-                # 'adult#004',
-                # 'adult#005',
-                # 'adult#006',
-                # 'adult#007',
-                # 'adult#008',
-                # 'adult#009',
+                'adult#001',
+                'adult#002',
+                'adult#003',
+                'adult#004',
+                'adult#005',
+                'adult#006',
+                'adult#007',
+                'adult#008',
+                'adult#009',
                 'adult#010',
                 ]
     
@@ -197,7 +205,7 @@ if __name__ == "__main__":
     for p in (pazienti):  
         
         # Crea il nome della cartella usando il suffisso di tempo
-        folder += f"\Training_{p}_{time_suffix_Min}"
+        folder += f"\\Training_{p}_{time_suffix_Min}"
 
         # Crea la cartella se non esiste già
         # os.makedirs(folder, exist_ok=True)
@@ -216,10 +224,11 @@ if __name__ == "__main__":
             reward_fun=new_reward,
             # seed=123,
             render_mode="human",
-            training = True
+            training = True,
+            folder=folder
             # n_steps=n_steps
         )
              
         # Train a model (takes ~3 minutes on GPU)
-        trained_model = training_supersuit(env_fn, p, steps=train_timesteps, seed=42, **env_kwargs)
+        trained_model = training_supersuit(env_fn, p, steps=train_timesteps, n_steps=n_steps, seed=42, **env_kwargs)
         

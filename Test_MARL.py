@@ -164,6 +164,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 # n_steps=n_steps
             )
             
+            
+            
             total_rewards = {agent: 0 for agent in env.possible_agents}
             
             obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
@@ -205,7 +207,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 
                 # if not done:
                     
-                # print('oooobs', obs)
+                print('oooobs', obs)
                 
                 # se obs è una tupla vuol dire che viene dal reset,
                 # e devo scartare un secondo elemento vuoto
@@ -221,6 +223,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 # 'action_mask': array([0.], dtype=float32)},
                 # 'Morty': {'observation': array([142.04321], dtype=float32),
                 # 'action_mask': array([0.], dtype=float32)}}
+                
                 actions = {}
      
                 # print(a, type(a))
@@ -230,8 +233,21 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                     # esempio agent_obs = 
                     # {'observation': array([142.04321], dtype=float32), 
                     # 'action_mask': array([0.], dtype=float32)}
+                    print(agent, action)
                     actions[agent] = action
                     # print('aaaactions', actions)
+
+                
+                # IL TRAINING FUNZIONA, QUINDI C'E' QUALCOSA QUI CHE NON VA,
+                # ANCHE SE I DUE AGENTI RICEVONO LA STESSA OSSERVAZIONE, DOVREBBERO
+                # DARE AZIONI DIVERSE?
+                # OPPURE VA BENE COSI' PERCHE' IL MODELLO E' ADDESTRATO PER DARE COME OUTPUT
+                # UNA AZIONE SOLA (DELL'AGENTE SCELTO) CHE POI VIENE PASSATA NELLA STRUTTURA 
+                # A DUE AGENTI E MANDATA INTERNAMENTE ALL'AGENTE GIUSTO IN BASE ALLA CGM
+                # action_rick, _ = model.predict(observ['Rick'], deterministic=True)
+                
+                # action_morty, _ = model.predict(observ['Morty'], deterministic=True)
+                # actions = {'Rick': action_rick, 'Morty': action_morty}
                 
                 obs, rewards, dones, truncs, infos = env.step(actions)  # Esegui un passo dell'ambiente con le azioni degli agenti
                 # {'Rick': {'observation': array([141.73483], dtype=float32),
@@ -336,8 +352,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 
                 df_hist = env.show_history()
                 
-                if done == True:
-                    break
+                # if done == True:
+                #     break
     
 
             with pd.ExcelWriter(os.path.join(folder_test, f'results_{paziente}_{time_suffix_Min}.xlsx')) as middle_writer:  
@@ -417,13 +433,14 @@ if __name__ == "__main__":
     num_games = 2
     test_timesteps = 240
     
-    pazienti = ['adult#001',
-                'adult#002',
+    pazienti = [
+                # 'adult#001',
+                # 'adult#002',
                 # 'adult#003',
                 # 'adult#004',
                 # 'adult#005',
                 # 'adult#006',
-                # 'adult#007',
+                'adult#007',
                 # 'adult#008',
                 # 'adult#009',
                 # 'adult#010',
@@ -485,6 +502,8 @@ if __name__ == "__main__":
         start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
         
         model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
+        
+        # model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_adult#008')
         
         # test
         avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 

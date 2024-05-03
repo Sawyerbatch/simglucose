@@ -35,13 +35,14 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv_MARL(object):
-    def __init__(self, patient, sensor, pump, scenario, reward_fun, training): #n_steps,
+    def __init__(self, patient, sensor, pump, scenario, reward_fun, training, folder): #n_steps,
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
         self.scenario = scenario
         self.reward_fun = reward_fun
         self.training = training
+        self.folder = folder
         self._reset()
 
     @property
@@ -110,7 +111,7 @@ class T1DSimEnv_MARL(object):
         reward = reward_fun(BG_last_hour)
         # print('ACTION', action)
         # print('REWARD', reward)
-        done = BG < 70 or BG > 250
+        done = BG < 70 or BG > 350
         # print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
         obs = Observation(CGM=CGM)
 
