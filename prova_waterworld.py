@@ -249,7 +249,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             
             done = False
             
-            df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS'
+            df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS',
                                        'BG','HBGI','LBGI', 'RISK',
                                        #'Morty_Obs', 'Rick_Obs',
                                        'Rick_Action', 'Rick_Reward',

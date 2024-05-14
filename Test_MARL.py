@@ -37,7 +37,6 @@ def new_func(x):
     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
 def new_reward(BG_last_hour):
-    # print('USIAMO LA NOSTRA REWAAAAAAAAAAARD')
     return new_func(BG_last_hour[-1])
 
 
@@ -75,40 +74,7 @@ def mean_std(valori):
 def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_test,
          num_games: int = 100, test_timesteps=10, 
          render_mode: Optional[str] = None, **env_kwargs):
-    
-    # start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
-    
-    # # train random scenario
-    # scen_long = create_scenario(n_days)
-    # train_scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-    
-    # env_fn = T1DSimGymnasiumEnv_MARL(
-    #     patient_name=p,
-    #     custom_scenario=train_scenario,
-    #     reward_fun=new_reward,
-    #     # seed=123,
-    #     render_mode="human",
-    #     training = True
-    #     # n_steps=n_steps
-    # )
-    
-    # # Initialize the environment
-    # env = env_fn  # Assicurati che env_fn restituisca un'istanza dell'ambiente
-
-    # print(f"\nStarting evaluation on {env.metadata['name']} (num_games={num_games}, render_mode={render_mode})")
-
-    # try:
-    #     latest_policy = max(glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime)
-    # except ValueError:
-    #     print("Policy not found.")
-    #     exit(0)
-
-    # if model == None:
-    #     model = PPO.load(latest_policy)
-    
-    # total_rewards = {agent: 0 for agent in env.possible_agents}
-    
-        
+           
         
     tir_dict = {'ripetizione':[],
                 'death hypo':[],
@@ -128,16 +94,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 'LBGI std':[],
                 'RI mean':[],
                 'RI std':[], 
-                # 'cap iper':[],
-                # 'cap ipo':[],
-                # 'soglia iper':[],
-                # 'soglia ipo':[],
-                # 'training learning rate':[],
-                # 'training n steps':[],
-                # 'training timesteps':[],
                 'test timesteps':[],
                 'scenario':[],
-                # 'tempo esecuzione':[],
                 }
     
     with pd.ExcelWriter(os.path.join(folder_test, f'story_{paziente}_{time_suffix_Min}.xlsx')) as patient_writer:
@@ -160,7 +118,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 reward_fun=new_reward,
                 # seed=123,
                 render_mode="human",
-                training = False
+                training = True
                 # n_steps=n_steps
             )
             
@@ -171,16 +129,16 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
             # print(obs)
             
-            done = False
+            # done = False
             
-            df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS'
-                                       'BG','HBGI','LBGI', 'RISK',
-                                       #'Morty_Obs', 'Rick_Obs',
-                                       'Rick_Action', 'Rick_Reward',
-                                       'Morty_Action', 'Morty_Reward',     
-                                       'Morty_Done', 'Rick_Done',
-                                       'Morty_Trunc', 'Rick_Trunc',
-                                       'Obs'])
+            # df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS',
+            #                            'BG','HBGI','LBGI', 'RISK',
+            #                            #'Morty_Obs', 'Rick_Obs',
+            #                            'Rick_Action', 'Rick_Reward',
+            #                            'Morty_Action', 'Morty_Reward',     
+            #                            'Morty_Done', 'Rick_Done',
+            #                            'Morty_Trunc', 'Rick_Trunc',
+            #                            'Obs'])
             
             data_list = []
             
@@ -203,7 +161,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             
             for t in range(test_timesteps):
                 
-                print(f'test n {game}, timestep {t}')
+                print(f'test n {game}, timestep {t} paziente {paziente}')
                 
                 # if not done:
                     
@@ -325,8 +283,8 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                         'Timestep': t,
                         'CGM': round(env.obs.CGM, 3),
                         'BG': infos['bg'],
-                        'LBGI': infos['hbgi'],
-                        'HBGI': infos['lbgi'],
+                        'LBGI': infos['lbgi'],
+                        'HBGI': infos['hbgi'],
                         'RISK': infos['risk'],
                         'INS': infos['insulin'][0],
                         # 'Rick_Obs': str(obs['Rick']),
@@ -341,6 +299,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                         'Morty_Trunc': truncs['Morty'],
                         'Obs': str(obs),
                     })
+
                 
                 df = pd.DataFrame(data_list)
                 # print(df['Rick_Reward'])
@@ -382,17 +341,6 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 tir_dict['LBGI std'].append(LBGI_std)
                 tir_dict['RI mean'].append(RI_mean)
                 tir_dict['RI std'].append(RI_std)
-                # iper_mod = insert_dot(iper, 1)
-                # tir_dict['cap iper'].append(iper_mod)
-                # ipo_mod = insert_dot(ipo, 1)
-                # tir_dict['cap ipo'].append(ipo_mod)
-                # tir_dict['soglia iper'].append(iper_s)
-                # tir_dict['soglia ipo'].append(ipo_s)
-                # tir_dict['test timesteps'].append(test_timesteps)
-                # tir_dict['game'].append(game+1)
-                # tir_dict['training learning rate'].append(training_learning_rate)
-                # tir_dict['training n steps'].append(training_n_steps)
-                # tir_dict['training timesteps'].append(training_total_timesteps)
                 tir_dict['test timesteps'].append(test_timesteps)
 
                 tir_dict['scenario'].append(scen)
@@ -430,8 +378,8 @@ if __name__ == "__main__":
     # train_timesteps = 2400
     # train_timesteps = 100
 
-    num_games = 2
-    test_timesteps = 240
+    num_games = 10
+    test_timesteps = 2400
     
     pazienti = [
                 # 'adult#001',
@@ -501,9 +449,12 @@ if __name__ == "__main__":
         
         start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
         
-        model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
+        for m in os.listdir('Models'):
+            if m.startswith('T1DSimGymnasiumEnv_MARL_'+p):
+                model = PPO.load('Models\\'+m.split('.')[0])
+        # model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
         
-        # model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_adult#008')
+        # model = PPO.load('Training\Training_20240505_0510\Training_adult#007\T1DSimGymnasiumEnv_MARL_adult#007_2048_20240505_0510')
         
         # test
         avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 

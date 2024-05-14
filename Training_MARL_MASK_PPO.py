@@ -30,6 +30,9 @@ from datetime import datetime
 from stable_baselines3 import PPO
 from simglucose.envs import T1DSimGymnasiumEnv_MARL
 from simglucose.simulation.scenario import CustomScenario
+from sb3_contrib import MaskablePPO
+from sb3_contrib.common.wrappers import ActionMasker
+
 
 # Disable all future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -130,21 +133,23 @@ def training_supersuit(
 
     print(f"Starting training on {paziente} with {str(env.metadata['name'])}.")
 
-    env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 2, num_cpus=6, base_class="stable_baselines3")
+    # env = ss.pettingzoo_env_to_vec_env_v1(env)
+    # env = ss.concat_vec_envs_v1(env, 2, num_cpus=6, base_class="stable_baselines3")
 
     # Note: Waterworld's observation space is discrete (242,) so we use an MLP policy rather than CNN
-    model = PPO(
-        MlpPolicy,
-        env,
-        gamma=0.99,
-        verbose=3,
-        learning_rate=1e-3,
-        batch_size=64,
-        # batch_size=32,
-        n_epochs= 10,
-        n_steps= n_steps
-    )
+    # model = PPO(
+    #     MlpPolicy,
+    #     env,
+    #     gamma=0.99,
+    #     verbose=3,
+    #     learning_rate=1e-3,
+    #     batch_size=64,
+    #     # batch_size=32,
+    #     n_epochs= 10,
+    #     n_steps= n_steps
+    # )
+    
+    model = MaskablePPO("MlpPolicy", env, gamma=0.4, seed=32, verbose=1)
 
     model.learn(total_timesteps=steps, progress_bar=True, reset_num_timesteps=False)
 
@@ -182,7 +187,7 @@ if __name__ == "__main__":
     # n_steps=2
     # n_steps = 1024
     # n_steps = 2048
-    n_steps = 2048
+    n_steps = 100
     
     
     pazienti = [
@@ -229,7 +234,74 @@ if __name__ == "__main__":
             folder=folder
             # n_steps=n_steps
         )
+        
+        def mask_fn(env: gymnasium.Env) -> np.ndarray:
+            # Do whatever you'd like in this function to return the action mask
+            # for the current env. In this example, we assume the env has a
+            # helpful method we can rely on.
+            return env.valid_action_mask()
+        
+        env_fn = ActionMasker(env_fn, mask_fn)
              
         # Train a model (takes ~3 minutes on GPU)
-        trained_model = training_supersuit(env_fn, p, folder, steps=train_timesteps, n_steps=n_steps, seed=42, **env_kwargs)
+        # trained_model = training_supersuit(env_fn, p, folder, steps=train_timesteps, n_steps=n_steps, seed=42, **env_kwargs)
         
+        import gymnasium as gym
+        import numpy as np
+        
+        from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
+        from sb3_contrib.common.wrappers import ActionMasker
+        from sb3_contrib.ppo_mask import MaskablePPO
+    
+        # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
+        # with ActionMasker. If the wrapper is detected, the masks are automatically
+        # retrieved and used when learning. Note that MaskablePPO does not accept
+        # a new action_mask_fn kwarg, as it did in an earlier draft.
+        model = MaskablePPO(MaskableActorCriticPolicy, env_fn, verbose=1)
+        # model = MaskablePPO("MlpPolicy", env_fn, gamma=0.4, seed=32, verbose=1)
+        # model = MaskablePPO("MultiInputPolicy", env_fn, gamma=0.4, seed=32, verbose=1)
+        
+        model.learn(total_timesteps=2048, progress_bar=True, reset_num_timesteps=False)
+    
+        # Note that use of masks is manual and optional outside of learning,
+        # so masking can be "removed" at testing time
+        # model.predict(observation, action_masks=valid_action_array)
+#%%
+
+# import gymnasium as gym
+# import numpy as np
+
+# from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
+# from sb3_contrib.common.wrappers import ActionMasker
+# from sb3_contrib.ppo_mask import MaskablePPO
+
+
+# def mask_fn(env: gym.Env) -> np.ndarray:
+#     # Do whatever you'd like in this function to return the action mask
+#     # for the current env. In this example, we assume the env has a
+#     # helpful method we can rely on.
+#     return env.valid_action_mask()
+
+
+# env = T1DSimGymnasiumEnv_MARL(
+#     patient_name=p,
+#     custom_scenario=train_scenario,
+#     reward_fun=new_reward,
+#     # seed=123,
+#     render_mode="human",
+#     training = True,
+#     folder=folder
+#     # n_steps=n_steps
+# )
+# env = ActionMasker(env, mask_fn)  # Wrap to enable masking
+
+# # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
+# # with ActionMasker. If the wrapper is detected, the masks are automatically
+# # retrieved and used when learning. Note that MaskablePPO does not accept
+# # a new action_mask_fn kwarg, as it did in an earlier draft.
+# model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1)
+# model.learn()
+
+# # Note that use of masks is manual and optional outside of learning,
+# # so masking can be "removed" at testing time
+# # model.predict(observation, action_masks=valid_action_array)
