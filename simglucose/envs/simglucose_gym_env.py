@@ -27,7 +27,7 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
 
-n_possible_actions = 11  # Necessary for maskable PPO
+n_possible_actions = 101  # Necessary for maskable PPO
 
 
 class T1DSimEnv_MARL(gym.Env):
@@ -193,7 +193,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         return self.action_space
         
     def observation_space(self, agent):
-        return self.observation_spaces
+        return self.observation_space
 
     def delete_files_except_last(self, folder_path, file_prefix):
         files = glob.glob(os.path.join(folder_path, f"{file_prefix}*"))
@@ -222,24 +222,32 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         return np.array(combined_obs)
 
     def _legal_moves(self):
-        iper_s = 120
-        ipo_s = 85
+        self.iper_s = 120
+        self.ipo_s = 85
         agent_moves = {'Jerry': None, 'Morty': None, 'Rick': None}
         
-        if ipo_s > self.obs.CGM:
+        if self.ipo_s > self.obs.CGM:
             agent_moves['Jerry'] = True
             agent_moves['Morty'] = False
             agent_moves['Rick'] = False
-        elif ipo_s <= self.obs.CGM < iper_s:
+        elif self.ipo_s <= self.obs.CGM < self.iper_s:
             agent_moves['Jerry'] = False
             agent_moves['Morty'] = True
             agent_moves['Rick'] = False
-        elif self.obs.CGM >= iper_s:
+        elif self.obs.CGM >= self.iper_s:
             agent_moves['Jerry'] = False
             agent_moves['Morty'] = False
             agent_moves['Rick'] = True
         
         return agent_moves
+    
+    def valid_action_mask(self) -> np.ndarray:
+        action_mask = np.zeros(n_possible_actions, dtype=np.float32)
+        for agent in self.agents:
+            legal_moves = self._legal_moves()[agent]
+            action_mask[int(legal_moves)] = 1.0  # Assuming legal_moves is the valid action index
+        return action_mask
+    
 
     def reset(self, seed=None, options=None):
         self.obs, _, _, _ = self.env._raw_reset()
@@ -252,32 +260,46 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         self.infos = {i: {} for i in self.agents}
         
         self.action_mask = self._legal_moves()
+        
+        if self.ipo_s > self.obs.CGM:
+            self.agent_selection = 'Jerry'
+
+        elif self.ipo_s <= self.obs.CGM < self.iper_s:
+            self.agent_selection = 'Morty'
+            
+        elif self.obs.CGM >= self.iper_s:
+            self.agent_selection = 'Rick'
+        
         self.observations = {agent: self.observe(agent) for agent in self.agents}
         
-        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.observations[agent]["action_mask"]} for agent in self.agents}
+        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
         
-        return combined_obs['Jerry'], self.infos
-
-    def valid_action_mask(self) -> np.ndarray:
-        action_mask = np.zeros(n_possible_actions, dtype=np.float32)
-        for agent in self.agents:
-            legal_moves = self._legal_moves()[agent]
-            action_mask[int(legal_moves)] = 1.0  # Assuming legal_moves is the valid action index
-        return action_mask
+        return combined_obs[self.agent_selection], self.infos
 
     def step(self, action):
         if self.env.training:
             current_time = datetime.now()
             time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
             self.delete_files_except_last(os.path.join(self.folder, self.subfolder_train), 'risultati_training_')
+        
+        if self.ipo_s > self.obs.CGM:
+            self.agent_selection = 'Jerry'
 
-        if self.agent_selection is None:
-            self.agent_selection = self.agents[0]  # Initialize agent_selection if not already set
+        elif self.ipo_s <= self.obs.CGM < self.iper_s:
+            self.agent_selection = 'Morty'
+            
+        elif self.obs.CGM >= self.iper_s:
+            self.agent_selection = 'Rick'
+
+        
+        # if self.agent_selection is None:
+        #     self.agent_selection = self.agents[0]  # Initialize agent_selection if not already set
 
         if self.truncations[self.agent_selection] or self.terminations[self.agent_selection]:
             return self._was_dead_step(action)
 
         mini_action = action / 100
+        # mini_action = 0.05
         self.obs, reward, done, truncated, self.infos[self.agent_selection] = self.env._step(mini_action)
         self.rewards[self.agent_selection] = float(reward)  # Convert reward to float
         
@@ -286,12 +308,14 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
         self.observations = {agent: self.observe(agent) for agent in self.agents}
         self._accumulate_rewards()
+        
+        CGM = round(self.obs.CGM,3)
 
         if self.env.training:
             data_diz_temp = {
                 'step': int(self.step_num),
-                'CGM': self.obs.CGM,
-                'Action': round(action, 3),
+                'CGM': CGM,
+                'Action': round(mini_action, 3),
                 'Active agent': self.agent_selection,
                 'Jerry_Reward': round(self.rewards['Jerry'], 3),
                 'Morty_Reward': round(self.rewards['Morty'], 3),
@@ -311,7 +335,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             self.df_training.to_csv(os.path.join(self.folder, self.subfolder_train, f'risultati_training_{self.env.patient_name}_{self.time_suffix_Min}.csv'), index=False)
             self.step_num += 1
 
-        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.observations[agent]["action_mask"]} for agent in self.agents}
+        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
         
         return combined_obs, sum(self.rewards.values()), self.terminations, self.truncations, self.infos
             

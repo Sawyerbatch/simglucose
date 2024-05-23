@@ -261,7 +261,8 @@ if __name__ == "__main__":
         # model = MaskablePPO("MlpPolicy", env_fn, gamma=0.4, seed=32, verbose=1)
         # model = MaskablePPO("MultiInputPolicy", env_fn, gamma=0.4, seed=32, verbose=1)
         
-        model.learn(total_timesteps=2048, progress_bar=True, reset_num_timesteps=False)
+        model.learn(total_timesteps=2048, progress_bar=True, 
+                    reset_num_timesteps=False)
     
         # Note that use of masks is manual and optional outside of learning,
         # so masking can be "removed" at testing time
