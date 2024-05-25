@@ -27,7 +27,7 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
 
-n_possible_actions = 101  # Necessary for maskable PPO
+n_possible_actions = 11  # Necessary for maskable PPO
 
 
 class T1DSimEnv_MARL(gym.Env):
@@ -115,6 +115,7 @@ class T1DSimEnv_MARL(gym.Env):
     def action_space(self):
         ub = self.env.pump._params["max_basal"]
         return spaces.Box(low=0, high=ub, shape=(1,))
+        # return spaces.discrete.Discrete(n_possible_actions)
 
     @property
     def observation_space(self):
@@ -145,8 +146,13 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             folder=folder
         )
         
-        self.agent_selection = None
+        self.agents = ["Jerry", "Morty", "Rick"]
+        self.possible_agents = self.agents[:]
+        
+        # self.agent_selection = None
         self.step_num = 1
+        self.iper_s = 120
+        self.ipo_s = 85
 
         if self.env.training:
             current_time = datetime.now()
@@ -175,25 +181,32 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
             self.df_training = pd.DataFrame(data_diz)
         
-        self.agents = ["Jerry", "Morty", "Rick"]
-        self.possible_agents = self.agents[:]
-        self.action_space = gymnasium.spaces.discrete.Discrete(n_possible_actions)
-        self.observation_space = gymnasium.spaces.Dict(
+        
+        # self.action_space = gymnasium.spaces.discrete.Discrete(n_possible_actions)
+        self.action_spaces = {i: gymnasium.spaces.discrete.Discrete(n_possible_actions) for i in self.agents}
+        self.observation_spaces = {i:gymnasium.spaces.Dict(
             {
                 "observation": gymnasium.spaces.Box(
                     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
                 ),
-                "action_mask": gymnasium.spaces.Box(
-                    low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
+                # "action_mask": gymnasium.spaces.Box(
+                    # low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
+                # ),
+                "action_mask": gymnasium.spaces.Box(low=0, high=1, shape=(n_possible_actions,), 
+                                          dtype=np.int8
                 ),
             }
         )
+        for i in self.agents
+        }
+        
+        
     
     def action_space(self, agent):
-        return self.action_space
+        return self.action_spaces[agent]
         
     def observation_space(self, agent):
-        return self.observation_space
+        return self.observation_spaces[agent]
 
     def delete_files_except_last(self, folder_path, file_prefix):
         files = glob.glob(os.path.join(folder_path, f"{file_prefix}*"))
@@ -209,44 +222,60 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             except (PermissionError, FileNotFoundError) as e:
                 print(f"Errore di permesso o di file non trovato.")
 
+
     def observe(self, agent):
         observation = np.array([self.obs.CGM], dtype=np.float32)
-        legal_moves = self._legal_moves()[agent]
-        action_mask = np.array([legal_moves], dtype=np.float32)
+        # legal_moves = self._legal_moves()[agent]
+        legal_moves = self._legal_moves(agent) if agent == self.agent_selection else []
+        # action_mask = np.array([legal_moves], dtype=np.float32)
+        action_mask = np.zeros(n_possible_actions, 'int8')
+        for i in legal_moves:
+            action_mask[i] = 1
         return {"observation": observation, "action_mask": action_mask}
     
-    def _combine_observations(self, observations):
-        combined_obs = []
-        for agent in self.agents:
-            combined_obs.extend(observations[agent]["observation"])
-        return np.array(combined_obs)
+    # def _combine_observations(self, observations):
+    #     combined_obs = []
+    #     for agent in self.agents:
+    #         combined_obs.extend(observations[agent]["observation"])
+    #     return np.array(combined_obs)
 
-    def _legal_moves(self):
-        self.iper_s = 120
-        self.ipo_s = 85
-        agent_moves = {'Jerry': None, 'Morty': None, 'Rick': None}
+    # def _legal_moves(self):
+    #     
+    #     agent_moves = {'Jerry': None, 'Morty': None, 'Rick': None}
         
-        if self.ipo_s > self.obs.CGM:
-            agent_moves['Jerry'] = True
-            agent_moves['Morty'] = False
-            agent_moves['Rick'] = False
-        elif self.ipo_s <= self.obs.CGM < self.iper_s:
-            agent_moves['Jerry'] = False
-            agent_moves['Morty'] = True
-            agent_moves['Rick'] = False
-        elif self.obs.CGM >= self.iper_s:
-            agent_moves['Jerry'] = False
-            agent_moves['Morty'] = False
-            agent_moves['Rick'] = True
+    #     if self.ipo_s > self.obs.CGM:
+    #         agent_moves['Jerry'] = True
+    #         agent_moves['Morty'] = False
+    #         agent_moves['Rick'] = False
+    #     elif self.ipo_s <= self.obs.CGM < self.iper_s:
+    #         agent_moves['Jerry'] = False
+    #         agent_moves['Morty'] = True
+    #         agent_moves['Rick'] = False
+    #     elif self.obs.CGM >= self.iper_s:
+    #         agent_moves['Jerry'] = False
+    #         agent_moves['Morty'] = False
+    #         agent_moves['Rick'] = True
         
-        return agent_moves
+    #     return agent_moves
     
-    def valid_action_mask(self) -> np.ndarray:
-        action_mask = np.zeros(n_possible_actions, dtype=np.float32)
-        for agent in self.agents:
-            legal_moves = self._legal_moves()[agent]
-            action_mask[int(legal_moves)] = 1.0  # Assuming legal_moves is the valid action index
-        return action_mask
+    def _legal_moves(self, agent):
+        
+        if self.agent_selection == 'Jerry':
+            return [0]
+        elif self.agent_selection == 'Morty':
+            return[0,1,2,3,4]
+        elif self.agent_selection == 'Rick':
+            return[5,6,7,8,9]
+    
+    # def valid_action_mask(self) -> np.ndarray:
+    #     # action_mask = np.zeros(n_possible_actions, dtype=np.float32)
+    #     action_mask = np.ones(n_possible_actions, "int8")
+
+    #     for agent in self.agents:
+    #         # legal_moves = self._legal_moves()[agent]
+    #         legal_moves = self._legal_moves(agent)
+    #         action_mask[int(legal_moves)] = 1.0  # Assuming legal_moves is the valid action index
+    #     return action_mask
     
 
     def reset(self, seed=None, options=None):
@@ -259,7 +288,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         self.truncations = {i: False for i in self.agents}
         self.infos = {i: {} for i in self.agents}
         
-        self.action_mask = self._legal_moves()
+        # self.action_mask = self._legal_moves()
         
         if self.ipo_s > self.obs.CGM:
             self.agent_selection = 'Jerry'
@@ -269,12 +298,16 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             
         elif self.obs.CGM >= self.iper_s:
             self.agent_selection = 'Rick'
+            
+        self.action_mask = self._legal_moves(self.agent_selection)
+
         
-        self.observations = {agent: self.observe(agent) for agent in self.agents}
+        # self.observations = {agent: self.observe(agent) for agent in self.agents}
         
-        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
-        
-        return combined_obs[self.agent_selection], self.infos
+        # combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
+        # combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self._legal_moves(agent)} for agent in self.agents}
+
+        # return combined_obs[self.agent_selection], self.infos
 
     def step(self, action):
         if self.env.training:
@@ -335,9 +368,10 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             self.df_training.to_csv(os.path.join(self.folder, self.subfolder_train, f'risultati_training_{self.env.patient_name}_{self.time_suffix_Min}.csv'), index=False)
             self.step_num += 1
 
-        combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
-        
-        return combined_obs, sum(self.rewards.values()), self.terminations, self.truncations, self.infos
+        # combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self.action_mask[agent]} for agent in self.agents}
+        # combined_obs = {agent: {"observation": self.observations[agent]["observation"], "action_mask": self._legal_moves(agent)} for agent in self.agents}
+
+        # return combined_obs, sum(self.rewards.values()), self.terminations, self.truncations, self.infos
             
     def render(self):
         if self.render_mode == "human":
