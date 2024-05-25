@@ -20,6 +20,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.ppo import MlpPolicy
 import numpy as np
 from pettingzoo.sisl import waterworld_v4
+from pettingzoo.utils import wrappers
 import pandas as pd
 import gymnasium
 import time
@@ -32,7 +33,9 @@ from simglucose.envs import T1DSimGymnasiumEnv_MARL
 from simglucose.simulation.scenario import CustomScenario
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
-
+from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
+from sb3_contrib.ppo_mask import MaskablePPO
+import pettingzoo
 
 # Disable all future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -119,6 +122,113 @@ def mean_std(valori):
     n = len(valori)
     if n == 0:
         return 0.0
+    
+class SB3ActionMaskWrapper(pettingzoo.utils.BaseWrapper):
+    """Wrapper to allow PettingZoo environments to be used with SB3 illegal action masking."""
+
+    def reset(self, seed=None, options=None):
+        """Gymnasium-like reset function which assigns obs/action spaces to be the same for each agent.
+
+        This is required as SB3 is designed for single-agent RL and doesn't expect obs/action spaces to be functions
+        """
+        super().reset(seed, options)
+
+        # Strip the action mask out from the observation space
+        self.observation_space = super().observation_space(self.possible_agents[0])[
+            "observation"
+        ]
+        self.action_space = super().action_space(self.possible_agents[0])
+
+        # Return initial observation, info (PettingZoo AEC envs do not by default)
+        return self.observe(self.agent_selection), {}
+
+    def step(self, action):
+        """Gymnasium-like step function, returning observation, reward, termination, truncation, info."""
+        super().step(action)
+        return super().last()
+
+    def observe(self, agent):
+        """Return only raw observation, removing action mask."""
+        return super().observe(agent)["observation"]
+
+    def action_mask(self):
+        """Separate function used in order to access the action mask."""
+        return super().observe(self.agent_selection)["action_mask"]
+    
+    
+def eval_action_mask(env_fn, num_games=100, render_mode=None, **env_kwargs):
+    # Evaluate a trained agent vs a random agent
+    env = env_fn.env(render_mode=render_mode, **env_kwargs)
+
+    print(
+        f"Starting evaluation vs a random agent. Trained agent will play as {env.possible_agents[1]}."
+    )
+
+    try:
+        latest_policy = max(
+            glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime
+        )
+    except ValueError:
+        print("Policy not found.")
+        exit(0)
+
+    model = MaskablePPO.load(latest_policy)
+
+    scores = {agent: 0 for agent in env.possible_agents}
+    total_rewards = {agent: 0 for agent in env.possible_agents}
+    round_rewards = []
+
+    for i in range(num_games):
+        env.reset(seed=i)
+        env.action_space(env.possible_agents[0]).seed(i)
+
+        for agent in env.agent_iter():
+            obs, reward, termination, truncation, info = env.last()
+
+            # Separate observation and action mask
+            observation, action_mask = obs.values()
+
+            if termination or truncation:
+                # If there is a winner, keep track, otherwise don't change the scores (tie)
+                if (
+                    env.rewards[env.possible_agents[0]]
+                    != env.rewards[env.possible_agents[1]]
+                ):
+                    winner = max(env.rewards, key=env.rewards.get)
+                    scores[winner] += env.rewards[
+                        winner
+                    ]  # only tracks the largest reward (winner of game)
+                # Also track negative and positive rewards (penalizes illegal moves)
+                for a in env.possible_agents:
+                    total_rewards[a] += env.rewards[a]
+                # List of rewards by round, for reference
+                round_rewards.append(env.rewards)
+                break
+            else:
+                if agent == env.possible_agents[0]:
+                    act = env.action_space(agent).sample(action_mask)
+                else:
+                    # Note: PettingZoo expects integer actions # TODO: change chess to cast actions to type int?
+                    act = int(
+                        model.predict(
+                            observation, action_masks=action_mask, deterministic=True
+                        )[0]
+                    )
+            env.step(act)
+    env.close()
+
+    # Avoid dividing by zero
+    if sum(scores.values()) == 0:
+        winrate = 0
+    else:
+        winrate = scores[env.possible_agents[1]] / sum(scores.values())
+    print("Rewards by round: ", round_rewards)
+    print("Total rewards (incl. negative rewards): ", total_rewards)
+    print("Winrate: ", winrate)
+    print("Final scores: ", scores)
+    return round_rewards, total_rewards, winrate, scores
+
+
 
 def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_test,
          num_games: int = 100, test_timesteps=10, 
@@ -161,15 +271,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             scen = [tuple(x) for x in scen]
             test_scenario = CustomScenario(start_time=start_time, scenario=scen)
             
-            env_fn = T1DSimGymnasiumEnv_MARL(
-                patient_name=paziente,
-                custom_scenario=test_scenario,
-                reward_fun=new_reward,
-                # seed=123,
-                render_mode="human",
-                training = True
-                # n_steps=n_steps
-            )
+            
             
             def mask_fn(env: gymnasium.Env) -> np.ndarray:
                 # Do whatever you'd like in this function to return the action mask
@@ -177,25 +279,35 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 # helpful method we can rely on.
                 return env.valid_action_mask()
             
-            env = ActionMasker(env, mask_fn)
+            def env(**kwargs):
+                env = T1DSimGymnasiumEnv_MARL(**kwargs)
+                env = wrappers.TerminateIllegalWrapper(env, illegal_reward=-1)
+                env = wrappers.AssertOutOfBoundsWrapper(env)
+                env = wrappers.OrderEnforcingWrapper(env)
+                return env
             
+            env_kwargs = {}
+            
+            env_fn = T1DSimGymnasiumEnv_MARL(
+                patient_name=paziente,
+                custom_scenario=test_scenario,
+                reward_fun=new_reward,
+                # seed=123,
+                render_mode="human",
+                training = False
+            )
+            
+            env_fn = SB3ActionMaskWrapper(env_fn)
+
+            env_fn.reset(seed=42)  # Must call reset() in order to re-define the spaces
+
+            env = ActionMasker(env_fn, mask_fn)  # Wrap to enable masking (SB3 function)
             
             
             total_rewards = {agent: 0 for agent in env.possible_agents}
             
-            obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
-            # print(obs)
-            
-            # done = False
-            
-            # df = pd.DataFrame(columns=['Timestep', 'CGM', 'INS',
-            #                            'BG','HBGI','LBGI', 'RISK',
-            #                            #'Morty_Obs', 'Rick_Obs',
-            #                            'Rick_Action', 'Rick_Reward',
-            #                            'Morty_Action', 'Morty_Reward',     
-            #                            'Morty_Done', 'Rick_Done',
-            #                            'Morty_Trunc', 'Rick_Trunc',
-            #                            'Obs'])
+            obs = env_fn.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
+
             
             data_list = []
             
@@ -216,146 +328,183 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
             
             tir = np.zeros(shape=(11,))
             
-            for t in range(test_timesteps):
+
+            scores = {agent: 0 for agent in env.possible_agents}
+            total_rewards = {agent: 0 for agent in env.possible_agents}
+            round_rewards = []
+
+            for i in range(num_games):
+                env.reset(seed=i)
+                env.action_space(env.possible_agents[0]).seed(i)
+
+                for agent in env.agent_iter():
+                    obs, reward, termination, truncation, info = env.last()
+
+                    # Separate observation and action mask
+                    observation, action_mask = obs.values()
+
+                    if termination or truncation:
+                        # If there is a winner, keep track, otherwise don't change the scores (tie)
+                        if (
+                            env.rewards[env.possible_agents[0]]
+                            != env.rewards[env.possible_agents[1]]
+                        ):
+                            winner = max(env.rewards, key=env.rewards.get)
+                            scores[winner] += env.rewards[
+                                winner
+                            ]  # only tracks the largest reward (winner of game)
+                        # Also track negative and positive rewards (penalizes illegal moves)
+                        for a in env.possible_agents:
+                            total_rewards[a] += env.rewards[a]
+                        # List of rewards by round, for reference
+                        round_rewards.append(env.rewards)
+                        break
+                    else:
+                        if agent == env.possible_agents[0]:
+                            act = env.action_space(agent).sample(action_mask)
+                        else:
+                            # Note: PettingZoo expects integer actions # TODO: change chess to cast actions to type int?
+                            act = int(
+                                model.predict(
+                                    observation, action_masks=action_mask, deterministic=True
+                                )[0]
+                            )
+                    env.step(act)
+            # env.close()
+            
+            # for t in range(test_timesteps):
                 
-                print(f'test n {game}, timestep {t} paziente {paziente}')
+            #     print(f'test n {game}, timestep {t} paziente {paziente}')
                 
-                # if not done:
+            #     # if not done:
                     
-                print('oooobs', obs)
+            #     print('oooobs', obs)
                 
-                # se obs è una tupla vuol dire che viene dal reset,
-                # e devo scartare un secondo elemento vuoto
-                # se è un dizionario siamo al secondo ciclo e va bene così
-                if type(obs) == tuple:
-                    # print('lunghezza obs', len(obs))
-                    observ = obs[0]
-                else:
-                    # print('lunghezza obs', len(obs), '/n')
-                    observ = obs
+            #     # se obs è una tupla vuol dire che viene dal reset,
+            #     # e devo scartare un secondo elemento vuoto
+            #     # se è un dizionario siamo al secondo ciclo e va bene così
+            #     if type(obs) == tuple:
+            #         # print('lunghezza obs', len(obs))
+            #         observ = obs[0]
+            #     else:
+            #         # print('lunghezza obs', len(obs), '/n')
+            #         observ = obs
                     
-                # {'Rick': {'observation': array([142.04321], dtype=float32),
-                # 'action_mask': array([0.], dtype=float32)},
-                # 'Morty': {'observation': array([142.04321], dtype=float32),
-                # 'action_mask': array([0.], dtype=float32)}}
+            #     # {'Rick': {'observation': array([142.04321], dtype=float32),
+            #     # 'action_mask': array([0.], dtype=float32)},
+            #     # 'Morty': {'observation': array([142.04321], dtype=float32),
+            #     # 'action_mask': array([0.], dtype=float32)}}
                 
-                actions = {}
-     
-                # print(a, type(a))
-                for agent, agent_obs in observ.items():
+            #     actions = {}
+                
+            #     print(observ)
+                
+            #     # print(a, type(a))
+            #     for agent, agent_obs in observ.items():
                     
-                    action, _ = model.predict(agent_obs, deterministic=True)  # Ottieni l'azione per ogni agente
-                    # esempio agent_obs = 
-                    # {'observation': array([142.04321], dtype=float32), 
-                    # 'action_mask': array([0.], dtype=float32)}
-                    print(agent, action)
-                    actions[agent] = action
-                    # print('aaaactions', actions)
+            #         action, _ = model.predict(agent_obs, deterministic=True)  # Ottieni l'azione per ogni agente
+            #         # esempio agent_obs = 
+            #         # {'observation': array([142.04321], dtype=float32), 
+            #         # 'action_mask': array([0.], dtype=float32)}
+            #         print(agent, action)
+            #         actions[agent] = action
+            #         # print('aaaactions', actions)
 
                 
-                # IL TRAINING FUNZIONA, QUINDI C'E' QUALCOSA QUI CHE NON VA,
-                # ANCHE SE I DUE AGENTI RICEVONO LA STESSA OSSERVAZIONE, DOVREBBERO
-                # DARE AZIONI DIVERSE?
-                # OPPURE VA BENE COSI' PERCHE' IL MODELLO E' ADDESTRATO PER DARE COME OUTPUT
-                # UNA AZIONE SOLA (DELL'AGENTE SCELTO) CHE POI VIENE PASSATA NELLA STRUTTURA 
-                # A DUE AGENTI E MANDATA INTERNAMENTE ALL'AGENTE GIUSTO IN BASE ALLA CGM
-                # action_rick, _ = model.predict(observ['Rick'], deterministic=True)
                 
-                # action_morty, _ = model.predict(observ['Morty'], deterministic=True)
-                # actions = {'Rick': action_rick, 'Morty': action_morty}
+            #     # action_morty, _ = model.predict(observ['Morty'], deterministic=True)
+            #     # actions = {'Rick': action_rick, 'Morty': action_morty}
                 
-                obs, rewards, dones, truncs, infos = env.step(actions)  # Esegui un passo dell'ambiente con le azioni degli agenti
-                # {'Rick': {'observation': array([141.73483], dtype=float32),
-                # 'action_mask': array([141.73483], dtype=float32)}, 
-                # 'Morty': {'observation': array([141.73483], dtype=float32),
-                # 'action_mask': array([141.73483], dtype=float32)}}
+            #     obs, rewards, dones, truncs, infos = env.step(actions)  # Esegui un passo dell'ambiente con le azioni degli agenti
+            #     # {'Rick': {'observation': array([141.73483], dtype=float32),
+            #     # 'action_mask': array([141.73483], dtype=float32)}, 
+            #     # 'Morty': {'observation': array([141.73483], dtype=float32),
+            #     # 'action_mask': array([141.73483], dtype=float32)}}
+
                 
-                # CON QUESTA IMPLEMENTAZIONE I TRUNC SONO INUTILI
-                # PERCHE' ITERO SUI TIMESTEPS?
-                
-                for agent, reward in rewards.items():
-                    total_rewards[agent] += reward  # Aggiorna il totale dei premi
+            #     for agent, reward in rewards.items():
+            #         total_rewards[agent] += reward  # Aggiorna il totale dei premi
                     
-                observation = obs['Rick']['observation'][0]
+                # observation = obs['Rick']['observation'][0]
                 
-                if observation <= 21:
-                    counter_death_hypo += 1
-                elif 21 < observation < 30:
-                    counter_under_30 += 1
-                elif 30 <= observation < 40:
-                    counter_under_40 += 1
-                elif 40 <= observation < 50:
-                    counter_under_50 += 1
-                elif 50 <= observation< 70:
-                    counter_under_70 += 1
-                elif 70 <= observation <= 180:
-                    counter_euglycem += 1
-                elif 180 < observation <= 250:
-                    counter_over_180 += 1
-                elif 250 < observation <= 400:
-                    counter_over_250 += 1
-                elif 400 < observation <= 500:
-                    counter_over_400 += 1
-                elif 500 < observation < 595:
-                    counter_over_500 += 1
-                elif observation >= 595:
-                    counter_death_hyper += 1
+                # if observation <= 21:
+                #     counter_death_hypo += 1
+                # elif 21 < observation < 30:
+                #     counter_under_30 += 1
+                # elif 30 <= observation < 40:
+                #     counter_under_40 += 1
+                # elif 40 <= observation < 50:
+                #     counter_under_50 += 1
+                # elif 50 <= observation< 70:
+                #     counter_under_70 += 1
+                # elif 70 <= observation <= 180:
+                #     counter_euglycem += 1
+                # elif 180 < observation <= 250:
+                #     counter_over_180 += 1
+                # elif 250 < observation <= 400:
+                #     counter_over_250 += 1
+                # elif 400 < observation <= 500:
+                #     counter_over_400 += 1
+                # elif 500 < observation < 595:
+                #     counter_over_500 += 1
+                # elif observation >= 595:
+                #     counter_death_hyper += 1
             
-                counter_total += 1
-                # print(paziente)
-                # print(i+1)
-                tir[0] = (counter_death_hypo/counter_total)*100
-                print('death_hypo:',tir[0])
-                tir[1] = (counter_under_30 / counter_total) * 100
-                print('under_30:', tir[1])               
-                tir[2] = (counter_under_40 / counter_total) * 100
-                print('under_40:', tir[2])            
-                tir[3] = (counter_under_50 / counter_total) * 100
-                print('under_50:', tir[3])            
-                tir[4] = (counter_under_70 / counter_total) * 100
-                print('under_70:', tir[4])              
-                tir[5] = (counter_euglycem / counter_total) * 100
-                print('euglycem:', tir[5])              
-                tir[6] = (counter_over_180 / counter_total) * 100
-                print('over_180:', tir[6])             
-                tir[7] = (counter_over_250 / counter_total) * 100
-                print('over_250:', tir[7])                
-                tir[8] = (counter_over_400 / counter_total) * 100
-                print('over_400:', tir[8])               
-                tir[9] = (counter_over_500 / counter_total) * 100
-                print('over_500:', tir[9])            
-                tir[10] = (counter_death_hyper / counter_total) * 100
-                print('death_hyper:', tir[10])
+                # counter_total += 1
+                # # print(paziente)
+                # # print(i+1)
+                # tir[0] = (counter_death_hypo/counter_total)*100
+                # print('death_hypo:',tir[0])
+                # tir[1] = (counter_under_30 / counter_total) * 100
+                # print('under_30:', tir[1])               
+                # tir[2] = (counter_under_40 / counter_total) * 100
+                # print('under_40:', tir[2])            
+                # tir[3] = (counter_under_50 / counter_total) * 100
+                # print('under_50:', tir[3])            
+                # tir[4] = (counter_under_70 / counter_total) * 100
+                # print('under_70:', tir[4])              
+                # tir[5] = (counter_euglycem / counter_total) * 100
+                # print('euglycem:', tir[5])              
+                # tir[6] = (counter_over_180 / counter_total) * 100
+                # print('over_180:', tir[6])             
+                # tir[7] = (counter_over_250 / counter_total) * 100
+                # print('over_250:', tir[7])                
+                # tir[8] = (counter_over_400 / counter_total) * 100
+                # print('over_400:', tir[8])               
+                # tir[9] = (counter_over_500 / counter_total) * 100
+                # print('over_500:', tir[9])            
+                # tir[10] = (counter_death_hyper / counter_total) * 100
+                # print('death_hyper:', tir[10])
                 
                 
                 lista_BG.append(observation)
                 
-                done = all(dones.values())  # Controlla se tutti gli agenti hanno terminato
+                # done = all(dones.values())  # Controlla se tutti gli agenti hanno terminato
                 
-                infos = infos['Rick']
+                # infos = infos['Rick']
                 
-                print('ACTIONS', actions)
+                # print('ACTIONS', actions)
                 
-                data_list.append({
-                        'Timestep': t,
-                        'CGM': round(env.obs.CGM, 3),
-                        'BG': infos['bg'],
-                        'LBGI': infos['lbgi'],
-                        'HBGI': infos['hbgi'],
-                        'RISK': infos['risk'],
-                        'INS': infos['insulin'][0],
-                        # 'Rick_Obs': str(obs['Rick']),
-                        'Rick_Action': str(round(actions['Rick'][0],3)),
-                        'Rick_Reward': str(round(rewards['Rick'],3)),
-                        # 'Morty_Obs': str(obs['Morty']),
-                        'Morty_Action': str(round(actions['Morty'][0],3)),
-                        'Morty_Reward': str(round(rewards['Morty'],3)),
-                        'Rick_Done': dones['Rick'],
-                        'Morty_Done': dones['Morty'],
-                        'Rick_Trunc': truncs['Rick'],
-                        'Morty_Trunc': truncs['Morty'],
-                        'Obs': str(obs),
-                    })
+                # data_list.append({
+                #         'Timestep': t,
+                #         'CGM': round(env.obs.CGM, 3),
+                #         'BG': infos['bg'],
+                #         'LBGI': infos['lbgi'],
+                #         'HBGI': infos['hbgi'],
+                #         'RISK': infos['risk'],
+                #         'INS': infos['insulin'][0],
+                #         # 'Rick_Obs': str(obs['Rick']),
+                #         'Rick_Action': str(round(actions['Rick'][0],3)),
+                #         'Rick_Reward': str(round(rewards['Rick'],3)),
+                #         # 'Morty_Obs': str(obs['Morty']),
+                #         'Morty_Action': str(round(actions['Morty'][0],3)),
+                #         'Morty_Reward': str(round(rewards['Morty'],3)),
+                #         'Rick_Done': dones['Rick'],
+                #         'Morty_Done': dones['Morty'],
+                #         'Rick_Trunc': truncs['Rick'],
+                #         'Morty_Trunc': truncs['Morty'],
+                #         'Obs': str(obs),
+                #     })
 
                 
                 df = pd.DataFrame(data_list)
@@ -436,13 +585,13 @@ if __name__ == "__main__":
     test_timesteps = 2400
     
     pazienti = [
-                # 'adult#001',
-                # 'adult#002',
-                # 'adult#003',
-                # 'adult#004',
-                # 'adult#005',
+                'adult#001',
+                'adult#002',
+                'adult#003',
+                'adult#004',
+                'adult#005',
                 # 'adult#006',
-                'adult#007',
+                # 'adult#007',
                 # 'adult#008',
                 # 'adult#009',
                 # 'adult#010',
@@ -499,16 +648,28 @@ if __name__ == "__main__":
         
     for p in (pazienti):  
         
-        env_kwargs = {}
         
         start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
         
         for m in os.listdir('Models'):
             if m.startswith('T1DSimGymnasiumEnv_MARL_'+p):
-                model = PPO.load('Models\\'+m.split('.')[0])
+                model = MaskablePPO.load('Models\\'+m.split('.')[0])
         # model = PPO.load('Models\T1DSimGymnasiumEnv_MARL_'+p)
         
         # model = PPO.load('Training\Training_20240505_0510\Training_adult#007\T1DSimGymnasiumEnv_MARL_adult#007_2048_20240505_0510')
+        
+        
+        # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
+        # with ActionMasker. If the wrapper is detected, the masks are automatically
+        # retrieved and used when learning. Note that MaskablePPO does not accept
+        # a new action_mask_fn kwarg, as it did in an earlier draft.
+        
+        # model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1)
+        # model.set_random_seed(seed)
+        
+        env_kwargs = {}
+        
+        
         
         # test
         avg_reward, tir_dict, df_hist = evaluation(p, model, test_scenarios, 

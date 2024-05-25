@@ -213,11 +213,11 @@ def mask_fn(env):
     return env.action_mask()
 
 
-def train_action_mask(env_fn, steps=10_000, seed=0, **env_kwargs):
+def train_action_mask(env_fn, folder, paziente, steps=10_000, seed=0, **env_kwargs):
     """Train a single model to play as each agent in a zero-sum game environment using invalid action masking."""
     # env = env_fn.env(**env_kwargs)
 
-    print(f"Starting training on {str(env_fn.metadata['name'])}.")
+    print(f"Starting training on patient {paziente} with {str(env_fn.metadata['name'])}.")
 
     # Custom wrapper to convert PettingZoo envs to work with SB3 action masking
     env = SB3ActionMaskWrapper(env_fn)
@@ -234,8 +234,8 @@ def train_action_mask(env_fn, steps=10_000, seed=0, **env_kwargs):
     model.learn(total_timesteps=steps, progress_bar=True, 
                 reset_num_timesteps=False)
 
-    model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
-
+    # model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
+    model.save(os.path.join(folder, f"{env.unwrapped.metadata.get('name')}_{paziente}_{steps}_{time_suffix_Min}"))
     print("Model has been saved.")
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.\n")
@@ -269,24 +269,24 @@ if __name__ == "__main__":
     # train_timesteps = 2400
     # train_timesteps = 100
     # train_timesteps = 1024
-    train_timesteps = 1024
+    train_timesteps = 2048
     # n_steps=2
     # n_steps = 1024
     # n_steps = 2048
-    n_steps = 100
+    # n_steps = 100
     
     
     pazienti = [
-                # 'adult#001',
-                # 'adult#002',
-                # 'adult#003',
-                # 'adult#004',
-                # 'adult#005',
-                # 'adult#006',
+                'adult#001',
+                'adult#002',
+                'adult#003',
+                'adult#004',
+                'adult#005',
+                'adult#006',
                 'adult#007',
-                # 'adult#008',
-                # 'adult#009',
-                # 'adult#010',
+                'adult#008',
+                'adult#009',
+                'adult#010',
                 ]
     
     # test fixed scenario
@@ -319,16 +319,6 @@ if __name__ == "__main__":
             env = wrappers.OrderEnforcingWrapper(env)
             return env
         
-        # env_fn = T1DSimGymnasiumEnv_MARL(
-        #     patient_name=p,
-        #     custom_scenario=train_scenario,
-        #     reward_fun=new_reward,
-        #     # seed=123,
-        #     render_mode="human",
-        #     training = True,
-        #     folder=folder
-        #     # n_steps=n_steps
-        # )
         
         env_kwargs = {}
         
@@ -343,7 +333,7 @@ if __name__ == "__main__":
             )
 
         # Train a model against itself (takes ~20 seconds on a laptop CPU)
-        train_action_mask(env_fn, steps=2048, seed=0, **env_kwargs)
+        train_action_mask(env_fn, folder, p, steps=train_timesteps, seed=0, **env_kwargs)
     
 
         

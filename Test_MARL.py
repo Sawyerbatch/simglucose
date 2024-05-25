@@ -118,7 +118,7 @@ def evaluation(paziente, model, scenarios, tir_mean_dict, time_suffix, folder_te
                 reward_fun=new_reward,
                 # seed=123,
                 render_mode="human",
-                training = True
+                training = False
                 # n_steps=n_steps
             )
             
