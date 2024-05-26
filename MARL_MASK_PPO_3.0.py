@@ -8,6 +8,7 @@ Created on Sun Apr 28 23:52:14 2024
 from __future__ import annotations
 
 import shutil
+import statistics
 import scipy
 import openpyxl
 import csv
@@ -186,7 +187,9 @@ def train_action_mask(env_fn, folder, paziente, steps=10_000, seed=0, **env_kwar
     # with ActionMasker. If the wrapper is detected, the masks are automatically
     # retrieved and used when learning. Note that MaskablePPO does not accept
     # a new action_mask_fn kwarg, as it did in an earlier draft.
-    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1)
+    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1,
+                        # batch_size=64 MODIFICARE PER STEPS?
+                        )
     model.set_random_seed(seed)
     model.learn(total_timesteps=steps, progress_bar=True, 
                 reset_num_timesteps=False)
@@ -208,9 +211,9 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
     
             
     if last_models:
-        for m in os.listdir(os.path.join(main_folder, 'Training_'+p)):
+        for m in os.listdir(os.path.join(main_train_folder, 'Training_'+p)):
             if m.startswith('T1DSimGymnasiumEnv_MARL_'+paziente):
-                model = MaskablePPO.load(os.path.join(main_folder, m.split('.')[0]))
+                model = MaskablePPO.load(os.path.join(main_train_folder, 'Training_'+p, m.split('.')[0]))
                 
     else:
         for m in os.listdir('Models'):
@@ -241,7 +244,10 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                 'LBGI mean':[],
                 'LBGI std':[],
                 'RI mean':[],
-                'RI std':[], 
+                'RI std':[],
+                'Rick reward':[],
+                'Morty reward':[],
+                'Jerry reward':[],
                 'test timesteps':[],
                 'scenario':[],
                 }
@@ -253,20 +259,11 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
             lista_BG = []
             
             sheet_name = f'Game_{i}'
-            print(sheet_name)
+            
             
             scen = [tuple(x) for x in scen]
             test_scenario = CustomScenario(start_time=start_time, scenario=scen)
             
-            # env = T1DSimGymnasiumEnv_MARL(
-            #     patient_name=paziente,
-            #     custom_scenario=test_scenario,
-            #     reward_fun=new_reward,
-            #     # seed=123,
-            #     render_mode="human",
-            #     training = False
-            #     # n_steps=n_steps
-            # )
             
             def create_env(**kwargs):
                 env = T1DSimGymnasiumEnv_MARL(**kwargs)
@@ -297,7 +294,6 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
             obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
             # print(obs)
             
-            
             data_list = []
             
             # cgm_list = list()
@@ -320,12 +316,13 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
             while timestep < num_timesteps:
                 print(timestep)
                 for agent in env.agent_iter():
-                    obs, reward, termination, truncation, infos = env.last()
+                    obs, reward, termination, truncation, info = env.last()
                     observation, action_mask = obs.values()
                     
-                    
+                    print()
                     print('observation', observation)
-                    print('info:', infos)
+                    print('info:', info)
+                    
                     
                     if observation <= 21:
                         counter_death_hypo += 1
@@ -353,6 +350,9 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                     counter_total += 1
                     # print(paziente)
                     # print(i+1)
+                    
+                    print('Results ', sheet_name, ' Timestep_'+str(timestep))
+                    print('Active agent: ', env.agent_selection)
                     tir[0] = (counter_death_hypo/counter_total)*100
                     print('death_hypo:',tir[0])
                     tir[1] = (counter_under_30 / counter_total) * 100
@@ -378,38 +378,41 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                     
                     lista_BG.append(observation)
                     
-                    data_list.append({
-                            'Timestep': timestep,
-                            'CGM': round(env.obs.CGM, 3),
-                            # 'BG': infos['bg'],
-                            # 'LBGI': infos['lbgi'],
-                            # 'HBGI': infos['hbgi'],
-                            # 'RISK': infos['risk'],
-                            # 'INS': infos['insulin'],
-                            # 'Rick_Obs': str(obs['Rick']),
-                            # 'Rick_Action': str(round(actions['Rick'][0],3)),
-                            'Jerry_Reward': str(round(total_rewards['Jerry'],3)),
-                            'Morty_Reward': str(round(total_rewards['Morty'],3)),
-                            'Rick_Reward': str(round(total_rewards['Rick'],3)),
-                            # 'Morty_Obs': str(obs['Morty']),
-                            # 'Morty_Action': str(round(actions['Morty'][0],3)),     
-                            # 'Rick_Done': dones['Rick'],
-                            # 'Morty_Done': dones['Morty'],
-                            # 'Rick_Trunc': truncs['Rick'],
-                            # 'Morty_Trunc': truncs['Morty'],
-                            # 'Obs': str(obs),
-                        })
-
+                    if timestep > 0:
                     
-                    df = pd.DataFrame(data_list)
-                    # print(df['Rick_Reward'])
-                    
-                    # env.close()
+                        data_list.append({
+                                'Timestep': timestep,
+                                'CGM': round(env.obs.CGM, 3),
+                                'BG': info['bg'],
+                                'LBGI': info['lbgi'],
+                                'HBGI': info['hbgi'],
+                                'RISK': info['risk'],
+                                'INS': info['insulin'],
+                                'Active_agent': env.agent_selection,
+                                # 'Rick_Obs': str(obs['Rick']),
+                                # 'Rick_Action': str(round(actions['Rick'][0],3)),
+                                'Rick_Reward': str(round(env.rewards['Rick'],3)),   
+                                'Morty_Reward': str(round(env.rewards['Morty'],3)),
+                                'Jerry_Reward': str(round(env.rewards['Jerry'],3)),
+                                # 'Morty_Obs': str(obs['Morty']),
+                                # 'Morty_Action': str(round(actions['Morty'][0],3)),     
+                                # 'Rick_Done': dones['Rick'],
+                                # 'Morty_Done': dones['Morty'],
+                                # 'Rick_Trunc': truncs['Rick'],
+                                # 'Morty_Trunc': truncs['Morty'],
+                                # 'Obs': str(obs),
+                            })
+    
                         
-                    df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
-
-                    
-                    df_hist = env.show_history()
+                        df = pd.DataFrame(data_list)
+                        # print(df['Rick_Reward'])
+                        
+                        # env.close()
+                            
+                        df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
+    
+                        
+                        df_hist = env.show_history()
                     
                     
                 
@@ -439,9 +442,9 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
             
                 LBGI_mean, HBGI_mean, RI_mean, LBGI_std, HBGI_std, RI_std = risk_index_mod(lista_BG, len(lista_BG))
         
-                avg_reward = sum(total_rewards.values()) / len(total_rewards.values())
-                print("Total rewards:", total_rewards)
-                print(f"Average reward: {avg_reward}")
+                # avg_reward = sum(total_rewards.values()) / len(total_rewards.values())
+                # print("Total rewards:", total_rewards)
+                # print(f"Average reward: {avg_reward}")
                 
                 tir_dict['ripetizione'].append(i)
                 tir_dict['death hypo'].append(tir[0])
@@ -461,6 +464,9 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                 tir_dict['LBGI std'].append(LBGI_std)
                 tir_dict['RI mean'].append(RI_mean)
                 tir_dict['RI std'].append(RI_std)
+                tir_dict['Rick reward'].append(str(round(env.rewards['Rick'],3)))
+                tir_dict['Morty reward'].append(str(round(env.rewards['Morty'],3)))
+                tir_dict['Jerry reward'].append(str(round(env.rewards['Jerry'],3)))
                 tir_dict['test timesteps'].append(timestep)
 
                 tir_dict['scenario'].append(scen)
@@ -474,7 +480,11 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                     
         env.close()
         
-        return scores, total_rewards, round_rewards
+        
+        # rewards = [env.rewards['Jerry'], env.rewards['Morty'], env.rewards['Rick']]
+        
+        # return scores, total_rewards, round_rewards
+        return env.rewards, tir_dict, df_hist
 
 
 
@@ -482,161 +492,196 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
 
 if __name__ == "__main__":
     
-    last_models=False
-    # Ottieni la data corrente
-    current_time = datetime.now()
-    # Formatta la data nel formato desiderato (ad esempio, YYYYMMDD_HHMMSS)
-    # day_suffix = current_time.strftime("%Y%m%d")
-    time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
-    time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
-    # Crea il nome della cartella usando il suffisso di tempo
-    # folder_name = f"results_{day_suffix}"
-    # folder_name = f"results_{day_suffix}/{time_suffix_Min}"
-    # subfolder_test_name = f"test_{time_suffix_Min}"
-    general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
-    test_folder = f"Test\\Test_{time_suffix_Min}"
-    # Crea la cartella se non esiste già
-    os.makedirs(test_folder, exist_ok=True)
     
-    main_folder = os.path.join("Training", f"Training_{time_suffix_Min}")
+    for train_timesteps in [960,2400,4800]:
     
-    n_days = 5
-    # train_timesteps = 2400
-    # train_timesteps = 100
-    # train_timesteps = 1024
-    train_timesteps = 2048
-    # n_steps=2
-    # n_steps = 1024
-    # n_steps = 2048
-    # n_steps = 100
-    
-    
-    pazienti = [
-                'adult#001',
-                # 'adult#002',
-                # 'adult#003',
-                # 'adult#004',
-                # 'adult#005',
-                # 'adult#006',
-                # 'adult#007',
-                # 'adult#008',
-                # 'adult#009',
-                # 'adult#010',
-                ]
-    
-    # test fixed scenario
-    with open('scenarios_5_days_1000_times.json') as json_file:
-        test_scenarios = json.load(json_file)
+        last_models=False
+        # Ottieni la data corrente
+        current_time = datetime.now()
 
-    tir_mean_dict = {
-                'paziente':[],
-                'avg reward':[],
-                'death hypo mean':[],
-                'death hypo st dev':[],
-                'ultra hypo mean':[],
-                'ultra hypo st dev':[],
-                'heavy hypo mean':[],
-                'heavy hypo st dev':[],
-                'severe hypo mean':[],
-                'severe hypo st dev':[],
-                'hypo mean':[],
-                'hypo st dev':[],
-                'time in range mean':[],
-                'time in range st dev':[],
-                'hyper mean':[],
-                'hyper st dev':[],           
-                'severe hyper mean':[],
-                'severe hyper st dev':[],
-                'heavy hyper mean':[],
-                'heavy hyper st dev':[],
-                'ultra hyper mean':[],
-                'ultra hyper st dev':[],
-                'death hyper mean':[],
-                'death hyper st dev':[],
-                'HBGI mean of means':[],
-                'HBGI mean of std':[],
-                'LBGI mean of means':[],
-                'LBGI mean of std':[],
-                'RI mean of means':[],
-                'RI mean of std':[],      
-                # 'cap iper mean':[],
-                # 'cap ipo mean':[],
-                # 'soglia iper mean':[],
-                # 'soglia ipo mean':[],
-                'ripetizioni':[],
-                # 'training learning rate':[],
-                # 'training n steps':[],
-                # 'training timesteps':[],
-                # 'test timesteps':[],       
-                # 'scenario':[],
-                # 'start time': []
-                }
-        
-        
-    for p in (pazienti):  
-        
-        # Crea il nome della cartella usando il suffisso di tempo
-        train_folder = os.path.join(main_folder, f"Training_{p}")
+        time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
+        time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
 
+        general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
+        test_folder = f"Test\\Test_{time_suffix_Min}"+"_train_"+str(train_timesteps)
         # Crea la cartella se non esiste già
-        # os.makedirs(folder, exist_ok=True)
+        os.makedirs(test_folder, exist_ok=True)
         
+        main_train_folder = os.path.join("Training", 
+                    f"Training_{time_suffix_Min}_train_"+str(train_timesteps))
         
-        
-        start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
-        
-        # train random scenario
-        scen_long = create_scenario(n_days)
-        train_scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
-        
-        
-        
-        def env(**kwargs):
-            env = T1DSimGymnasiumEnv_MARL(**kwargs)
-            # env = wrappers.TerminateIllegalWrapper(env, illegal_reward=-1)
-            # env = wrappers.AssertOutOfBoundsWrapper(env)
-            # env = wrappers.OrderEnforcingWrapper(env)
-            return env
-        
-        
-        env_kwargs = {}
-        
+        n_days_scenario = 5
+        # train_timesteps = 2400
+        test_timesteps = 2400
+        num_test = 10
+        # n_steps= 1024
 
-        # TRAIN
-        # env_fn = env(
-        #         patient_name=p,
-        #         custom_scenario=train_scenario,
-        #         reward_fun=new_reward,
-        #         # seed=123,
-        #         render_mode="human",
-        #         training = True,
-        #         folder=folder
-        #     )
-        # train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
-        # last_models = True
         
         
-        env_fn = env(
-                patient_name=p,
-                custom_scenario=train_scenario,
-                reward_fun=new_reward,
-                # seed=123,
-                render_mode="human",
-                training = False,
-                folder=test_folder
-            )
+        pazienti = [
+                    'adult#001',
+                    'adult#002',
+                    'adult#003',
+                    'adult#004',
+                    'adult#005',
+                    'adult#006',
+                    'adult#007',
+                    'adult#008',
+                    'adult#009',
+                    'adult#010',
+                    ]
         
-        scores, total_rewards, round_rewards = eval_action_mask(env_fn, p,
-                                                                test_scenarios,
-                                                                tir_mean_dict,
-                                                                time_suffix,
-                                                                test_folder,
-                                                                num_games=10, 
-                                                                num_timesteps=1000,
-                                                                last_models=last_models,
-                                                                render_mode=None,                            
-                                                                **env_kwargs)
-        
-        # Note that use of masks is manual and optional outside of learning,
-        # so masking can be "removed" at testing time
-        # model.predict(observation, action_masks=valid_action_array)
+        # test fixed scenario
+        with open('scenarios_5_days_1000_times.json') as json_file:
+            test_scenarios = json.load(json_file)
+    
+        tir_mean_dict = {
+                    'paziente':[],
+                    'avg reward':[],
+                    'death hypo mean':[],
+                    'death hypo st dev':[],
+                    'ultra hypo mean':[],
+                    'ultra hypo st dev':[],
+                    'heavy hypo mean':[],
+                    'heavy hypo st dev':[],
+                    'severe hypo mean':[],
+                    'severe hypo st dev':[],
+                    'hypo mean':[],
+                    'hypo st dev':[],
+                    'time in range mean':[],
+                    'time in range st dev':[],
+                    'hyper mean':[],
+                    'hyper st dev':[],           
+                    'severe hyper mean':[],
+                    'severe hyper st dev':[],
+                    'heavy hyper mean':[],
+                    'heavy hyper st dev':[],
+                    'ultra hyper mean':[],
+                    'ultra hyper st dev':[],
+                    'death hyper mean':[],
+                    'death hyper st dev':[],
+                    'HBGI mean of means':[],
+                    'HBGI mean of std':[],
+                    'LBGI mean of means':[],
+                    'LBGI mean of std':[],
+                    'RI mean of means':[],
+                    'RI mean of std':[],      
+                    'ripetizioni':[],
+                    # 'training learning rate':[],
+                    # 'training n steps':[],
+                    # 'training timesteps':[],
+                    # 'test timesteps':[],       
+                    # 'scenario':[],
+                    # 'start time': []
+                    }
+            
+            
+        for p in (pazienti):  
+            
+            # Crea il nome della cartella usando il suffisso di tempo
+            train_folder = os.path.join(main_train_folder, f"Training_{p}")
+    
+            
+            start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
+            
+            # train random scenario
+            scen_long = create_scenario(n_days_scenario)
+            train_scenario = CustomScenario(start_time=start_time, scenario=scen_long)#, seed=seed)
+            
+            
+            
+            def env(**kwargs):
+                env = T1DSimGymnasiumEnv_MARL(**kwargs)
+                # env = wrappers.TerminateIllegalWrapper(env, illegal_reward=-1)
+                # env = wrappers.AssertOutOfBoundsWrapper(env)
+                # env = wrappers.OrderEnforcingWrapper(env)
+                return env
+            
+            
+            env_kwargs = {}
+            
+    
+            # TRAIN
+            env_fn = env(
+                    patient_name=p,
+                    custom_scenario=train_scenario,
+                    reward_fun=new_reward,
+                    # seed=123,
+                    render_mode="human",
+                    training = True,
+                    folder=train_folder
+                )
+            
+            train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
+            last_models = True
+            
+            
+            env_fn = env(
+                    patient_name=p,
+                    custom_scenario=train_scenario,
+                    reward_fun=new_reward,
+                    # seed=123,
+                    render_mode="human",
+                    training = False,
+                    folder=test_folder
+                )
+            
+            rewards, tir_dict, df_hist = eval_action_mask(env_fn, p,
+                                                                    test_scenarios,
+                                                                    tir_mean_dict,
+                                                                    time_suffix,
+                                                                    test_folder,
+                                                                    num_games=num_test, 
+                                                                    num_timesteps=test_timesteps,
+                                                                    last_models=last_models,
+                                                                    render_mode=None,                            
+                                                                    **env_kwargs)
+            
+            # Note that use of masks is manual and optional outside of learning,
+            # so masking can be "removed" at testing time
+            # model.predict(observation, action_masks=valid_action_array)
+            
+            with pd.ExcelWriter(os.path.join(test_folder, general_results_path)) as final_writer:
+                
+                tir_mean_dict['paziente'].append(p)
+                avg_reward = statistics.mean(rewards.values())
+                tir_mean_dict['avg reward'].append(avg_reward)
+                tir_mean_dict['death hypo mean'].append(mean(tir_dict['death hypo']))
+                tir_mean_dict['death hypo st dev'].append(stdev(tir_dict['death hypo']))
+                tir_mean_dict['ultra hypo mean'].append(mean(tir_dict['ultra hypo']))
+                tir_mean_dict['ultra hypo st dev'].append(stdev(tir_dict['ultra hypo']))
+                tir_mean_dict['heavy hypo mean'].append(mean(tir_dict['heavy hypo']))
+                tir_mean_dict['heavy hypo st dev'].append(stdev(tir_dict['heavy hypo']))
+                tir_mean_dict['severe hypo mean'].append(mean(tir_dict['severe hypo']))
+                tir_mean_dict['severe hypo st dev'].append(stdev(tir_dict['severe hypo']))
+                tir_mean_dict['hypo mean'].append(mean(tir_dict['hypo']))
+                tir_mean_dict['hypo st dev'].append(stdev(tir_dict['hypo']))
+                tir_mean_dict['time in range mean'].append(mean(tir_dict['time in range']))
+                tir_mean_dict['time in range st dev'].append(stdev(tir_dict['time in range']))
+                tir_mean_dict['hyper mean'].append(mean(tir_dict['hyper']))
+                tir_mean_dict['hyper st dev'].append(stdev(tir_dict['hyper']))
+                tir_mean_dict['severe hyper mean'].append(mean(tir_dict['severe hyper']))
+                tir_mean_dict['severe hyper st dev'].append(stdev(tir_dict['severe hyper']))
+                tir_mean_dict['heavy hyper mean'].append(mean(tir_dict['heavy hyper']))
+                tir_mean_dict['heavy hyper st dev'].append(stdev(tir_dict['heavy hyper']))
+                tir_mean_dict['ultra hyper mean'].append(mean(tir_dict['ultra hyper']))
+                tir_mean_dict['ultra hyper st dev'].append(stdev(tir_dict['ultra hyper']))
+                tir_mean_dict['death hyper mean'].append(mean(tir_dict['death hyper']))
+                tir_mean_dict['death hyper st dev'].append(stdev(tir_dict['death hyper']))
+                tir_mean_dict['LBGI mean of means'].append(mean(tir_dict['LBGI mean']))
+                tir_mean_dict['LBGI mean of std'].append(mean_std(tir_dict['LBGI std']))
+                tir_mean_dict['HBGI mean of means'].append(mean(tir_dict['HBGI mean']))
+                tir_mean_dict['HBGI mean of std'].append(mean_std(tir_dict['HBGI std']))
+                tir_mean_dict['RI mean of means'].append(mean(tir_dict['RI mean']))
+                tir_mean_dict['RI mean of std'].append(mean_std(tir_dict['RI std']))
+                tir_mean_dict['ripetizioni'].append(num_test)
+                # tir_mean_dict['training learning rate'].append(training_learning_rate)
+                # tir_mean_dict['training n steps'].append(training_n_steps)
+                # tir_mean_dict['training timesteps'].append(training_total_timesteps)
+                # tir_mean_dict['scenario'].append(scenario_usato)
+                # tir_mean_dict['start time'].append(start_time)
+            
+            
+                df_cap_mean = pd.DataFrame(tir_mean_dict)
+    
+                df_cap_mean.to_excel(final_writer, sheet_name='risultati_finali', index=False)
