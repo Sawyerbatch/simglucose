@@ -47,7 +47,6 @@ def new_func(x):
     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
 def new_reward(BG_last_hour):
-    # print('USIAMO LA NOSTRA REWAAAAAAAAAAARD')
     return new_func(BG_last_hour[-1])
 
 def create_scenario(n_days, cho_daily=230):
@@ -128,8 +127,6 @@ def mean_std(valori):
 
 
 
-
-
 class SB3ActionMaskWrapper(pettingzoo.utils.BaseWrapper):
     """Wrapper to allow PettingZoo environments to be used with SB3 illegal action masking."""
 
@@ -194,19 +191,19 @@ def train_action_mask(env_fn, folder, paziente, steps=10_000, seed=0, **env_kwar
     model.learn(total_timesteps=steps, progress_bar=True, 
                 reset_num_timesteps=False)
 
-    # model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
-    model.save(os.path.join(folder, f"{env.unwrapped.metadata.get('name')}_{paziente}_{steps}_{time_suffix_Min}"))
+    model.save(os.path.join(folder, 
+            f"{env.unwrapped.metadata.get('name')}_{paziente}_{steps}_{time_suffix_Min}"))
+    
     print("Model has been saved.")
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.\n")
 
     env.close()
     
+    
 
-
-
-def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, folder_test,
-                     num_games=100, num_timesteps=1000,
+def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_test,
+                     num_games=10, num_timesteps=2400,
                      render_mode=None, last_models = False, **env_kwargs):
     
             
@@ -221,9 +218,6 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                 model = MaskablePPO.load('Models\\'+m.split('.')[0])
     
     print(model)
-    
-    # model = MaskablePPO.load(latest_policy)
-
     
     round_rewards = []
     
@@ -288,8 +282,8 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
     
             timestep = 0
             
-            scores = {agent: 0 for agent in env.possible_agents}
-            total_rewards = {agent: 0 for agent in env.possible_agents}
+            # scores = {agent: 0 for agent in env.possible_agents}
+            # total_rewards = {agent: 0 for agent in env.possible_agents}
             
             obs = env.reset()  # Resetta l'ambiente e ottieni l'osservazione iniziale
             # print(obs)
@@ -313,17 +307,35 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
             
             tir = np.zeros(shape=(11,))
             
+            truncation = False
+            termination = False
+            
             while timestep < num_timesteps:
-                print(timestep)
+                
+                
+                print('timesteeeep', timestep)
+                               
+                
                 for agent in env.agent_iter():
-                    obs, reward, termination, truncation, info = env.last()
+                    print('agent_iter:',agent)
+                    obs, reward, _, _, info = env.last()
+                    # if termination:
+                    #     print('termination == done')
+                    # elif truncation:
+                    #     print('truncation == done')
                     observation, action_mask = obs.values()
                     
-                    print()
+                    
                     print('observation', observation)
                     print('info:', info)
                     
+                    if observation < 20 or observation > 600:
+                        truncation = True
                     
+                    if timestep >= num_timesteps:
+                        termination = True
+                        
+
                     if observation <= 21:
                         counter_death_hypo += 1
                     elif 21 < observation < 30:
@@ -351,6 +363,7 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                     # print(paziente)
                     # print(i+1)
                     
+                    print('Patient ', paziente)
                     print('Results ', sheet_name, ' Timestep_'+str(timestep))
                     print('Active agent: ', env.agent_selection)
                     tir[0] = (counter_death_hypo/counter_total)*100
@@ -375,10 +388,11 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                     print('over_500:', tir[9])            
                     tir[10] = (counter_death_hyper / counter_total) * 100
                     print('death_hyper:', tir[10])
-                    
+                    print()
                     lista_BG.append(observation)
                     
-                    if timestep > 0:
+                    if timestep > 1:
+                    
                     
                         data_list.append({
                                 'Timestep': timestep,
@@ -388,52 +402,49 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
                                 'HBGI': info['hbgi'],
                                 'RISK': info['risk'],
                                 'INS': info['insulin'],
-                                'Active_agent': env.agent_selection,
-                                # 'Rick_Obs': str(obs['Rick']),
-                                # 'Rick_Action': str(round(actions['Rick'][0],3)),
+                                'CHO': info['meal'],
+                                'Active_agent': agent,
                                 'Rick_Reward': str(round(env.rewards['Rick'],3)),   
                                 'Morty_Reward': str(round(env.rewards['Morty'],3)),
                                 'Jerry_Reward': str(round(env.rewards['Jerry'],3)),
-                                # 'Morty_Obs': str(obs['Morty']),
-                                # 'Morty_Action': str(round(actions['Morty'][0],3)),     
-                                # 'Rick_Done': dones['Rick'],
-                                # 'Morty_Done': dones['Morty'],
-                                # 'Rick_Trunc': truncs['Rick'],
-                                # 'Morty_Trunc': truncs['Morty'],
-                                # 'Obs': str(obs),
+                                'Truncation': truncation,
+                                'Termination': termination
+
                             })
-    
+                        
                         
                         df = pd.DataFrame(data_list)
-                        # print(df['Rick_Reward'])
-                        
-                        # env.close()
-                            
+
                         df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
-    
-                        
+                      
                         df_hist = env.show_history()
                     
                     
-                
-                    if termination or truncation:
-                        if env.rewards[env.possible_agents[0]] != env.rewards[env.possible_agents[1]]:
-                            winner = max(env.rewards, key=env.rewards.get)
-                            scores[winner] += env.rewards[winner]
-                        for a in env.possible_agents:
-                            total_rewards[a] += env.rewards[a]
-                        round_rewards.append(env.rewards)
-                        break
+                    if truncation:
+                        print(truncation)
+
+                        # truncation = True
+                    # if termination or truncation:
+                    #     if env.rewards[env.possible_agents[0]] != env.rewards[env.possible_agents[1]]:
+                    #         winner = max(env.rewards, key=env.rewards.get)
+                    #         scores[winner] += env.rewards[winner]
+                    #     for a in env.possible_agents:
+                    #         total_rewards[a] += env.rewards[a]
+                    #     round_rewards.append(env.rewards)
+                        # break
                     else:
                         if agent == env.possible_agents[0]:
+                            print('ageeeent', agent)
                             act = env.action_space(agent).sample(action_mask)
                         else:
                             act = int(model.predict(observation, action_masks=action_mask, deterministic=True)[0])
                         env.step(act)
                     timestep += 1
-                    if timestep >= num_timesteps:
+                    if termination:
+                        
                         break
-                if timestep >= num_timesteps:
+                if termination:
+                    
                     break
                 
         
@@ -493,7 +504,8 @@ def eval_action_mask(env_fn, paziente, scenarios, tir_mean_dict, time_suffix, fo
 if __name__ == "__main__":
     
     
-    for train_timesteps in [960,2400,4800]:
+    # for train_timesteps in [960,2400,4800]:
+    for train_timesteps in [4800]:
     
         last_models=False
         # Ottieni la data corrente
@@ -513,7 +525,7 @@ if __name__ == "__main__":
         n_days_scenario = 5
         # train_timesteps = 2400
         test_timesteps = 2400
-        num_test = 10
+        num_test = 5
         # n_steps= 1024
 
         
@@ -567,12 +579,7 @@ if __name__ == "__main__":
                     'RI mean of means':[],
                     'RI mean of std':[],      
                     'ripetizioni':[],
-                    # 'training learning rate':[],
-                    # 'training n steps':[],
-                    # 'training timesteps':[],
-                    # 'test timesteps':[],       
-                    # 'scenario':[],
-                    # 'start time': []
+
                     }
             
             
@@ -602,40 +609,40 @@ if __name__ == "__main__":
             
     
             # TRAIN
-            env_fn = env(
-                    patient_name=p,
-                    custom_scenario=train_scenario,
-                    reward_fun=new_reward,
-                    # seed=123,
-                    render_mode="human",
-                    training = True,
-                    folder=train_folder
-                )
+            # env_fn = env(
+            #         patient_name=p,
+            #         custom_scenario=train_scenario,
+            #         reward_fun=new_reward,
+            #         # seed=123,
+            #         render_mode="human",
+            #         training = True,
+            #         folder=train_folder
+            #     )
             
-            train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
-            last_models = True
+            # train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
+            # last_models = True
             
             
-            env_fn = env(
-                    patient_name=p,
-                    custom_scenario=train_scenario,
-                    reward_fun=new_reward,
-                    # seed=123,
-                    render_mode="human",
-                    training = False,
-                    folder=test_folder
-                )
+            # # env_fn = env(
+            # #         patient_name=p,
+            # #         custom_scenario=train_scenario,
+            # #         reward_fun=new_reward,
+            # #         # seed=123,
+            # #         render_mode="human",
+            # #         training = False,
+            # #         folder=test_folder
+            # #     )
             
-            rewards, tir_dict, df_hist = eval_action_mask(env_fn, p,
-                                                                    test_scenarios,
-                                                                    tir_mean_dict,
-                                                                    time_suffix,
-                                                                    test_folder,
-                                                                    num_games=num_test, 
-                                                                    num_timesteps=test_timesteps,
-                                                                    last_models=last_models,
-                                                                    render_mode=None,                            
-                                                                    **env_kwargs)
+            rewards, tir_dict, df_hist = eval_action_mask(p,
+                                                        test_scenarios,
+                                                        tir_mean_dict,
+                                                        time_suffix,
+                                                        test_folder,
+                                                        num_games=num_test, 
+                                                        num_timesteps=test_timesteps,
+                                                        last_models=last_models,
+                                                        render_mode=None,                            
+                                                        **env_kwargs)
             
             # Note that use of masks is manual and optional outside of learning,
             # so masking can be "removed" at testing time
@@ -675,11 +682,7 @@ if __name__ == "__main__":
                 tir_mean_dict['RI mean of means'].append(mean(tir_dict['RI mean']))
                 tir_mean_dict['RI mean of std'].append(mean_std(tir_dict['RI std']))
                 tir_mean_dict['ripetizioni'].append(num_test)
-                # tir_mean_dict['training learning rate'].append(training_learning_rate)
-                # tir_mean_dict['training n steps'].append(training_n_steps)
-                # tir_mean_dict['training timesteps'].append(training_total_timesteps)
-                # tir_mean_dict['scenario'].append(scenario_usato)
-                # tir_mean_dict['start time'].append(start_time)
+
             
             
                 df_cap_mean = pd.DataFrame(tir_mean_dict)

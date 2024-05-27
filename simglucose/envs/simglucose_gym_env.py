@@ -327,9 +327,10 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
         # if self.agent_selection is None:
         #     self.agent_selection = self.agents[0]  # Initialize agent_selection if not already set
-
-        if self.truncations[self.agent_selection] or self.terminations[self.agent_selection]:
-            return self._was_dead_step(action)
+        
+        if self.env.training:
+            if self.truncations[self.agent_selection] or self.terminations[self.agent_selection]:
+                return self._was_dead_step(action)
 
         mini_action = action / 100
         # mini_action = 0.05

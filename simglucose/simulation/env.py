@@ -111,7 +111,10 @@ class T1DSimEnv_MARL(object):
         reward = reward_fun(BG_last_hour)
         # print('ACTION', action)
         # print('REWARD', reward)
-        done = BG < 40 or BG > 600
+        # if self.training:
+        done = BG < 40 or BG > 350
+        # else:
+        #     done = BG < 40 or BG > 600
         # print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
         obs = Observation(CGM=CGM)
 
