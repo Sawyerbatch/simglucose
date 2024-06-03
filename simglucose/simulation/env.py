@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging
 from collections import namedtuple
 from simglucose.simulation.rendering import Viewer
-
+import numpy as np
 try:
     from rllab.envs.base import Step
 except ImportError:
@@ -20,7 +20,7 @@ except ImportError:
         return _Step(observation, reward, done, kwargs)
 
 
-Observation = namedtuple("Observation", ["CGM"])
+Observation = namedtuple("Observation", ["CGM", 'dCGM', 'IOB', 'h_zone', 'food'])
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +44,20 @@ class T1DSimEnv_MARL(object):
         self.training = training
         self.folder = folder
         self._reset()
+        self.N = 180 # durata dell'effetto dell'insulina (minuti)
+        
+    def a(self, k, N):
+      if k > N:
+        return 0
+      else:
+        return (N - k)/N
+        
+    def IOB_fun(self, t, Ins, N):
+      IOB = 0
+      N_min = np.minimum(N, len(Ins))
+      for k in range(N_min):
+          IOB += self.a(k,N)*Ins[t-k]
+      return IOB
 
     @property
     def time(self):
@@ -92,6 +106,18 @@ class T1DSimEnv_MARL(object):
         # Compute risk index
         horizon = 1
         LBGI, HBGI, risk = risk_index([BG], horizon)
+        
+        IOB = self.IOB_fun(0, self.insulin_hist, self.N)
+        self.IOB = float(IOB)
+        
+        self.dCGM = CGM - self.CGM_hist[-1]
+        
+        self.h_zone = int(self.time.hour/2)
+        
+        if CHO > 0:
+            self.food = True
+        else:
+            self.food = False
 
         # Record current action
         self.CHO_hist.append(CHO)
@@ -116,7 +142,8 @@ class T1DSimEnv_MARL(object):
         # else:
         #     done = BG < 40 or BG > 600
         # print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
-        obs = Observation(CGM=CGM)
+        obs = Observation(CGM=CGM,dCGM=self.dCGM, IOB=self.IOB, 
+                          h_zone=self.h_zone, food=self.food)
 
         return Step(
             observation=obs,
@@ -137,6 +164,7 @@ class T1DSimEnv_MARL(object):
     def _reset(self):
         self.sample_time = self.sensor.sample_time
         self.viewer = None
+        
 
         BG = self.patient.observation.Gsub
         horizon = 1
@@ -158,7 +186,18 @@ class T1DSimEnv_MARL(object):
         self.scenario.reset()
         self._reset()
         CGM = self.sensor.measure(self.patient)
-        obs = Observation(CGM=CGM)
+        
+        
+        # MODIFICA obs aggiuntive
+        self.dCGM = 0.0
+        self.h_zone = int(self.scenario.start_time.hour/2)
+        self.food = False
+        self.CHO = 0.0
+        self.IOB = 0.0
+        
+        obs = Observation(CGM=CGM, dCGM=self.dCGM, IOB=self.IOB, 
+                          h_zone=self.h_zone, food=self.food)
+        
         return Step(
             observation=obs,
             reward=0,
@@ -172,7 +211,9 @@ class T1DSimEnv_MARL(object):
             lbgi=self.LBGI_hist[0],
             hbgi=self.HBGI_hist[0],
             risk=self.risk_hist[0],
+            
         )
+    
 
     def render(self, close=False):
         if close:

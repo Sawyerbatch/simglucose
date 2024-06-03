@@ -323,8 +323,8 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                     #     print('termination == done')
                     # elif truncation:
                     #     print('truncation == done')
-                    observation, action_mask = obs.values()
-                    
+                    observations, action_mask = obs.values()
+                    observation = observations[0]
                     
                     print('observation', observation)
                     print('info:', info)
@@ -432,12 +432,16 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                     #         total_rewards[a] += env.rewards[a]
                     #     round_rewards.append(env.rewards)
                         # break
+                    
                     else:
+                        print('possible_agent', env.possible_agents)
                         if agent == env.possible_agents[0]:
                             print('ageeeent', agent)
                             act = env.action_space(agent).sample(action_mask)
                         else:
-                            act = int(model.predict(observation, action_masks=action_mask, deterministic=True)[0])
+                            print(observations.shape)
+                            # act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
+                            act = int(model.predict([observation], action_masks=action_mask, deterministic=True)[0])
                         env.step(act)
                     timestep += 1
                     if termination:

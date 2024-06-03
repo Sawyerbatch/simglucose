@@ -186,9 +186,12 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         self.action_spaces = {i: gymnasium.spaces.discrete.Discrete(n_possible_actions) for i in self.agents}
         self.observation_spaces = {i:gymnasium.spaces.Dict(
             {
-                "observation": gymnasium.spaces.Box(
-                    low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
-                ),
+                # "observation": gymnasium.spaces.Box(
+                #     low=0, high=self.MAX_BG, shape=(1,), dtype=np.float32
+                # ),
+                "observation": gymnasium.spaces.Box(low=-np.inf, high=np.inf,
+                                                    shape=(1,5)),
+                
                 # "action_mask": gymnasium.spaces.Box(
                     # low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
                 # ),
@@ -224,7 +227,9 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
 
 
     def observe(self, agent):
-        observation = np.array([self.obs.CGM], dtype=np.float32)
+        # observation = np.array([self.obs.CGM], dtype=np.float32)
+        observation = np.array([self.obs.CGM, self.obs.dCGM,
+                                self.obs.IOB, self.obs.h_zone, self.obs.food])
         # legal_moves = self._legal_moves()[agent]
         legal_moves = self._legal_moves(agent) if agent == self.agent_selection else []
         # action_mask = np.array([legal_moves], dtype=np.float32)
