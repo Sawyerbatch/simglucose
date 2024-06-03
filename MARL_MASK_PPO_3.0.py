@@ -397,6 +397,10 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                         data_list.append({
                                 'Timestep': timestep,
                                 'CGM': round(env.obs.CGM, 3),
+                                'dCGM': round(env.obs.dCGM, 3),
+                                'IOB': round(env.obs.IOB, 3),
+                                'h_zone': env.obs.h_zone,
+                                'food': env.obs.food,
                                 'BG': info['bg'],
                                 'LBGI': info['lbgi'],
                                 'HBGI': info['hbgi'],
@@ -440,8 +444,8 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                             act = env.action_space(agent).sample(action_mask)
                         else:
                             print(observations.shape)
-                            # act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
-                            act = int(model.predict([observation], action_masks=action_mask, deterministic=True)[0])
+                            act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
+                            # act = int(model.predict([observation], action_masks=action_mask, deterministic=True)[0])
                         env.step(act)
                     timestep += 1
                     if termination:
@@ -536,15 +540,15 @@ if __name__ == "__main__":
         
         pazienti = [
                     'adult#001',
-                    'adult#002',
-                    'adult#003',
-                    'adult#004',
-                    'adult#005',
-                    'adult#006',
-                    'adult#007',
-                    'adult#008',
-                    'adult#009',
-                    'adult#010',
+                    # 'adult#002',
+                    # 'adult#003',
+                    # 'adult#004',
+                    # 'adult#005',
+                    # 'adult#006',
+                    # 'adult#007',
+                    # 'adult#008',
+                    # 'adult#009',
+                    # 'adult#010',
                     ]
         
         # test fixed scenario
@@ -613,18 +617,18 @@ if __name__ == "__main__":
             
     
             # TRAIN
-            # env_fn = env(
-            #         patient_name=p,
-            #         custom_scenario=train_scenario,
-            #         reward_fun=new_reward,
-            #         # seed=123,
-            #         render_mode="human",
-            #         training = True,
-            #         folder=train_folder
-            #     )
+            env_fn = env(
+                    patient_name=p,
+                    custom_scenario=train_scenario,
+                    reward_fun=new_reward,
+                    # seed=123,
+                    render_mode="human",
+                    training = True,
+                    folder=train_folder
+                )
             
-            # train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
-            # last_models = True
+            train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
+            last_models = True
             
             
             # # env_fn = env(
