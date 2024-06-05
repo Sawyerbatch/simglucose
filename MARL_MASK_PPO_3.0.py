@@ -438,9 +438,9 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                         # break
                     
                     else:
-                        print('possible_agent', env.possible_agents)
+                        # print('possible_agent', env.possible_agents)
                         if agent == env.possible_agents[0]:
-                            print('ageeeent', agent)
+                            # print('ageeeent', agent)
                             act = env.action_space(agent).sample(action_mask)
                         else:
                             print(observations.shape)
@@ -513,7 +513,7 @@ if __name__ == "__main__":
     
     
     # for train_timesteps in [960,2400,4800]:
-    for train_timesteps in [4800]:
+    for train_timesteps in [4800, 19200]:
     
         last_models=False
         # Ottieni la data corrente
@@ -540,15 +540,15 @@ if __name__ == "__main__":
         
         pazienti = [
                     'adult#001',
-                    # 'adult#002',
-                    # 'adult#003',
-                    # 'adult#004',
-                    # 'adult#005',
-                    # 'adult#006',
-                    # 'adult#007',
-                    # 'adult#008',
-                    # 'adult#009',
-                    # 'adult#010',
+                    'adult#002',
+                    'adult#003',
+                    'adult#004',
+                    'adult#005',
+                    'adult#006',
+                    'adult#007',
+                    'adult#008',
+                    'adult#009',
+                    'adult#010',
                     ]
         
         # test fixed scenario
@@ -587,11 +587,18 @@ if __name__ == "__main__":
                     'RI mean of means':[],
                     'RI mean of std':[],      
                     'ripetizioni':[],
+                    'training steps':[],
+                    'training time':[],
+                    'testing time':[]
 
                     }
-            
+        
+        time_dict = {}
             
         for p in (pazienti):  
+            
+            start_training_time = time.time()
+            
             
             # Crea il nome della cartella usando il suffisso di tempo
             train_folder = os.path.join(main_train_folder, f"Training_{p}")
@@ -641,6 +648,12 @@ if __name__ == "__main__":
             # #         folder=test_folder
             # #     )
             
+            end_training_time = time.time()
+            
+            elapsed_training_time = end_training_time - start_training_time
+            
+            start_test_time = time.time()
+            
             rewards, tir_dict, df_hist = eval_action_mask(p,
                                                         test_scenarios,
                                                         tir_mean_dict,
@@ -655,6 +668,10 @@ if __name__ == "__main__":
             # Note that use of masks is manual and optional outside of learning,
             # so masking can be "removed" at testing time
             # model.predict(observation, action_masks=valid_action_array)
+            
+            end_test_time = time.time()
+            
+            elapsed_test_time = end_test_time - start_test_time
             
             with pd.ExcelWriter(os.path.join(test_folder, general_results_path)) as final_writer:
                 
@@ -690,6 +707,9 @@ if __name__ == "__main__":
                 tir_mean_dict['RI mean of means'].append(mean(tir_dict['RI mean']))
                 tir_mean_dict['RI mean of std'].append(mean_std(tir_dict['RI std']))
                 tir_mean_dict['ripetizioni'].append(num_test)
+                tir_mean_dict['training steps'].append(train_timesteps)
+                tir_mean_dict['training time'].append(elapsed_training_time)
+                tir_mean_dict['testing time'].append(elapsed_test_time)
 
             
             

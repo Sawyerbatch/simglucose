@@ -270,7 +270,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         elif self.agent_selection == 'Morty':
             return[0,1,2,3,4]
         elif self.agent_selection == 'Rick':
-            return[5,6,7,8,9]
+            return[0,1,2,3,4,5,6,7,8,9]
     
     # def valid_action_mask(self) -> np.ndarray:
     #     # action_mask = np.zeros(n_possible_actions, dtype=np.float32)
