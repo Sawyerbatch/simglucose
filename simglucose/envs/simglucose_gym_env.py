@@ -27,7 +27,7 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
 
-n_possible_actions = 11  # Necessary for maskable PPO
+n_possible_actions = 16  # Necessary for maskable PPO
 
 
 class T1DSimEnv_MARL(gym.Env):
@@ -268,9 +268,9 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         if self.agent_selection == 'Jerry':
             return [0]
         elif self.agent_selection == 'Morty':
-            return[0,1,2,3,4]
+            return[0,1,2,3,4,5,6,7]
         elif self.agent_selection == 'Rick':
-            return[0,1,2,3,4,5,6,7,8,9]
+            return[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
     
     # def valid_action_mask(self) -> np.ndarray:
     #     # action_mask = np.zeros(n_possible_actions, dtype=np.float32)
