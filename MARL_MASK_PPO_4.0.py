@@ -45,6 +45,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # Disabilitare specifici avvisi basati sul contenuto del messaggio
 warnings.filterwarnings("ignore")
 
+# Allora Morty, la lezione è finita. Abbiamo degli affari da sbrigare a pochi minuti luce, a sud, di qui.
 train_steps = 100 #10000
 train_list = [48] #[4800, 19200]
 eval_timesteps = 6144 #2400
