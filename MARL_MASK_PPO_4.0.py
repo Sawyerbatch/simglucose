@@ -527,17 +527,6 @@ if __name__ == "__main__":
         last_models=False
         # Ottieni la data corrente
         current_time = datetime.now()
-
-        time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
-        time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
-
-        general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
-        test_folder = f"Test\\Test_{time_suffix_Min}"+"_train_"+str(train_timesteps)
-        # Crea la cartella se non esiste già
-        os.makedirs(test_folder, exist_ok=True)
-        
-        main_train_folder = os.path.join("Training", 
-                    f"Training_{time_suffix_Min}_train_"+str(train_timesteps))
         
         n_days_scenario = 5
         # train_timesteps = 2400
@@ -545,6 +534,18 @@ if __name__ == "__main__":
         num_test = eval_games #5
         # n_steps= 1024
 
+
+        time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
+        time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
+
+        general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
+        test_folder = f"Test\\Test_{time_suffix_Min}"+"_train_"+str(train_timesteps)+"_test_"+str(test_timesteps)
+        # Crea la cartella se non esiste già
+        os.makedirs(test_folder, exist_ok=True)
+        
+        main_train_folder = os.path.join("Training", 
+                    f"Training_{time_suffix_Min}_train_"+str(train_timesteps))
+        
         
         
         pazienti = [
