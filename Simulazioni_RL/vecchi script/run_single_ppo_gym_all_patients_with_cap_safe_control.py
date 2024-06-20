@@ -59,7 +59,7 @@ test_timesteps = 2400 # 5 giorni
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
-ripetizioni = 100
+ripetizioni = 10
 
 # simglucose parameters
 cgm_name = 'Dexcom'
@@ -67,15 +67,15 @@ insulin_pump_name = 'Nuovo'
 animate = True
 parallel = True
 
-
-os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
+os.chdir('C:\\Users\Daniele\\anaconda3\envs\glumarl\Lib\site-packages\simglucose\\Simulazioni_RL\Risultati')
+# os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
 cwd = os.getcwd()
     
 strategy_path = os.path.join(cwd, 'Strategy')
 if not os.path.exists(strategy_path):
     os.makedirs(strategy_path)
 
-model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
+model_path = 'C:\\Users\Daniele\\anaconda3\envs\glumarl\Lib\site-packages\simglucose\\Simulazioni_RL'
 
 scenario_usato = '5_days_1000_times'
 
@@ -85,21 +85,21 @@ with open(os.path.join(model_path, 'Risultati\Strategy', 'scenarios_'+scenario_u
 
 opt_dict = {
             'adult#001':('008',90),
-            'adult#002':('008',90),
-            'adult#003':('008',90),
-            'adult#004':('007',90),
-            'adult#005':('008',90),
-            'adult#006':('009',90),
-            'adult#007':('007',90),
-            'adult#008':('007',90),
-            'adult#009':('007',90),
-            'adult#010':('007',90),
+            # 'adult#002':('008',90),
+            # 'adult#003':('008',90),
+            # 'adult#004':('007',90),
+            # 'adult#005':('008',90),
+            # 'adult#006':('009',90),
+            # 'adult#007':('007',90),
+            # 'adult#008':('007',90),
+            # 'adult#009':('007',90),
+            # 'adult#010':('007',90),
             }
 
 
 for training_n_steps, training_total_timesteps in zip(training_n_step_list, training_total_timesteps) :
 
-    writer = pd.ExcelWriter(os.path.join(strategy_path,'performance_single_ppo_withcaps_safecontrol_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
+    writer = pd.ExcelWriter(os.path.join(strategy_path,'PROVA_2024_performance_single_ppo_withcaps_safecontrol_test_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx'))
     
     tir_mean_dict = {
                 'paziente':[],

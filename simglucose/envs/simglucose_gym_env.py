@@ -12,6 +12,7 @@ from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
 import pandas as pd
+import os
 
 PATIENT_PARA_FILE = pkg_resources.resource_filename(
     'simglucose', 'params/vpatient_params.csv')
@@ -40,6 +41,7 @@ class T1DSimEnv(gym.Env):
         self.np_random, _ = seeding.np_random(seed=seed)
         self.env, _, _, _ = self.create_env_from_random_state(custom_scenario)
         self.strategy = strategy
+        self.cwd = os.getcwd()
 
     def step(self, action):
         # This gym only controls basal insulin
@@ -121,6 +123,7 @@ class PPOSimEnv(gym.Env):
         self.np_random, _ = seeding.np_random(seed=seed)
         self.custom_scenario = custom_scenario
         self.env, _, _, _ = self.create_env_from_random_state(self.custom_scenario)
+        self.cwd = os.getcwd()
 
     def step(self, action):
         # This gym only controls basal insulin
@@ -168,7 +171,7 @@ class PPOSimEnv(gym.Env):
         # return spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         
         # cap di accordo con il paziente
-        df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx')
+        df_cap = pd.read_excel(os.path.join(self.cwd, 'Risultati\Strategy\paz_cap.xlsx'))
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         paziente = df_cap['paziente'][0]
         # print(self.patient)

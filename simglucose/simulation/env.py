@@ -450,7 +450,8 @@ class PPOSimEnv(object):
         self.scenario = scenario
         self.total_minutes = 0
         
-        self.model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
+        self.cwd = os.getcwd()
+        self.model_path = os.path.join(self.cwd, 'Risultati')
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
         # # self._reset()
         # self.INSULIN_PUMP_HARDWARE = 'Insulet'
@@ -460,7 +461,7 @@ class PPOSimEnv(object):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(1,5))
         
         # cap di accordo con il paziente
-        df_cap = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\paz_cap.xlsx', index_col=None)
+        df_cap = pd.read_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index_col=None)
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         self.paziente = df_cap['paziente'][0]
         self.cap = df_cap['ins_max'][0]
@@ -610,7 +611,7 @@ class PPOSimEnv(object):
         self.insulin_24h_hist.append([insulin_integral])
         
         # BB insulin
-        bb_ins_df = pd.read_csv('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\\vpatient_params.csv')
+        bb_ins_df = pd.read_csv(os.path.join(self.cwd, 'Strategy\\vpatient_params.csv'))
         
         u2ss = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,16]   # unit: pmol/(L*kg)
         BW = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,58]   # unit: kg
@@ -807,6 +808,7 @@ class PPOSimEnv(object):
         LBGI, HBGI, risk = risk_index([BG], horizon)
         CGM = self.sensor.measure(self.patient)
         dCGM = 0.0
+        print(self.scenario.start_time.hour)
         h_zone = int(self.scenario.start_time.hour/2)
         food = False
         CHO = 0.0
@@ -922,7 +924,7 @@ class PPOSimEnv(object):
         
         # self.df_final = pd.concat([self.df_final, df])
         now = datetime.now()
-        df.to_excel(os.path.join(self.model_path, str(now.strftime("%Y_%m_%d_%H_%M_%S_%f"))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
+        # df.to_excel(os.path.join(self.model_path, str(now.strftime("%Y_%m_%d_%H_%M_%S_%f"))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
         
         # df.to_excel(os.path.join(self.model_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
         
