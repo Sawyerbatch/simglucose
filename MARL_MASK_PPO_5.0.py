@@ -39,6 +39,7 @@ import gymnasium as gym
 import numpy as np
 from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.ppo_mask import MaskablePPO
+from stable_baselines3.common.env_util import make_vec_env
 
 # Disable all future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -46,10 +47,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings("ignore")
 
 # Allora Morty, la lezione è finita. Abbiamo degli affari da sbrigare a pochi minuti luce, a sud, di qui.
-train_steps = 100 #10000
-train_list = [48] #[4800, 19200]
-eval_timesteps = 6144 #2400
-eval_games = 2 #10
 
 
 def new_func(x):
@@ -177,11 +174,13 @@ def mask_fn(env):
     return env.action_mask()
 
 
-def train_action_mask(env_fn, folder, paziente, steps=train_steps, seed=0, **env_kwargs):
+def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0, **env_kwargs):
     """Train a single model to play as each agent in a zero-sum game environment using invalid action masking."""
     # env = env_fn.env(**env_kwargs)
 
     print(f"Starting training on patient {paziente} with {str(env_fn.metadata['name'])}.")
+
+    # env_fn = make_vec_env(env_fn, n_envs=4)
 
     # Custom wrapper to convert PettingZoo envs to work with SB3 action masking
     env = SB3ActionMaskWrapper(env_fn)
@@ -193,15 +192,18 @@ def train_action_mask(env_fn, folder, paziente, steps=train_steps, seed=0, **env
     # with ActionMasker. If the wrapper is detected, the masks are automatically
     # retrieved and used when learning. Note that MaskablePPO does not accept
     # a new action_mask_fn kwarg, as it did in an earlier draft.
-    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1,
-                        # batch_size=64 MODIFICARE PER STEPS?
+    
+    
+    
+    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1, n_steps=n_steps,
+                        batch_size=n_steps #MODIFICARE PER STEPS?
                         )
     model.set_random_seed(seed)
-    model.learn(total_timesteps=steps, progress_bar=True, 
-                reset_num_timesteps=False)
+    model.learn(total_timesteps=train_timesteps, progress_bar=True, 
+                reset_num_timesteps=True)
 
     model.save(os.path.join(folder, 
-            f"{env.unwrapped.metadata.get('name')}_{paziente}_{steps}_{time_suffix_Min}"))
+            f"{env.unwrapped.metadata.get('name')}_{paziente}_{train_timesteps}_{time_suffix_Min}"))
     
     print("Model has been saved.")
 
@@ -212,7 +214,7 @@ def train_action_mask(env_fn, folder, paziente, steps=train_steps, seed=0, **env
     
 
 def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_test,
-                     num_games=eval_games, num_timesteps=eval_timesteps,
+                     num_tests, test_timesteps,
                      render_mode=None, last_models = False, **env_kwargs):
     
             
@@ -257,7 +259,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
     
     with pd.ExcelWriter(os.path.join(folder_test, f'hystory_{paziente}_{time_suffix_Min}.xlsx')) as patient_writer:
 
-        for i, scen in zip(range(1,num_games+1), scenarios.values()):
+        for i, scen in zip(range(1,num_tests+1), scenarios.values()):
             # print(scen)
             lista_BG = []
             
@@ -319,14 +321,14 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
             truncation = False
             termination = False
             
-            while timestep < num_timesteps:
+            while timestep < test_timesteps:
                 
                 
-                print('timesteeeep', timestep)
+                # print('timesteeeep', timestep)
                                
                 
                 for agent in env.agent_iter():
-                    print('agent_iter:',agent)
+                    # print('agent_iter:',agent)
                     obs, reward, _, _, info = env.last()
                     # if termination:
                     #     print('termination == done')
@@ -336,12 +338,12 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                     observation = observations[0]
                     
                     print('observation', observation)
-                    print('info:', info)
+                    
                     
                     if observation < 20 or observation > 600:
                         truncation = True
                     
-                    if timestep >= num_timesteps:
+                    if timestep >= test_timesteps:
                         termination = True
                         
 
@@ -402,6 +404,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                     
                     if timestep > 1:
                     
+                        print('INS:', info['insulin'])
                     
                         data_list.append({
                                 'Timestep': timestep,
@@ -448,12 +451,12 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                     
                     else:
                         # print('possible_agent', env.possible_agents)
-                        if agent == env.possible_agents[0]:
+                        # if agent == env.possible_agents[0]:
                             # print('ageeeent', agent)
-                            act = env.action_space(agent).sample(action_mask)
-                        else:
-                            print(observations.shape)
-                            act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
+                            # act = env.action_space(agent).sample(action_mask)
+                        # else:
+                            # print(observations.shape)
+                        act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
                             # act = int(model.predict([observation], action_masks=action_mask, deterministic=True)[0])
                         env.step(act)
                     timestep += 1
@@ -520,18 +523,23 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
 
 if __name__ == "__main__":
     
+    total_timesteps_list = [4800] # 1 non si può
+    n_timesteps_list = [480]
+    
+    num_test = 10 #10
+    test_timesteps = 2400 #6144
+    
+    n_days_scenario = 5
     
     # for train_timesteps in [960,2400,4800]:
-    for train_timesteps in train_list:
+    for train_timesteps, n_steps in zip(total_timesteps_list, n_timesteps_list):
     
         last_models=False
         # Ottieni la data corrente
         current_time = datetime.now()
         
-        n_days_scenario = 5
+        
         # train_timesteps = 2400
-        test_timesteps = eval_timesteps #2400
-        num_test = eval_games #5
         # n_steps= 1024
 
 
@@ -539,26 +547,26 @@ if __name__ == "__main__":
         time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
 
         general_results_path = f'test_general_results_{time_suffix_Min}.xlsx'
-        test_folder = f"Test\\Test_{time_suffix_Min}"+"_train_"+str(train_timesteps)+"_test_"+str(test_timesteps)
+        test_folder = f"Test\\Test_{time_suffix_Min}"+"_train_"+str(train_timesteps)+"("+str(n_steps)+")_test_"+str(test_timesteps)
         # Crea la cartella se non esiste già
         os.makedirs(test_folder, exist_ok=True)
         
         main_train_folder = os.path.join("Training", 
-                    f"Training_{time_suffix_Min}_train_"+str(train_timesteps))
+                    f"Training_{time_suffix_Min}_train_"+str(train_timesteps)+"("+str(n_steps)+")")
         
         
         
         pazienti = [
                     'adult#001',
-                    # 'adult#002',
-                    # 'adult#003',
-                    # 'adult#004',
-                    # 'adult#005',
-                    # 'adult#006',
-                    # 'adult#007',
-                    # 'adult#008',
-                    # 'adult#009',
-                    # 'adult#010',
+                    'adult#002',
+                    'adult#003',
+                    'adult#004',
+                    'adult#005',
+                    'adult#006',
+                    'adult#007',
+                    'adult#008',
+                    'adult#009',
+                    'adult#010',
                     ]
         
         # test fixed scenario
@@ -643,8 +651,8 @@ if __name__ == "__main__":
                     training = True,
                     folder=train_folder
                 )
-            
-            train_action_mask(env_fn, train_folder, p, steps=train_timesteps, seed=0, **env_kwargs)
+        
+            train_action_mask(env_fn, train_folder, p, train_timesteps, n_steps, seed=0, **env_kwargs)
             last_models = True
             
             
@@ -669,8 +677,8 @@ if __name__ == "__main__":
                                                         tir_mean_dict,
                                                         time_suffix,
                                                         test_folder,
-                                                        num_games=num_test, 
-                                                        num_timesteps=test_timesteps,
+                                                        num_test, 
+                                                        test_timesteps,
                                                         last_models=last_models,
                                                         render_mode=None,                            
                                                         **env_kwargs)
