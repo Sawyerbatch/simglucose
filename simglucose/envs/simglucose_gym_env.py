@@ -164,18 +164,20 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             data_diz = {
                 'step': [],
                 'CGM': [],
-                'Action': [],
+                'Ins': [],
                 'Active agent': [],
                 'Jerry_Reward': [],
                 'Morty_Reward': [],
                 'Rick_Reward': [],
                 'Total_Reward': [],
-                'Jerry_Termination': [],
-                'Morty_Termination': [],
-                'Rick_Termination': [],
-                'Jerry_Truncation': [],
-                'Morty_Truncation': [],
-                'Rick_Truncation': [],
+                # 'Jerry_Termination': [],
+                # 'Morty_Termination': [],
+                # 'Rick_Termination': [],
+                # 'Jerry_Truncation': [],
+                # 'Morty_Truncation': [],
+                # 'Rick_Truncation': [],
+                'Done':[],
+                'Truncation':[],
                 'Infos': []
             }
         
@@ -360,12 +362,14 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
                 'Morty_Reward': round(self.rewards['Morty'], 3),
                 'Rick_Reward': round(self.rewards['Rick'], 3),
                 'Total Reward': round(sum(self.rewards.values()), 3),
-                'Jerry_Termination': self.terminations['Jerry'],
-                'Morty_Termination': self.terminations['Morty'],
-                'Rick_Termination': self.terminations['Rick'],
-                'Jerry_Truncation': self.truncations['Jerry'],
-                'Morty_Truncation': self.truncations['Morty'],
-                'Rick_Truncation': self.truncations['Rick'],
+                'Done': done,
+                'Truncation': truncated,
+                # 'Jerry_Termination': self.terminations['Jerry'],
+                # 'Morty_Termination': self.terminations['Morty'],
+                # 'Rick_Termination': self.terminations['Rick'],
+                # 'Jerry_Truncation': self.truncations['Jerry'],
+                # 'Morty_Truncation': self.truncations['Morty'],
+                # 'Rick_Truncation': self.truncations['Rick'],
                 'Infos': None,  # Ensure Infos is handled correctly
             }
 

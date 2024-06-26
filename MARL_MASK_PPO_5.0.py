@@ -193,7 +193,7 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0
     # retrieved and used when learning. Note that MaskablePPO does not accept
     # a new action_mask_fn kwarg, as it did in an earlier draft.
     
-    
+    # batch_size = 240
     
     model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1, n_steps=n_steps,
                         batch_size=n_steps #MODIFICARE PER STEPS?
@@ -498,7 +498,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                 tir_dict['Rick reward'].append(str(round(env.rewards['Rick'],3)))
                 tir_dict['Morty reward'].append(str(round(env.rewards['Morty'],3)))
                 tir_dict['Jerry reward'].append(str(round(env.rewards['Jerry'],3)))
-                tir_dict['test timesteps'].append(timestep)
+                tir_dict['test timesteps'].append(timestep-1)
 
                 tir_dict['scenario'].append(scen)
                 # tir_dict['tempo esecuzione'].append(tempo_impiegato)
@@ -523,7 +523,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
 
 if __name__ == "__main__":
     
-    total_timesteps_list = [4800] # 1 non si può
+    total_timesteps_list = [9600]
     n_timesteps_list = [480]
     
     num_test = 10 #10

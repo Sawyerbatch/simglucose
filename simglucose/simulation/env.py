@@ -138,7 +138,8 @@ class T1DSimEnv_MARL(object):
         # print('ACTION', action)
         # print('REWARD', reward)
         # if self.training:
-        done = BG < 40 or BG > 350
+        # done = BG < 40 or BG > 350
+        done = BG < 40 or BG > 600
         # else:
         #     done = BG < 40 or BG > 600
         # print('DOOOOOOOOOOOOOOOOOOOOONEEEE', BG, done)
