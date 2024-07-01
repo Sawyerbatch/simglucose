@@ -53,7 +53,7 @@ warnings.filterwarnings("ignore")
 #     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
 def new_func(x):
-    return -(x - 90) * (x - 160)
+    return -(x - 110) * (x - 160)
 
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
@@ -227,7 +227,8 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0
 
 def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_test,
                      num_tests, test_timesteps,
-                     render_mode=None, last_models = False, morty_cap=7, rick_cap=15, **env_kwargs):
+                     render_mode=None, last_models = False, morty_cap=7, rick_cap=15,
+                     soglia_ipo = 85, soglia_iper = 120, **env_kwargs):
     
             
     if last_models:
@@ -296,6 +297,8 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                 training = False,
                 morty_cap = morty_cap,
                 rick_cap = rick_cap,
+                soglia_ipo = soglia_ipo,
+                soglia_iper = soglia_iper,
         )
             
             
@@ -543,6 +546,9 @@ if __name__ == "__main__":
     test_timesteps = 2400 #6144    
     n_days_scenario = 365
     
+    soglia_ipo = 85
+    soglia_iper = 120
+    
     morty_cap = 7
     rick_cap = 15
     
@@ -670,6 +676,8 @@ if __name__ == "__main__":
                     folder=train_folder,
                     morty_cap = morty_cap,
                     rick_cap = rick_cap,
+                    soglia_ipo = soglia_ipo,
+                    soglia_iper = soglia_iper,
                 )
         
             train_action_mask(env_fn, train_folder, p, train_timesteps, n_steps, seed=0, **env_kwargs)
@@ -702,6 +710,8 @@ if __name__ == "__main__":
                                                         last_models=last_models,
                                                         morty_cap=morty_cap,
                                                         rick_cap=rick_cap,
+                                                        soglia_ipo = soglia_ipo,
+                                                        soglia_iper = soglia_iper,
                                                         render_mode=None,                            
                                                         **env_kwargs)
             

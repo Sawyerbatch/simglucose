@@ -38,7 +38,9 @@ class T1DSimEnv_MARL(gym.Env):
     INSULIN_PUMP_HARDWARE = "Insulet"
 
     def __init__(self, patient_name=None, custom_scenario=None, reward_fun=None,
-                 seed=None, training=None, folder=None, morty_cap=None, rick_cap=None):
+                 seed=None, training=None, folder=None, morty_cap=None, rick_cap=None,
+                 soglia_ipo=None, soglia_iper=None):
+        
         if patient_name is None:
             patient_name = ["adolescent#001"]
 
@@ -48,6 +50,8 @@ class T1DSimEnv_MARL(gym.Env):
         self.folder = folder
         self.morty_cap = morty_cap
         self.rick_cap = rick_cap
+        self.soglia_ipo = soglia_ipo
+        self.soglia_iper = soglia_iper
         self.np_random, _ = seeding.np_random(seed=seed)
         self.custom_scenario = custom_scenario
         self.env, _, _, _ = self._create_env()
@@ -101,10 +105,12 @@ class T1DSimEnv_MARL(gym.Env):
         folder = self.folder
         morty_cap = self.morty_cap
         rick_cap = self.rick_cap
+        soglia_ipo = self.soglia_ipo
+        soglia_iper = self.soglia_iper
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training, folder, morty_cap, rick_cap)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training, folder, morty_cap, rick_cap, soglia_ipo, soglia_iper)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -140,7 +146,8 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
     MAX_BG = 1000
 
     def __init__(self, patient_name=None, custom_scenario=None, reward_fun=None,
-                 seed=None, render_mode=None, training=None, folder=None, morty_cap=None, rick_cap=None) -> None:
+                 seed=None, render_mode=None, training=None, folder=None, 
+                 morty_cap=None, rick_cap=None, soglia_ipo=None, soglia_iper=None) -> None:
         super().__init__()
         self.render_mode = render_mode
         self.env = T1DSimEnv_MARL(
@@ -151,11 +158,15 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             training=training,
             folder=folder,
             morty_cap=morty_cap,
-            rick_cap=rick_cap
+            rick_cap=rick_cap,
+            soglia_ipo=soglia_ipo,
+            soglia_iper=soglia_iper,
         )
         
         self.morty_cap = morty_cap
         self.rick_cap = rick_cap
+        self.soglia_ipo = soglia_ipo
+        self.soglia_iper = soglia_iper
         
         self.n_possible_actions = self.rick_cap + 2
         
@@ -164,8 +175,8 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
         # self.agent_selection = None
         self.step_num = 1
-        self.iper_s = 120
-        self.ipo_s = 85
+        # self.soglia_iper = 120
+        # self.soglia_ipo = 85
 
         if self.env.training:
             current_time = datetime.now()
@@ -177,7 +188,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             data_diz = {
                 'step': [],
                 'CGM': [],
-                'Ins': [],
+                'Action': [],
                 'Active agent': [],
                 'Jerry_Reward': [],
                 'Morty_Reward': [],
@@ -310,13 +321,13 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
         # self.action_mask = self._legal_moves()
         
-        if self.ipo_s > self.obs.CGM:
+        if self.soglia_ipo > self.obs.CGM:
             self.agent_selection = 'Jerry'
 
-        elif self.ipo_s <= self.obs.CGM < self.iper_s:
+        elif self.soglia_ipo <= self.obs.CGM < self.soglia_iper:
             self.agent_selection = 'Morty'
             
-        elif self.obs.CGM >= self.iper_s:
+        elif self.obs.CGM >= self.soglia_iper:
             self.agent_selection = 'Rick'
             
         self.action_mask = self._legal_moves(self.agent_selection)
@@ -335,13 +346,13 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
             self.delete_files_except_last(os.path.join(self.folder, self.subfolder_train), 'risultati_training_')
         
-        if self.ipo_s > self.obs.CGM:
+        if self.soglia_ipo > self.obs.CGM:
             self.agent_selection = 'Jerry'
 
-        elif self.ipo_s <= self.obs.CGM < self.iper_s:
+        elif self.soglia_ipo <= self.obs.CGM < self.soglia_iper:
             self.agent_selection = 'Morty'
             
-        elif self.obs.CGM >= self.iper_s:
+        elif self.obs.CGM >= self.soglia_iper:
             self.agent_selection = 'Rick'
 
         
