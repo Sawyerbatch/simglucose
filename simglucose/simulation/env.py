@@ -35,7 +35,7 @@ def risk_diff(BG_last_hour):
 
 
 class T1DSimEnv_MARL(object):
-    def __init__(self, patient, sensor, pump, scenario, reward_fun, training, folder): #n_steps,
+    def __init__(self, patient, sensor, pump, scenario, reward_fun, training, folder, morty_cap, rick_cap): #n_steps,
         self.patient = patient
         self.sensor = sensor
         self.pump = pump
@@ -43,6 +43,8 @@ class T1DSimEnv_MARL(object):
         self.reward_fun = reward_fun
         self.training = training
         self.folder = folder
+        self.morty_cap = morty_cap
+        self.rick_cap = rick_cap
         self._reset()
         self.N = 180 # durata dell'effetto dell'insulina (minuti)
         

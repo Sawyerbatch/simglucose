@@ -27,7 +27,7 @@ PATIENT_PARA_FILE = pkg_resources.resource_filename(
     "simglucose", "params/vpatient_params.csv"
 )
 
-n_possible_actions = 16  # Necessary for maskable PPO
+  # Necessary for maskable PPO
 
 
 class T1DSimEnv_MARL(gym.Env):
@@ -38,7 +38,7 @@ class T1DSimEnv_MARL(gym.Env):
     INSULIN_PUMP_HARDWARE = "Insulet"
 
     def __init__(self, patient_name=None, custom_scenario=None, reward_fun=None,
-                 seed=None, training=None, folder=None):
+                 seed=None, training=None, folder=None, morty_cap=None, rick_cap=None):
         if patient_name is None:
             patient_name = ["adolescent#001"]
 
@@ -46,9 +46,13 @@ class T1DSimEnv_MARL(gym.Env):
         self.reward_fun = reward_fun
         self.training = training
         self.folder = folder
+        self.morty_cap = morty_cap
+        self.rick_cap = rick_cap
         self.np_random, _ = seeding.np_random(seed=seed)
         self.custom_scenario = custom_scenario
         self.env, _, _, _ = self._create_env()
+        
+        self.n_possible_actions = self.rick_cap + 2
 
     def _step(self, action: float):
         act = Action(basal=action, bolus=0)
@@ -95,10 +99,12 @@ class T1DSimEnv_MARL(gym.Env):
         reward_fun = self.reward_fun
         training = self.training
         folder = self.folder
+        morty_cap = self.morty_cap
+        rick_cap = self.rick_cap
 
         sensor = CGMSensor.withName(self.SENSOR_HARDWARE, seed=seed2)
         pump = InsulinPump.withName(self.INSULIN_PUMP_HARDWARE)
-        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training, folder)
+        env = _T1DSimEnv_MARL(patient, sensor, pump, scenario, reward_fun, training, folder, morty_cap, rick_cap)
         return env, seed2, seed3, seed4
 
     def _render(self, mode="human", close=False):
@@ -134,7 +140,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
     MAX_BG = 1000
 
     def __init__(self, patient_name=None, custom_scenario=None, reward_fun=None,
-                 seed=None, render_mode=None, training=None, folder=None) -> None:
+                 seed=None, render_mode=None, training=None, folder=None, morty_cap=None, rick_cap=None) -> None:
         super().__init__()
         self.render_mode = render_mode
         self.env = T1DSimEnv_MARL(
@@ -143,8 +149,15 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
             reward_fun=reward_fun,
             seed=seed,
             training=training,
-            folder=folder
+            folder=folder,
+            morty_cap=morty_cap,
+            rick_cap=rick_cap
         )
+        
+        self.morty_cap = morty_cap
+        self.rick_cap = rick_cap
+        
+        self.n_possible_actions = self.rick_cap + 2
         
         self.agents = ["Jerry", "Morty", "Rick"]
         self.possible_agents = self.agents[:]
@@ -185,7 +198,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         
         
         # self.action_space = gymnasium.spaces.discrete.Discrete(n_possible_actions)
-        self.action_spaces = {i: gymnasium.spaces.discrete.Discrete(n_possible_actions) for i in self.agents}
+        self.action_spaces = {i: gymnasium.spaces.discrete.Discrete(self.n_possible_actions) for i in self.agents}
         self.observation_spaces = {i:gymnasium.spaces.Dict(
             {
                 # "observation": gymnasium.spaces.Box(
@@ -197,7 +210,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
                 # "action_mask": gymnasium.spaces.Box(
                     # low=0, high=self.env.max_basal, shape=(1,), dtype=np.float32
                 # ),
-                "action_mask": gymnasium.spaces.Box(low=0, high=1, shape=(n_possible_actions,), 
+                "action_mask": gymnasium.spaces.Box(low=0, high=1, shape=(self.n_possible_actions,), 
                                           dtype=np.int8
                 ),
             }
@@ -235,7 +248,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         # legal_moves = self._legal_moves()[agent]
         legal_moves = self._legal_moves(agent) if agent == self.agent_selection else []
         # action_mask = np.array([legal_moves], dtype=np.float32)
-        action_mask = np.zeros(n_possible_actions, 'int8')
+        action_mask = np.zeros(self.n_possible_actions, 'int8')
         for i in legal_moves:
             action_mask[i] = 1
         return {"observation": observation, "action_mask": action_mask}
@@ -270,9 +283,9 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
         if self.agent_selection == 'Jerry':
             return [0]
         elif self.agent_selection == 'Morty':
-            return[0,1,2,3,4,5,6,7]
+            return list(range(0,self.morty_cap+1))
         elif self.agent_selection == 'Rick':
-            return[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+            return list(range(0,self.rick_cap+1))
     
     # def valid_action_mask(self) -> np.ndarray:
     #     # action_mask = np.zeros(n_possible_actions, dtype=np.float32)

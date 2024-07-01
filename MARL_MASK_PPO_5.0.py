@@ -49,11 +49,11 @@ warnings.filterwarnings("ignore")
 # Allora Morty, la lezione è finita. Abbiamo degli affari da sbrigare a pochi minuti luce, a sud, di qui.
 
 
-def new_func(x):
-    return -0.0417 * x**2 + 10.4167 * x - 525.0017
-
 # def new_func(x):
-#     return -(x - 90) * (x - 160)
+#     return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+def new_func(x):
+    return -(x - 90) * (x - 160)
 
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
@@ -227,7 +227,7 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0
 
 def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_test,
                      num_tests, test_timesteps,
-                     render_mode=None, last_models = False, **env_kwargs):
+                     render_mode=None, last_models = False, morty_cap=7, rick_cap=15, **env_kwargs):
     
             
     if last_models:
@@ -293,8 +293,9 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                 reward_fun=new_reward,
                 # seed=123,
                 render_mode="human",
-                training = False
-                # n_steps=n_steps
+                training = False,
+                morty_cap = morty_cap,
+                rick_cap = rick_cap,
         )
             
             
@@ -535,13 +536,15 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
 
 if __name__ == "__main__":
     
-    total_timesteps_list = [9600]
+    total_timesteps_list = [960]
     n_timesteps_list = [480]
     
-    num_test = 10 #10
-    test_timesteps = 2400 #6144
-    
+    num_test = 2 #10
+    test_timesteps = 2400 #6144    
     n_days_scenario = 365
+    
+    morty_cap = 7
+    rick_cap = 15
     
     # for train_timesteps in [960,2400,4800]:
     for train_timesteps, n_steps in zip(total_timesteps_list, n_timesteps_list):
@@ -664,7 +667,9 @@ if __name__ == "__main__":
                     # seed=123,
                     render_mode="human",
                     training = True,
-                    folder=train_folder
+                    folder=train_folder,
+                    morty_cap = morty_cap,
+                    rick_cap = rick_cap,
                 )
         
             train_action_mask(env_fn, train_folder, p, train_timesteps, n_steps, seed=0, **env_kwargs)
@@ -695,6 +700,8 @@ if __name__ == "__main__":
                                                         num_test, 
                                                         test_timesteps,
                                                         last_models=last_models,
+                                                        morty_cap=morty_cap,
+                                                        rick_cap=rick_cap,
                                                         render_mode=None,                            
                                                         **env_kwargs)
             
