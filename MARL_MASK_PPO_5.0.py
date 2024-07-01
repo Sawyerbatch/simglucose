@@ -52,6 +52,9 @@ warnings.filterwarnings("ignore")
 def new_func(x):
     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
+# def new_func(x):
+#     return -(x - 90) * (x - 160)
+
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
 
@@ -99,6 +102,15 @@ def create_scenario(n_days, cho_daily=230):
     #cho_sum += cho_break + cho_lunch + cho_snack + cho_dinner + cho_night
 
   return scenario
+
+# # Generate 200 scenarios, each with 30 days
+# scenarios = {str(i): create_scenario(30) for i in range(200)}
+
+# # Save the scenarios to a JSON file
+# with open('scenarios_30_days_200_times.json', 'w') as f:
+#     json.dump(scenarios, f)
+
+
 
 def risk_index_mod(BG, horizon):
     # BG is in mg/dL
@@ -456,7 +468,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
                             # act = env.action_space(agent).sample(action_mask)
                         # else:
                             # print(observations.shape)
-                        act = int(model.predict([observations], action_masks=action_mask, deterministic=True)[0])
+                        act = int(model.predict([observations], action_masks=action_mask, deterministic=False)[0])
                             # act = int(model.predict([observation], action_masks=action_mask, deterministic=True)[0])
                         env.step(act)
                     timestep += 1
@@ -529,7 +541,7 @@ if __name__ == "__main__":
     num_test = 10 #10
     test_timesteps = 2400 #6144
     
-    n_days_scenario = 5
+    n_days_scenario = 365
     
     # for train_timesteps in [960,2400,4800]:
     for train_timesteps, n_steps in zip(total_timesteps_list, n_timesteps_list):
@@ -570,7 +582,10 @@ if __name__ == "__main__":
                     ]
         
         # test fixed scenario
-        with open('scenarios_5_days_1000_times.json') as json_file:
+        # with open('scenarios_5_days_1000_times.json') as json_file:
+        #     test_scenarios = json.load(json_file)
+        
+        with open('scenarios_30_days_200_times.json') as json_file:
             test_scenarios = json.load(json_file)
     
         tir_mean_dict = {
