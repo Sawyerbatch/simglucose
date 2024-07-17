@@ -53,7 +53,7 @@ warnings.filterwarnings("ignore")
 #     return -0.0417 * x**2 + 10.4167 * x - 525.0017
 
 def new_func(x):
-    return -(x - 110) * (x - 160)
+    return -(x - 110) * (x - 140)
 
 def new_reward(BG_last_hour):
     return new_func(BG_last_hour[-1])
@@ -539,18 +539,18 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, folder_tes
 
 if __name__ == "__main__":
     
-    total_timesteps_list = [960]
+    total_timesteps_list = [960] #[15360] #[960]
     n_timesteps_list = [480]
     
-    num_test = 2 #10
-    test_timesteps = 2400 #6144    
+    num_test = 10 #10
+    test_timesteps = 3600 #6144
     n_days_scenario = 365
     
-    soglia_ipo = 85
-    soglia_iper = 120
+    soglia_ipo = 90
+    soglia_iper = 140
     
-    morty_cap = 7
-    rick_cap = 15
+    morty_cap = 6
+    rick_cap = 9
     
     # for train_timesteps in [960,2400,4800]:
     for train_timesteps, n_steps in zip(total_timesteps_list, n_timesteps_list):
@@ -578,14 +578,14 @@ if __name__ == "__main__":
         
         
         pazienti = [
-                    'adult#001',
-                    'adult#002',
-                    'adult#003',
-                    'adult#004',
-                    'adult#005',
-                    'adult#006',
-                    'adult#007',
-                    'adult#008',
+                    # 'adult#001',
+                    # 'adult#002',
+                    # 'adult#003',
+                    # 'adult#004',
+                    # 'adult#005',
+                    # 'adult#006',
+                    # 'adult#007',
+                    # 'adult#008',
                     'adult#009',
                     'adult#010',
                     ]
