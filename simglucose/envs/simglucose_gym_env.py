@@ -202,7 +202,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
                 # 'Rick_Truncation': [],
                 'Done':[],
                 'Truncation':[],
-                'Infos': []
+                # 'Infos': []
             }
         
             self.df_training = pd.DataFrame(data_diz)
@@ -385,7 +385,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
                 'Jerry_Reward': round(self.rewards['Jerry'], 3),
                 'Morty_Reward': round(self.rewards['Morty'], 3),
                 'Rick_Reward': round(self.rewards['Rick'], 3),
-                'Total Reward': round(sum(self.rewards.values()), 3),
+                'Total_Reward': round(sum(self.rewards.values()), 3),
                 'Done': done,
                 'Truncation': truncated,
                 # 'Jerry_Termination': self.terminations['Jerry'],
@@ -394,7 +394,7 @@ class T1DSimGymnasiumEnv_MARL(AECEnv):
                 # 'Jerry_Truncation': self.truncations['Jerry'],
                 # 'Morty_Truncation': self.truncations['Morty'],
                 # 'Rick_Truncation': self.truncations['Rick'],
-                'Infos': None,  # Ensure Infos is handled correctly
+                # 'Infos': None,  # Ensure Infos is handled correctly
             }
 
             new_df = pd.DataFrame([data_diz_temp])
