@@ -576,13 +576,15 @@ if __name__ == "__main__":
 
     # morty_cap = 6
     # rick_cap = 9
-
-    # soglia_ipo_list = [90,95,100]
-    soglia_ipo_list = [90, 95, 100]
+    soglia_ipo_list = [100]
+    # soglia_ipo_list = [90, 95]
     soglia_iper_list = [120, 140, 160]
 
-    morty_cap_list = [4, 5, 6, 7, 8, 9, 10]
-    rick_cap_list = [7, 8, 9, 10, 11]
+    # morty_cap_list = [4, 5, 6, 7, 8, 9, 10]
+    # rick_cap_list = [7, 8, 9, 10, 11]
+
+    morty_cap_list = [2, 3, 4, 5, 6]
+    rick_cap_list = [4, 5, 6, 7]
 
     # soglia_ipo_list = [90]
     # soglia_iper_list = [120]
@@ -614,9 +616,9 @@ if __name__ == "__main__":
 
         pazienti = [
             # 'adult#001',
-            'adult#002',
+            # 'adult#002',
             # 'adult#003',
-            # 'adult#004',
+            'adult#004',
             # 'adult#005',
             # 'adult#006',
             # 'adult#007',
