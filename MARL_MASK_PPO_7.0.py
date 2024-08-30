@@ -186,7 +186,10 @@ def mask_fn(env):
     return env.action_mask()
 
 
-def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0, **env_kwargs):
+def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps,
+                      learning_rate, batch_size, n_epochs, gamma,
+                      gae_lambda, clip_range, ent_coef, vf_coef,
+                      max_grad_norm, target_kl, seed=0, **env_kwargs):
     """Train a single model to play as each agent in a zero-sum game environment using invalid action masking."""
     # env = env_fn.env(**env_kwargs)
 
@@ -208,8 +211,11 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0
 
     # batch_size = 240
 
-    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1, n_steps=n_steps,
-                        batch_size=n_steps  # MODIFICARE PER STEPS?
+    model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1,
+                        n_steps=n_steps, learning_rate=learning_rate,
+                        batch_size=batch_size, n_epochs=n_epochs, gamma=gamma,
+                        gae_lambda=gae_lambda, clip_range=clip_range, ent_coef=ent_coef,
+                        vf_coef=vf_coef, max_grad_norm=max_grad_norm, target_kl=target_kl
                         )
     model.set_random_seed(seed)
     model.learn(total_timesteps=train_timesteps, progress_bar=True,
@@ -226,15 +232,18 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps, seed=0
 
 
 def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, test_folder,
-                     num_tests, test_timesteps,
+                     num_tests, learning_rate, batch_size, n_epochs, gamma, gae_lambda, clip_range, ent_coef,
+                     vf_coef, max_grad_norm, target_kl, test_timesteps,
                      render_mode=None, last_models=False, morty_cap=7, rick_cap=15,
                      soglia_ipo=85, soglia_iper=120, **env_kwargs):
 
     if last_models:
-        for m in os.listdir(os.path.join(main_train_folder, 'Training_'+p, f"Training_{p}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}")):
+        for m in os.listdir(os.path.join(main_train_folder, 'Training_'+p, f"Training_{p}_{learning_rate}_{batch_size}_{n_epochs}_{gamma}_{gae_lambda}_{clip_range}_{ent_coef}_{vf_coef}_{max_grad_norm}_{target_kl}")):
             if m.startswith('T1DSimGymnasiumEnv_MARL_'+paziente):
                 model = MaskablePPO.load(os.path.join(
-                    main_train_folder, 'Training_'+p, f"Training_{p}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}", m.split('.')[0]))
+                    main_train_folder, 'Training_' +
+                    p, f"Training_{p}_{learning_rate}_{batch_size}_{n_epochs}_{gamma}_{gae_lambda}_{clip_range}_{ent_coef}_{vf_coef}_{max_grad_norm}_{target_kl}",
+                    m.split('.')[0]))
 
     else:
         for m in os.listdir('Models'):
@@ -487,7 +496,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, test_folde
 
             # Initialize the placeholder filename
             placeholder_filename = os.path.join(
-                test_patient_folder, f'results_{paziente}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}_{time_suffix_Min}.xlsx')
+                test_patient_folder, f'results_{paziente}_{learning_rate}_{batch_size}_{n_epochs}_{gamma}_{gae_lambda}_{clip_range}_{ent_coef}_{vf_coef}_{max_grad_norm}_{target_kl}_{time_suffix_Min}.xlsx')
 
             # Open the ExcelWriter with the placeholder filename
             with pd.ExcelWriter(placeholder_filename) as middle_writer:
@@ -542,7 +551,7 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, test_folde
 
         # Create a new filename incorporating the mean value
         modified_filename = os.path.join(
-            test_patient_folder, f'results_{paziente}_TIRmean_{round(time_in_range_mean, 2)}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}_{time_suffix_Min}.xlsx')
+            test_patient_folder, f'results_{paziente}_TIRmean_{round(time_in_range_mean, 2)}_{learning_rate}_{batch_size}_{n_epochs}_{gamma}_{gae_lambda}_{clip_range}_{ent_coef}_{vf_coef}_{max_grad_norm}_{target_kl}_{time_suffix_Min}.xlsx')
 
         # Delete the placeholder file
         if os.path.exists(placeholder_filename):
@@ -564,33 +573,46 @@ def eval_action_mask(paziente, scenarios, tir_mean_dict, time_suffix, test_folde
 # %%
 if __name__ == "__main__":
 
-    total_timesteps_list = [960]  # [15360] #[960]
+    total_timesteps_list = [960]  # [15360] #[7680]
     n_timesteps_list = [480]
+
+    # Learning rate values for optimization
+    learning_rate_list = [1e-4, 3e-4, 1e-3]
+    # Number of steps per environment per update
+    n_steps_list = [1024, 2048, 4096]
+    batch_size_list = [32, 64, 128]  # Size of minibatches during optimization
+    # Number of epochs for optimizing the surrogate loss
+    n_epochs_list = [5, 10, 20]
+    gamma_list = [0.95, 0.99, 0.999]  # Discount factor for future rewards
+    # Factor for bias-variance trade-off in GAE
+    gae_lambda_list = [0.90, 0.95, 1.0]
+    # Clipping parameter for the policy updates
+    clip_range_list = [0.1, 0.2, 0.3]
+    # Entropy coefficient to encourage exploration
+    ent_coef_list = [0.0, 0.01, 0.05]
+    # Value function coefficient in the loss function
+    vf_coef_list = [0.25, 0.5, 0.75]
+    # Maximum gradient norm for gradient clipping
+    max_grad_norm_list = [0.5, 1.0, 2.0]
+    target_kl_list = [0.01, 0.05, 0.1]  # Target KL divergence between updates
 
     num_test = 5
     test_timesteps = 2400
     n_days_scenario = 365
 
-    # soglia_ipo = 90
-    # soglia_iper = 140
-
-    # morty_cap = 6
-    # rick_cap = 9
-    soglia_ipo_list = [80]
-    # soglia_ipo_list = [90, 95]
-    soglia_iper_list = [200]
-
-    # morty_cap_list = [4, 5, 6, 7, 8, 9, 10]
-    # rick_cap_list = [7, 8, 9, 10, 11]
-
-    morty_cap_list = [4]
-    rick_cap_list = [5]
-
-    # soglia_ipo_list = [90]
-    # soglia_iper_list = [120]
-
-    # morty_cap_list = [4,5]
-    # rick_cap_list = [7]
+    diz = {
+        # soglia_ipo, soglia_iper, morty_cap, rick_cap
+        'adult#001': [100, 160, 7, 11],
+        # 'adult#002': [90, 160, 10, 11],
+        # 'adult#003': [90, 140, 8, 10],
+        # 'adult#004': [80, 190, 4, 5],
+        # 'adult#005': [80, 180, 10, 12],
+        # 'adult#006': [90, 160, 7, 10],
+        # 'adult#007': [80, 120, 4, 6],
+        # 'adult#008': [90, 140, 6, 10],
+        # 'adult#009': [90, 140, 7, 11],
+        # 'adult#010': [90, 160, 7, 10],
+    }
 
     # for train_timesteps in [960,2400,4800]:
     for train_timesteps, n_steps in zip(total_timesteps_list, n_timesteps_list):
@@ -598,9 +620,6 @@ if __name__ == "__main__":
         last_models = False
         # Ottieni la data corrente
         current_time = datetime.now()
-
-        # train_timesteps = 2400
-        # n_steps= 1024
 
         time_suffix = current_time.strftime("%Y%m%d_%H%M%S")
         time_suffix_Min = current_time.strftime("%Y%m%d_%H%M")
@@ -614,69 +633,84 @@ if __name__ == "__main__":
         main_train_folder = os.path.join("Training",
                                          f"Training_{time_suffix_Min}_train_"+str(train_timesteps)+"("+str(n_steps)+")")
 
-        pazienti = [
+        for learning_rate, batch_size, n_epochs, gamma, gae_lambda, clip_range, ent_coef, vf_coef, max_grad_norm, target_kl in itertools.product(
+                learning_rate_list, batch_size_list, n_epochs_list, gamma_list,
+                gae_lambda_list, clip_range_list, ent_coef_list, vf_coef_list, max_grad_norm_list, target_kl_list):
+
+            # train_timesteps = 2400
+            # n_steps= 1024
+
+            # pazienti = [
             # 'adult#001',
             # 'adult#002',
             # 'adult#003',
-            'adult#004',
+            # 'adult#004',
             # 'adult#005',
             # 'adult#006',
             # 'adult#007',
             # 'adult#008',
             # 'adult#009',
             # 'adult#010',
-        ]
+            # ]
 
-        # test fixed scenario
-        # with open('scenarios_5_days_1000_times.json') as json_file:
-        #     test_scenarios = json.load(json_file)
+            # test fixed scenario
+            # with open('scenarios_5_days_1000_times.json') as json_file:
+            #     test_scenarios = json.load(json_file)
 
-        with open('scenarios_30_days_200_times.json') as json_file:
-            test_scenarios = json.load(json_file)
+            with open('scenarios_30_days_200_times.json') as json_file:
+                test_scenarios = json.load(json_file)
 
-        tir_mean_dict = {
-            'paziente': [],
-            'avg reward': [],
-            'death hypo mean': [],
-            'death hypo st dev': [],
-            'ultra hypo mean': [],
-            'ultra hypo st dev': [],
-            'heavy hypo mean': [],
-            'heavy hypo st dev': [],
-            'severe hypo mean': [],
-            'severe hypo st dev': [],
-            'hypo mean': [],
-            'hypo st dev': [],
-            'time in range mean': [],
-            'time in range st dev': [],
-            'hyper mean': [],
-            'hyper st dev': [],
-            'severe hyper mean': [],
-            'severe hyper st dev': [],
-            'heavy hyper mean': [],
-            'heavy hyper st dev': [],
-            'ultra hyper mean': [],
-            'ultra hyper st dev': [],
-            'death hyper mean': [],
-            'death hyper st dev': [],
-            'HBGI mean of means': [],
-            'HBGI mean of std': [],
-            'LBGI mean of means': [],
-            'LBGI mean of std': [],
-            'RI mean of means': [],
-            'RI mean of std': [],
-            'ripetizioni': [],
-            'training steps': [],
-            'training time': [],
-            'testing time': []
+            tir_mean_dict = {
+                'paziente': [],
+                'avg reward': [],
+                'death hypo mean': [],
+                'death hypo st dev': [],
+                'ultra hypo mean': [],
+                'ultra hypo st dev': [],
+                'heavy hypo mean': [],
+                'heavy hypo st dev': [],
+                'severe hypo mean': [],
+                'severe hypo st dev': [],
+                'hypo mean': [],
+                'hypo st dev': [],
+                'time in range mean': [],
+                'time in range st dev': [],
+                'hyper mean': [],
+                'hyper st dev': [],
+                'severe hyper mean': [],
+                'severe hyper st dev': [],
+                'heavy hyper mean': [],
+                'heavy hyper st dev': [],
+                'ultra hyper mean': [],
+                'ultra hyper st dev': [],
+                'death hyper mean': [],
+                'death hyper st dev': [],
+                'HBGI mean of means': [],
+                'HBGI mean of std': [],
+                'LBGI mean of means': [],
+                'LBGI mean of std': [],
+                'RI mean of means': [],
+                'RI mean of std': [],
+                'ripetizioni': [],
+                'training steps': [],
+                'training time': [],
+                'testing time': []
 
-        }
+            }
 
-        time_dict = {}
+            time_dict = {}
 
-        for p in (pazienti):
+            # for p in (pazienti):
+            for p in (list(diz.keys())):
 
-            for soglia_ipo, soglia_iper, morty_cap, rick_cap in itertools.product(soglia_ipo_list, soglia_iper_list, morty_cap_list, rick_cap_list):
+                # Stampa o utilizza la combinazione corrente degli iperparametri
+                print(f"Training patient {p} with: "
+                      f"train_timesteps={train_timesteps}, n_steps={n_steps}, learning_rate={learning_rate}, "
+                      f"batch_size={batch_size}, n_epochs={n_epochs}, gamma={gamma}, gae_lambda={gae_lambda}, "
+                      f"clip_range={clip_range}, ent_coef={ent_coef}, vf_coef={vf_coef}, max_grad_norm={max_grad_norm}, "
+                      f"target_kl={target_kl}")
+
+                soglia_ipo, soglia_iper, morty_cap, rick_cap = diz[p][0], diz[p][1], diz[p][2], diz[p][3]
 
                 if rick_cap <= morty_cap:
                     continue
@@ -685,7 +719,7 @@ if __name__ == "__main__":
 
                 # Crea il nome della cartella usando il suffisso di tempo
                 train_folder = os.path.join(
-                    main_train_folder, f"Training_{p}", f"Training_{p}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}")
+                    main_train_folder, f"Training_{p}", f"Training_{p}_{learning_rate}_{batch_size}_{n_epochs}_{gamma}_{gae_lambda}_{clip_range}_{ent_coef}_{vf_coef}_{max_grad_norm}_{target_kl}")
 
                 test_patient_folder = os.path.join(test_folder, p)
                 os.makedirs(test_patient_folder, exist_ok=True)
@@ -723,7 +757,12 @@ if __name__ == "__main__":
                 )
 
                 train_action_mask(env_fn, train_folder, p,
-                                  train_timesteps, n_steps, seed=0, **env_kwargs)
+                                  train_timesteps, n_steps,
+                                  learning_rate, batch_size,
+                                  n_epochs, gamma,
+                                  gae_lambda, clip_range,
+                                  ent_coef, vf_coef, max_grad_norm,
+                                  target_kl, seed=0, **env_kwargs)
                 last_models = True
 
                 # # env_fn = env(
@@ -748,6 +787,16 @@ if __name__ == "__main__":
                                                      time_suffix,
                                                      test_patient_folder,
                                                      num_test,
+                                                     learning_rate,
+                                                     batch_size,
+                                                     n_epochs,
+                                                     gamma,
+                                                     gae_lambda,
+                                                     clip_range,
+                                                     ent_coef,
+                                                     vf_coef,
+                                                     max_grad_norm,
+                                                     target_kl,
                                                      test_timesteps,
                                                      last_models=last_models,
                                                      morty_cap=morty_cap,
