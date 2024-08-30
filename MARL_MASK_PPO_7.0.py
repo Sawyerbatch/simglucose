@@ -578,23 +578,40 @@ if __name__ == "__main__":
 
     # Learning rate values for optimization
     learning_rate_list = [1e-4, 3e-4, 1e-3]
-    # Number of steps per environment per update
-    n_steps_list = [1024, 2048, 4096]
+    # learning_rate_list = [3e-4]  # Default value
+
     batch_size_list = [32, 64, 128]  # Size of minibatches during optimization
+    # batch_size_list = [64]  # Default value
+
     # Number of epochs for optimizing the surrogate loss
     n_epochs_list = [5, 10, 20]
+    # n_epochs_list = [10]  # Default value
+
     gamma_list = [0.95, 0.99, 0.999]  # Discount factor for future rewards
+    # gamma_list = [0.99]  # Default value
+
     # Factor for bias-variance trade-off in GAE
     gae_lambda_list = [0.90, 0.95, 1.0]
+    # gae_lambda_list = [0.95]  # Default value
+
     # Clipping parameter for the policy updates
     clip_range_list = [0.1, 0.2, 0.3]
+    # clip_range_list = [0.2]  # Default value
+
     # Entropy coefficient to encourage exploration
     ent_coef_list = [0.0, 0.01, 0.05]
+    # ent_coef_list = [0.0]  # Default value
+
     # Value function coefficient in the loss function
     vf_coef_list = [0.25, 0.5, 0.75]
+    # vf_coef_list = [0.5]  # Default value
+
     # Maximum gradient norm for gradient clipping
     max_grad_norm_list = [0.5, 1.0, 2.0]
+    # max_grad_norm_list = [0.5]  # Default value
+
     target_kl_list = [0.01, 0.05, 0.1]  # Target KL divergence between updates
+    # target_kl_list = [None]  # Default value (typically None, meaning no KL target)
 
     num_test = 5
     test_timesteps = 2400
