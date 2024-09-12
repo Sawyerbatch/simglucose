@@ -106,12 +106,15 @@ def create_scenario(n_days, cho_daily=230):
     return scenario
 
 
-# Generate 200 scenarios, each with 30 days
-scenarios = {str(i): create_scenario(30, 210) for i in range(200)}
+cho_for_scen_list = [0]
 
-# Save the scenarios to a JSON file
-with open('scenarios_30_days_200_times.json', 'w') as f:
-    json.dump(scenarios, f)
+for cho_for_scen in cho_for_scen_list:
+    # Generate 200 scenarios, each with 30 days
+    scenarios = {str(i): create_scenario(30, cho_for_scen) for i in range(200)}
+
+    # Save the scenarios to a JSON file
+    with open('scenarios_30_days_200_times_'+str(cho_for_scen)+'_cho.json', 'w') as f:
+        json.dump(scenarios, f)
 
 
 def risk_index_mod(BG, horizon):
@@ -432,34 +435,35 @@ def eval_action_mask(paziente, cho, scenarios, tir_mean_dict, time_suffix, test_
                         print('INS:', info['insulin'])
 
                         # data_list.append({
-                        #         'Timestep': timestep,
-                        #         'CGM': round(env.obs.CGM, 3),
-                        #         'dCGM': round(env.obs.dCGM, 3),
-                        #         'IOB': round(env.obs.IOB, 3),
-                        #         'h_zone': env.obs.h_zone,
-                        #         'food': env.obs.food,
-                        #         'BG': info['bg'],
-                        #         'LBGI': info['lbgi'],
-                        #         'HBGI': info['hbgi'],
-                        #         'RISK': info['risk'],
-                        #         'INS': info['insulin'],
-                        #         'CHO': info['meal'],
-                        #         'Active_agent': agent,
-                        #         'Rick_Reward': str(round(env.rewards['Rick'],3)),
-                        #         'Morty_Reward': str(round(env.rewards['Morty'],3)),
-                        #         'Jerry_Reward': str(round(env.rewards['Jerry'],3)),
-                        #         'Truncation': truncation,
-                        #         'Termination': termination,
-                        #         'Soglia_ipo': soglia_ipo,
-                        #         'Soglia_iper': soglia_iper,
-                        #         'Morty_cap': morty_cap,
-                        #         'Rick_cap': rick_cap
+                        #     'Timestep': timestep,
+                        #     'CGM': round(env.obs.CGM, 3),
+                        #     'dCGM': round(env.obs.dCGM, 3),
+                        #     'IOB': round(env.obs.IOB, 3),
+                        #     'h_zone': env.obs.h_zone,
+                        #     'food': env.obs.food,
+                        #     'BG': info['bg'],
+                        #     'LBGI': info['lbgi'],
+                        #     'HBGI': info['hbgi'],
+                        #     'RISK': info['risk'],
+                        #     'INS': info['insulin'],
+                        #     'CHO': info['meal'],
+                        #     'Active_agent': agent,
+                        #     'Rick_Reward': str(round(env.rewards['Rick'], 3)),
+                        #     'Morty_Reward': str(round(env.rewards['Morty'], 3)),
+                        #     'Jerry_Reward': str(round(env.rewards['Jerry'], 3)),
+                        #     'Truncation': truncation,
+                        #     'Termination': termination,
+                        #     'Soglia_ipo': soglia_ipo,
+                        #     'Soglia_iper': soglia_iper,
+                        #     'Morty_cap': morty_cap,
+                        #     'Rick_cap': rick_cap
 
-                        #     })
+                        # })
 
                         # df = pd.DataFrame(data_list)
 
-                        # df.to_excel(patient_writer, sheet_name=sheet_name, index=False)
+                        # df.to_excel(patient_writer,
+                        #             sheet_name=sheet_name, index=False)
 
                         # df_hist = env.show_history()
 
@@ -636,26 +640,26 @@ if __name__ == "__main__":
     target_kl_list = [None]
     # target_kl_list = [0.01]  # Default value
 
-    num_test = 20
+    num_test = 2
     test_timesteps = 2400
     n_days_scenario = 365
 
     # cho_list = [230, 250, 270, 290]
 
-    cho_list = [200, 210, 220]
+    cho_list = [0]
 
     diz = {
         # soglia_ipo, soglia_iper, morty_cap, rick_cap
         'adult#001': [100, 160, 7, 11],
-        'adult#002': [90, 160, 10, 11],
-        'adult#003': [90, 140, 8, 10],
-        'adult#004': [80, 190, 4, 5],
-        'adult#005': [80, 180, 10, 12],
-        'adult#006': [90, 160, 7, 10],
-        'adult#007': [80, 120, 4, 6],
-        'adult#008': [90, 140, 6, 10],
-        'adult#009': [90, 140, 7, 11],
-        'adult#010': [90, 160, 7, 10],
+        # 'adult#002': [90, 160, 10, 11],
+        # 'adult#003': [90, 140, 8, 10],
+        # 'adult#004': [80, 190, 4, 5],
+        # 'adult#005': [80, 180, 10, 12],
+        # 'adult#006': [90, 160, 7, 10],
+        # 'adult#007': [80, 120, 4, 6],
+        # 'adult#008': [90, 140, 6, 10],
+        # 'adult#009': [90, 140, 7, 11],
+        # 'adult#010': [90, 160, 7, 10],
     }
 
     for cho in cho_list:
