@@ -1,0 +1,1 @@
+Patient adult#001 - Elapsed time: 24066.761862277985 seconds
