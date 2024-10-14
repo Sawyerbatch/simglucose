@@ -1,0 +1,9 @@
+Patient adult#002 - Elapsed time: 15821.80361533165 seconds
+Patient adult#003 - Elapsed time: 13832.85036277771 seconds
+Patient adult#004 - Elapsed time: 20392.64664387703 seconds
+Patient adult#005 - Elapsed time: 14044.580981254578 seconds
+Patient adult#006 - Elapsed time: 14518.876078367233 seconds
+Patient adult#007 - Elapsed time: 14343.066453695297 seconds
+Patient adult#008 - Elapsed time: 12041.932210206985 seconds
+Patient adult#009 - Elapsed time: 13365.70494556427 seconds
+Patient adult#010 - Elapsed time: 13454.830909013748 seconds
