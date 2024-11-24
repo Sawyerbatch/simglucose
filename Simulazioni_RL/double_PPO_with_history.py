@@ -22,7 +22,7 @@ import scipy
 import time
 import math
 import warnings
-
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 warnings.filterwarnings("ignore")
 
 def quad_func(a,x):
@@ -135,15 +135,16 @@ insulin_pump_name = 'Nuovo'
 animate = True
 parallel = True
 
-
-os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
+os.chdir('C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\Risultati')
+# os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
 cwd = os.getcwd()
     
 strategy_path = os.path.join(cwd, 'Strategy')
 if not os.path.exists(strategy_path):
     os.makedirs(strategy_path)
 
-model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
+model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL'
+# model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 
 scenario_usato = '5_days_1000_times'
 

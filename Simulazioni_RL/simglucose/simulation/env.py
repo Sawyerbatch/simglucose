@@ -616,9 +616,12 @@ class PPOSimEnv(object):
         u2ss = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,16]   # unit: pmol/(L*kg)
         BW = bb_ins_df.loc[bb_ins_df['Name']==self.paziente].iloc[:,58]   # unit: kg
         basal = u2ss * BW / 6000  # unit: U/min
-        
-        self.insulin_BB.append([basal])
-        
+        # print("self.insulin_BB:", self.insulin_BB)
+        # print("basal:", basal)
+        self.insulin_BB.append([basal][0])
+        # print("self.insulin_BB:", self.insulin_BB)
+        # for i in self.insulin_BB:
+        #     print(type(i))
         # last hour insulin BB
         if len(self.insulin_BB) >= 480: 
             insulin_BB_integral = np.sum(self.insulin_BB[-480:])
