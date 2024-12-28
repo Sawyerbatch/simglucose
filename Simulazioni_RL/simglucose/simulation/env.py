@@ -451,7 +451,7 @@ class PPOSimEnv(object):
         self.total_minutes = 0
         
         self.cwd = os.getcwd()
-        self.model_path = os.path.join(self.cwd, 'Risultati')
+        # self.model_path = os.path.join(self.cwd, 'Risultati')
         # self.env, _, _, _ = self.create_env_from_random_state(scenario)
         # # self._reset()
         # self.INSULIN_PUMP_HARDWARE = 'Insulet'

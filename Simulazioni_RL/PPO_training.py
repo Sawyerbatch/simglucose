@@ -9,7 +9,7 @@ Created on Tue Nov 22 14:34:39 2022
 import gym
 from gym.envs.registration import register
 from stable_baselines3 import PPO
-
+import math
 from simglucose.simulation.scenario import CustomScenario
 from stable_baselines3.ppo.policies import MlpPolicy
 # from stable_baselines3.common.evaluation import evaluate_policy
@@ -19,10 +19,14 @@ import numpy as np
 import pandas as pd
 import time
 import os
-
+import warnings
 from datetime import datetime
-date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+warnings.filterwarnings("ignore")
+
+date_time = str(datetime.now())[:19].replace(" ", "_" ).replace("-", "" ).replace(":", "" )
 
 def quad_func(a,x):
     return -a*(x-90)*(x-150)
@@ -30,11 +34,40 @@ def quad_func(a,x):
 def quad_reward(BG_last_hour):
     return quad_func(0.0417, BG_last_hour[-1])
 
-def new_func(x):
-    return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+
+
+# def new_func(x):
+#     return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
+# def new_reward(BG_last_hour):
+#     return new_func(BG_last_hour[-1])
+
+
+
+def clip_0_15_5(x):
+    return min(15.5, max(0, x))
+
+def magni_risk(b):
+    c0 = 1.509
+    c1 = 1.084
+    c2 = 5.381
+    
+    if b < 70:
+        return -1.0
+    else:
+        #exponent = c1 - c2
+        inner = (c0 * ((math.log(b))**c1 - c2))
+        clipped_value = clip_0_15_5(10 * (inner**2))
+        return 1 - (clipped_value / 7.75)
 
 def new_reward(BG_last_hour):
-    return new_func(BG_last_hour[-1])
+    b = BG_last_hour[-1]
+    return magni_risk(b)
+
+
+
+
 
 # exp. function
 def exp_func(x,a=0.0417,k=0.3,hypo_treshold = 80, hyper_threshold = 180, exp_bool=True):
@@ -104,7 +137,7 @@ newdatetime = now.replace(hour=12, minute=00)
 
 data = str(datetime.now()).replace(" ", "_" ).replace("-", "" ).replace(":", "" )[:8]
 
-os.chdir('C:\GitHub\simglucose\Simulazioni_RL\Risultati')
+os.chdir('C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL')
 cwd = os.getcwd()
 
 data_path = os.path.join(cwd, data)  
@@ -115,7 +148,9 @@ strategy_path = os.path.join(cwd, 'Strategy')
 if not os.path.exists(strategy_path):
     os.makedirs(strategy_path)
 
-model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
+
+model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli_magni'
+# model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 
 
 # dizionario = {'paziente':['adult#001', 'adult#002', 'adult#003' , 'adult#004', 'adult#005',
@@ -134,10 +169,12 @@ model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
 #                  'adult#006', 'adult#007', 'adult#008', 'adult#009', 'adult#010']
 
 # tmstp_list = [1440]#, 2048] [1440, 2,400]
-n_steps_list = [32768] # 1 non si può
-# tmstps_list = [1024]
+# n_steps_list = [32768] # 1 non si può
+# tmstps_list = [32768]
 
-tmstps_list = [32768]
+n_steps_list = [1024]
+tmstps_list = [1024]
+
 
 
 # poi 1024/2048 e test di 10 ripetzioni
@@ -159,7 +196,7 @@ tmstps_list = [32768]
 opt_dict = {
             # 'adult#001':[0.08], # 0.06,0.09],
             # 'adult#002':[0.08], #,0.14],
-            'adult#003':[0.08], # 0.06,0.11],
+            # 'adult#003':[0.08], # 0.06,0.11],
             # 'adult#004':[0.07], # 0.05,0.09],
             # 'adult#005':[0.08], #,0.13],
             # 'adult#006':[0.09], # 0.07,0.15],
@@ -168,7 +205,21 @@ opt_dict = {
             # 'adult#009':[0.07], #, 0.14,0.05],
             # 'adult#010':[0.07], #,0.14],
             }
-    
+
+opt_dict = {
+    'adult#001': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#002': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#003': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#004': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#005': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#006': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#007': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#008': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#009': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+    'adult#010': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15]
+}
+
+
 for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
     
         for p, cap in list(opt_dict.items()):
@@ -204,7 +255,6 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
                             'custom_scenario': scenario})
     
     
-    
                 # make env
                 env = gym.make('simglucose-adult2-v0')
                 env.action_space
@@ -222,12 +272,12 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
     
                 # train
     
-                start_time = time.perf_counter()
+                # start_time = time.perf_counter()
                 model.learn(total_timesteps=total_timesteps, progress_bar=True)
-                end_time = time.perf_counter()
-                execution_time = end_time - start_time
+                # end_time = time.perf_counter()
+                # execution_time = end_time - start_time
     
-                model.save(os.path.join(model_path, "ppo_withcaps_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
+                model.save(os.path.join(model_path, "magni_ppo_withcaps_"+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+"_lr_"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
                 # model.save(os.path.join(model_path, "ppo_sim_mod_food_hour_"+p+'_tmstp'+str(total_timesteps)+"_lr"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_'+ppo_type+'_'+str(cho_daily)+'scen'))
     
                 # Close the environment

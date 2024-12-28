@@ -171,7 +171,7 @@ class PPOSimEnv(gym.Env):
         # return spaces.Box(low=np.array([0.,0.]), high=np.array([ub,4.]), shape=(1,2))
         
         # cap di accordo con il paziente
-        df_cap = pd.read_excel(os.path.join(self.cwd, 'Risultati\Strategy\paz_cap.xlsx'))
+        df_cap = pd.read_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'))
         # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
         paziente = df_cap['paziente'][0]
         # print(self.patient)
