@@ -42,9 +42,9 @@ total_timesteps_list = [10240] # 10240
 n_days = 5
 n_hours = n_days*24
 
-ripetizioni = 20
+ripetizioni = 10
 
-for patient_type in ['adult', 'adolescent']:
+for patient_type in ['adult']:   # 'adolescent'
     for reward_type in ['new', 'magni']:
     
         if reward_type == 'new':
@@ -171,15 +171,15 @@ for patient_type in ['adult', 'adolescent']:
             
             opt_dict = {
                 patient_type+'#001': [0.09, 0.06, 0.08],
-                patient_type+'#002': [0.14, 0.08, 0.08],
+                patient_type+'#002': [0.14, 0.08],
                 patient_type+'#003': [0.11, 0.06, 0.08],
                 patient_type+'#004': [0.09, 0.05, 0.07],
-                patient_type+'#005': [0.13, 0.08, 0.08],
+                patient_type+'#005': [0.13, 0.08],
                 patient_type+'#006': [0.15, 0.07, 0.09],
-                patient_type+'#007': [0.11, 0.07, 0.07],
+                patient_type+'#007': [0.11, 0.07],
                 patient_type+'#008': [0.10, 0.06, 0.07],
                 patient_type+'#009': [0.14, 0.06, 0.07],
-                patient_type+'#010': [0.14, 0.07, 0.07]
+                patient_type+'#010': [0.14, 0.07]
         }
             
         elif patient_type == 'adult' and reward_type == 'magni':
@@ -187,14 +187,14 @@ for patient_type in ['adult', 'adolescent']:
             {
             patient_type+'#001': [0.12, 0.07, 0.08],
             patient_type+'#002': [0.14, 0.06, 0.07],
-            patient_type+'#003': [0.09, 0.08, 0.09],
+            patient_type+'#003': [0.09, 0.08],
             patient_type+'#004': [0.10, 0.07, 0.05],
             patient_type+'#005': [0.12, 0.08, 0.09],
-            patient_type+'#006': [0.12, 0.08, 0.08],
-            patient_type+'#007': [0.11, 0.06, 0.06],
-            patient_type+'#008': [0.11, 0.06, 0.06],
+            patient_type+'#006': [0.12, 0.08],
+            patient_type+'#007': [0.11, 0.06],
+            patient_type+'#008': [0.11, 0.06],
             patient_type+'#009': [0.12, 0.05, 0.08],
-            patient_type+'#010': [0.09, 0.08, 0.08]
+            patient_type+'#010': [0.09, 0.08]
         }
             
             
@@ -203,8 +203,8 @@ for patient_type in ['adult', 'adolescent']:
             
             opt_dict = {
                 patient_type+'#001': [0.12, 0.06, 0.05],
-                patient_type+'#002': [0.11, 0.06, 0.06],
-                patient_type+'#003': [0.12, 0.05, 0.05],
+                patient_type+'#002': [0.11, 0.06],
+                patient_type+'#003': [0.12, 0.05],
                 patient_type+'#004': [0.11, 0.07, 0.06],
                 patient_type+'#005': [0.09, 0.07, 0.05],
                 patient_type+'#006': [0.09, 0.06, 0.05],
@@ -220,13 +220,13 @@ for patient_type in ['adult', 'adolescent']:
             opt_dict = {
                 patient_type+'#001': [0.01, 0.06, 0.05],
                 patient_type+'#002': [0.09, 0.07, 0.06],
-                patient_type+'#003': [0.11, 0.05, 0.05],
+                patient_type+'#003': [0.11, 0.05],
                 patient_type+'#004': [0.09, 0.07, 0.05],
                 patient_type+'#005': [0.09, 0.06, 0.07],
                 patient_type+'#006': [0.10, 0.06, 0.07],
                 patient_type+'#007': [0.09, 0.08, 0.06],
-                patient_type+'#008': [0.14, 0.07, 0.07],
-                patient_type+'#009': [0.09, 0.05, 0.05],
+                patient_type+'#008': [0.14, 0.07],
+                patient_type+'#009': [0.09, 0.05],
                 patient_type+'#010': [0.09, 0.06, 0.05]
             }
                     
