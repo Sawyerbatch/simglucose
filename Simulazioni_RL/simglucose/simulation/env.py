@@ -12,7 +12,7 @@ import numpy as np
 import os
 from datetime import datetime
 
-total_timesteps = 0
+
 
 # try:
 # from rllab.envs.base import Step
@@ -464,7 +464,8 @@ class PPOSimEnv(object):
         
         # cap di accordo con il paziente
         df_cap = pd.read_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index_col=None)
-        # df_strategy = pd.read_excel('C:\\GitHub\simglucose\Simulazioni_RL\Risultati\Strategy\strategy.xlsx')
+        self.df_cap = df_cap
+        
         self.paziente = df_cap['paziente'][0]
         self.cap = df_cap['ins_max'][0]
         self.timesteps = df_cap['timesteps'][0]
@@ -472,19 +473,28 @@ class PPOSimEnv(object):
         self.patient_type = df_cap['pazient type'][0]
         self.reward_type = df_cap['reward type'][0]
         self.ppo_config = df_cap['ppo conf'][0]
-        # FOR CONTINUAL LEARNING
-        self.elapsed_time = df_cap['elapsed_time'][0]
-        # self.df_final = pd.DataFrame(columns=['Time', 'Reward', 'BG', 'CGM', 'dCGM', 'h_zone', 'food', 'CHO', 'insulin', 'insulin_integral', 
-        #                             'insulin_BB', 'insulin_BB_integral', 'ins_mean', 'LBGI', 'HBGI', 'Risk'])
+        self.ripetizione = df_cap['ripetizione'][0]
         
-        self.df_cap = df_cap
+        
+        # FOR CONTINUAL LEARNING
+        self.check_learning = df_cap['check_learning'][0]
+        self.elapsed_time = df_cap['elapsed_time'][0]       
+        
         
         # print(self.patient)
-        cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
-        cap = cap.iloc[0]
-        # cap = cap.iloc
-        print('\ncap insulina per paziente '+self.paziente+': '+str(cap))
-        self.action_space = spaces.Box(low=0., high=cap, shape=(1,2))
+        # cap = df_cap.loc[df_cap['paziente']==self.paziente].iloc[:,1]
+        # if self.ppo_config == 'single':           
+        #     cap = cap.iloc[0]
+        # elif self.ppo_config == 'double':
+        #     cap = cap.iloc[0].split("/")[1]
+        # elif self.ppo_config == 'learning_check':
+        #     cap = cap.iloc[0]
+        #     self.ppo_config = 'double'
+        
+        
+
+        print('\ncap insulina per paziente '+self.paziente+': '+str(self.cap))
+        self.action_space = spaces.Box(low=0., high=self.cap, shape=(1,2))
         
         # cap statico
         # self.action_space = spaces.Box(low=0., high=0.08, shape=(1,2))
@@ -728,20 +738,20 @@ class PPOSimEnv(object):
         
             
         
-        
-        # FOR CONTINNUAL LEARNING (COMMENTARE SE NON SI VUOLE LA HISTORY)
-        # if done:
-        #     print('saving history...')
-        #     self.show_history()
-        #     self.df_cap['elapsed_time'] = float(self.df_cap['elapsed_time']) + minutes
-        #     self.df_cap.to_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index=False)
-        #     print('done: '+str(minutes), int(self.df_cap['elapsed_time']))
-        
-        # if self.elapsed_time == end_time:
-        #     print('saving history...')
-        #     self.show_history()
-        #     self.df_cap['elapsed_time'] = float(self.df_cap['elapsed_time']) + minutes
-        #     self.df_cap.to_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index=False)
+        if self.check_learning == 'Yes':
+            # FOR CONTINNUAL LEARNING (COMMENTARE SE NON SI VUOLE LA HISTORY)
+            if done:
+                print('saving history...')
+                self.show_history()
+                self.df_cap['elapsed_time'] = float(self.df_cap['elapsed_time']) + minutes
+                self.df_cap.to_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index=False)
+                print('done: '+str(minutes), int(self.df_cap['elapsed_time']))
+            
+            if self.elapsed_time == end_time:
+                print('saving history...')
+                self.show_history()
+                self.df_cap['elapsed_time'] = float(self.df_cap['elapsed_time']) + minutes
+                self.df_cap.to_excel(os.path.join(self.cwd, 'Strategy\paz_cap.xlsx'), index=False)
             
         
         # self.df_CGM['CGM'] = self.df_CGM['CGM'].append(pd.Series(CGM), ignore_index=True)
@@ -897,8 +907,8 @@ class PPOSimEnv(object):
 
     def show_history(self):
         
-        if os.path.exists(os.path.join(self.results_path, self.paziente+'_'+str(self.cap)+'_history.xlsx')):
-            self.df_final = pd.read_excel(os.path.join(self.results_path, self.paziente+'_'+str(self.cap)+'_history.xlsx'))
+        if os.path.exists(os.path.join(self.results_path, 'history_'+self.ppo_config+'_'+self.paziente+'_'+str(self.cap)+'_'+self.reward_type+'_'+str(self.ripetizione)+'.xlsx')):
+            self.df_final = pd.read_excel(os.path.join(self.results_path, 'history_'+self.ppo_config+'_'+self.paziente+'_'+str(self.cap)+'_'+self.reward_type+'_'+str(self.ripetizione)+'.xlsx'))
         else:   
             self.df_final = pd.DataFrame(columns=['Time', 'Reward', 'BG', 'CGM', 'dCGM', 'h_zone', 'food', 'CHO', 'insulin', 'insulin_integral', 
                                         'insulin_BB', 'insulin_BB_integral', 'ins_mean', 'LBGI', 'HBGI', 'Risk'])
@@ -922,35 +932,9 @@ class PPOSimEnv(object):
         df['HBGI'] = pd.Series(self.HBGI_hist)
         df['Risk'] = pd.Series(self.risk_hist)
         
-        # FOR CONTINUAL LEARNING
-        # df = df.set_index('Time')
-        
-        # df_final = self.df_final
-        # print(self.df_final.columns)
-        # self.df_final['Time'] = pd.concat([self.df_final['Time'], pd.Series(self.time_hist)], axis=0, ignore_index=True)
-        # self.df_final['Reward'] = pd.concat([self.df_final['Reward'], pd.Series(self.reward_hist)], axis=0, ignore_index=True)
-        # self.df_final['BG'] = pd.concat([self.df_final['BG'], pd.Series(self.time_hist)], axis=0, ignore_index=True)
-        # self.df_final['CGM'] = pd.concat([self.df_final['CGM'], pd.Series(self.CGM_hist)], axis=0, ignore_index=True)
-        # self.df_final['dCGM'] = pd.concat([self.df_final['dCGM'], pd.Series(self.dCGM_hist)], axis=0, ignore_index=True)
-        # self.df_final['h_zone'] = pd.concat([self.df_final['h_zone'], pd.Series(self.h_zone_hist)], axis=0, ignore_index=True)
-        # self.df_final['food'] = pd.concat([self.df_final['food'], pd.Series(self.food_hist)], axis=0, ignore_index=True)
-        # self.df_final['CHO'] = pd.concat([self.df_final['CHO'], pd.Series(self.CHO_hist)], axis=0, ignore_index=True)
-        # self.df_final['insulin'] = pd.concat([self.df_final['insulin'], pd.Series(self.insulin_hist)], axis=0, ignore_index=True)
-        # window = 30
-        # self.df_final['insulin_integral'] = pd.concat([self.df_final['insulin_integral'], pd.Series(self.insulin_24h_hist)], axis=0, ignore_index=True)
-        # self.df_final['insulin_BB'] = pd.concat([self.df_final['insulin_BB'], pd.Series(self.insulin_BB)], axis=0, ignore_index=True)
-        # self.df_final['insulin_BB_integral'] = pd.concat([self.df_final['insulin_BB_integral'], pd.Series(self.insulin_BB_24h)], axis=0, ignore_index=True)
-        # self.df_final['ins_mean'] = pd.concat([self.df_final['ins_mean'], pd.Series(self.moving_average(self.insulin_hist, window))], axis=0, ignore_index=True)
-        # self.df_final['LBGI'] = pd.concat([self.df_final['LBGI'], pd.Series(self.LBGI_hist)], axis=0, ignore_index=True)
-        # self.df_final['HBGI'] = pd.concat([self.df_final['HBGI'], pd.Series(self.HBGI_hist)], axis=0, ignore_index=True)
-        # self.df_final['Risk'] = pd.concat([self.df_final['Risk'], pd.Series(self.risk_hist)], axis=0, ignore_index=True)
-        # self.df_final = df_final.set_index('Time')
         
         self.df_final = pd.concat([self.df_final, df])
 
-        # now = datetime.now()
-        # df.to_excel(os.path.join(self.results_path, str(now.strftime("%Y_%m_%d_%H_%M_%S_%f"))+'_'+self.paziente+'_'+str(self.cap)+'_history.xlsx'),index=False)
-        
-        self.df_final.to_excel(os.path.join(self.results_path, self.ppo_config+'_'+self.paziente+'_'+str(self.cap)+'_'+self.reward_type+'_history.xlsx'),index=False)
+        self.df_final.to_excel(os.path.join(self.results_path, 'history_'+self.ppo_config+'_'+self.paziente+'_'+str(self.cap)+'_'+self.reward_type+'_'+str(self.ripetizione)+'.xlsx'),index=False)
 
         return df

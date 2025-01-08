@@ -35,7 +35,7 @@ cwd = os.getcwd()
 
 patient_type = 'adolescent' # 'adult'
 
-reward_type = 'new' # 'magni'
+reward_type = 'magni' # 'new'
 
 n_days = 5
 n_hours = n_days*24
@@ -249,16 +249,16 @@ elif patient_type == 'adolescent' and reward_type == 'new':
 elif patient_type == 'adolescent' and reward_type == 'magni':
     
     opt_dict = {
-            'adolescent#001':('',90),
-            'adolescent#002':('',90),
-            'adolescent#003':('',90),
-            'adolescent#004':('',90),
-            'adolescent#005':('',90),
-            'adolescent#006':('',90),
-            'adolescent#007':('',90),
-            'adolescent#008':('',90),
-            'adolescent#009':('',90),
-            'adolescent#010':('',90),
+            'adolescent#001':('005',90),
+            'adolescent#002':('006',90),
+            'adolescent#003':('005',90),
+            'adolescent#004':('005',90),
+            'adolescent#005':('007',90),
+            'adolescent#006':('007',90),
+            'adolescent#007':('006',90),
+            'adolescent#008':('007',90),
+            'adolescent#009':('005',90),
+            'adolescent#010':('005',90),
             }
 
 
@@ -322,11 +322,13 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
         df_cap['elapsed_time'] = 0
         df_cap['pazient type'] = patient_type
         df_cap['reward type'] = reward_type
+        df_cap['ppo conf'] = 'single'
+        df_cap['check_learning'] = 'No'
         df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
         
         tempistiche = []
         
-        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'performance_'+reward_type+'_reward_'+patient_type+'_double_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
+        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'performance_'+reward_type+'_reward_'+patient_type+'_single_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
 
                         
             print(paziente, cap)

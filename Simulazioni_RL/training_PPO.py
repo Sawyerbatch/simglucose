@@ -34,7 +34,7 @@ cwd = os.getcwd()
 
 patient_type = 'adolescent' # 'adult'
 
-reward_type = 'new' # 'magni'
+reward_type = 'magni' # 'magni'
 
 n_steps_list = [1024]
 tmstps_list = [1024]
@@ -47,6 +47,8 @@ n_hours = n_days*24
 if reward_type == 'new':
     
     print('using new function')
+    
+    model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli'
 
     def new_func(x):
         return -0.0417 * x**2 + 10.4167 * x - 525.0017
@@ -56,6 +58,8 @@ if reward_type == 'new':
 
 
 elif reward_type == 'magni':
+    
+    model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli_magni'
     
     print('using magni function')
     
@@ -160,10 +164,6 @@ if not os.path.exists(strategy_path):
     os.makedirs(strategy_path)
 
 
-model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli'
-# model_path = 'C:\GitHub\simglucose\Simulazioni_RL'
-
-
 
 opt_dict = {
     patient_type+'#001': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
@@ -197,6 +197,9 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
                 df_cap['elapsed_time'] = 0
                 df_cap['pazient type'] = patient_type
                 df_cap['reward type'] = reward_type
+                df_cap['ppo conf'] = 'single'
+                df_cap['check_learning'] = 'No'
+                df_cap['ripetizione'] = 0
                 df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
                 
                 paziente = p

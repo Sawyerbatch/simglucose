@@ -29,9 +29,9 @@ warnings.filterwarnings("ignore")
 
 # PARAMETRI DA SETTARE
 
-patient_type = 'adolescent' # 'adolescent'
+patient_type = 'adolescent' # 'adult'
 
-reward_type = 'new' # 'magni'
+reward_type = 'magni' # 'new'
 
 
 n_days = 5
@@ -228,6 +228,9 @@ labels = [
 ]
 
 
+strategy_path = os.path.join(cwd, 'Strategy')
+if not os.path.exists(strategy_path):
+    os.makedirs(strategy_path)
 
 
 for paziente in pazienti_list:
@@ -242,6 +245,7 @@ for paziente in pazienti_list:
                 print('iper soglia: '+str(iper_s))
                 for ipo_s in ipo_soglia_list:
                     print('ipo soglia: '+str(ipo_s))
+                    
                     
                     tir_mean_dict = {
 
@@ -286,6 +290,19 @@ for paziente in pazienti_list:
                         timesteps = 2400 # 5 giorni
                 
                         training = 1024
+                        
+                        dizionario = {'paziente': paziente,
+                                      'ins_max': ipo+'/'+iper}
+                        
+                        df_cap = pd.DataFrame(dizionario, index=[0])
+                        df_cap['timesteps'] = timesteps
+                        df_cap['target timesteps'] = timesteps
+                        df_cap['elapsed_time'] = 0
+                        df_cap['pazient type'] = patient_type
+                        df_cap['reward type'] = reward_type
+                        df_cap['ppo conf'] = 'double'
+                        df_cap['check_learning'] = 'No'
+                        df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
                 
                         # registrazione per train singolo
                         register(
@@ -401,5 +418,5 @@ for paziente in pazienti_list:
                 
                     df_final = pd.concat([df_final, df_cap_mean])
                                 
-                    df_final.to_excel(os.path.join(results_path, 'double_ppo_'+reward_type+'reward_'+paziente+'gridsearch_performance_'+str(timesteps)+'steps_'+str(training)+'('+str(training)+')training_'+str(ripetizioni)+'ripetizioni.xlsx')
+                    df_final.to_excel(os.path.join(results_path, 'double_ppo_'+reward_type+'_reward_'+paziente+'gridsearch_performance_'+str(timesteps)+'steps_'+str(training)+'('+str(training)+')training_'+str(ripetizioni)+'ripetizioni.xlsx')
                                 ,sheet_name='risultati', index=False)

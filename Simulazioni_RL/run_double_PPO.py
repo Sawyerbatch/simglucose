@@ -38,6 +38,7 @@ patient_type = 'adult' # 'adolescent'
 
 reward_type = 'new' # 'magni'
 
+
 n_days = 5
 n_hours = n_days*24
 
@@ -45,7 +46,7 @@ n_hours = n_days*24
 
 training_learning_rate = '00003'
 training_n_step_list = [1024]
-training_total_timesteps = [1024]
+training_total_timesteps_list = [1024]
 
 # test parameters
 
@@ -207,16 +208,16 @@ with open(os.path.join(strategy_path, 'scenarios_'+scenario_usato+'.json')) as j
 if patient_type == 'adult' and reward_type == 'new':
     
     opt_dict = {
-                'adult#001':('009','006',160,90),
-                'adult#002':('014','008',165,90),
-                'adult#003':('011','006',160,90),
-                'adult#004':('009','005',165,90),
-                'adult#005':('013','008',165,90),
-                'adult#006':('015','007',170,90),
-                'adult#007':('011','007',160,90),
-                'adult#008':('01','006',160,90),
-                'adult#009':('014','006',190,90),
-                'adult#010':('014','007',160,90)
+                # 'adult#001':('009','006',160,85),
+                'adult#002':('014','008',165,85),
+                # 'adult#003':('011','006',160,90),
+                # 'adult#004':('009','005',165,95),
+                # 'adult#005':('013','008',165,90),
+                # 'adult#006':('015','007',170,95),
+                # 'adult#007':('011','007',160,80),
+                # 'adult#008':('01','006',160,95),
+                # 'adult#009':('014','006',190,90),
+                # 'adult#010':('014','007',160,90)
                 }
 
 
@@ -239,35 +240,35 @@ elif patient_type == 'adult' and reward_type == 'magni':
 elif patient_type == 'adolescent' and reward_type == 'new':
     
     opt_dict = {
-        patient_type+'#001': [],
-        patient_type+'#002': [],
-        patient_type+'#003': [],
-        patient_type+'#004': [],
-        patient_type+'#005': [],
-        patient_type+'#006': [],
-        patient_type+'#007': [],
-        patient_type+'#008': [],
-        patient_type+'#009': [],
-        patient_type+'#010': []
+        patient_type+'#001': ('012','006',170,90),
+        patient_type+'#002': ('011','006',160,90),
+        patient_type+'#003': ('012','005',170,90),
+        patient_type+'#004': ('011','007',165,90),
+        patient_type+'#005': ('009','007',165,90),
+        patient_type+'#006': ('009','006',170,90),
+        patient_type+'#007': ('009','006',160,90),
+        patient_type+'#008': ('011','005',170,90),
+        patient_type+'#009': ('012','006',170,90),
+        patient_type+'#010': ('009','005',165,90)
     }
 
 elif patient_type == 'adolescent' and reward_type == 'magni':
     
     opt_dict = {
-        patient_type+'#001': [],
-        patient_type+'#002': [],
-        patient_type+'#003': [],
-        patient_type+'#004': [],
-        patient_type+'#005': [],
-        patient_type+'#006': [],
-        patient_type+'#007': [],
-        patient_type+'#008': [],
-        patient_type+'#009': [],
-        patient_type+'#010': []
+        patient_type+'#001': ('01','006',165,90),
+        patient_type+'#002': ('009','007',170,90),
+        patient_type+'#003': ('011','005',160,90),
+        patient_type+'#004': ('009','007',165,90),
+        patient_type+'#005': ('009','006',170,90),
+        patient_type+'#006': ('01','006',160,90),
+        patient_type+'#007': ('009','008',165,90),
+        patient_type+'#008': ('014','007',165,90),
+        patient_type+'#009': ('009','005',160,90),
+        patient_type+'#010': ('009','006',170,90)
     }
 
 
-for training_n_steps in training_n_step_list:
+for training_n_steps, training_total_timesteps in zip(training_n_step_list, training_total_timesteps_list):
 
     tir_mean_dict = {
                 'paziente':[],
@@ -324,7 +325,7 @@ for training_n_steps in training_n_step_list:
         ipo_s = v[3]
         
         dizionario = {'paziente': paziente,
-                      'ins_max': (ipo, iper)}
+                      'ins_max': ipo+'/'+iper}
         
         df_cap = pd.DataFrame(dizionario, index=[0])
         df_cap['timesteps'] = training_n_steps
@@ -332,6 +333,8 @@ for training_n_steps in training_n_step_list:
         df_cap['elapsed_time'] = 0
         df_cap['pazient type'] = patient_type
         df_cap['reward type'] = reward_type
+        df_cap['ppo conf'] = 'double'
+        df_cap['check_learning'] = 'No'
         df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
         
         tempistiche = []
@@ -375,6 +378,8 @@ for training_n_steps in training_n_step_list:
            
             for i, scen in zip(range(ripetizioni), scenarios.values()):
                 
+                df_cap['ripetizione'] = i
+                df_cap.to_excel(os.path.join(strategy_path,'paz_cap.xlsx'),index=False)
                 inizio = time.time()
                 
                 lista_BG = []
@@ -544,9 +549,9 @@ for training_n_steps in training_n_step_list:
                 tir_dict['scenario'].append(scen)
                 tir_dict['tempo esecuzione'].append(tempo_impiegato)
         
-                df_cap = pd.DataFrame(tir_dict)
+                df_res = pd.DataFrame(tir_dict)
                 
-                df_cap.to_excel(writer, sheet_name=paziente, index=False)
+                df_res.to_excel(writer, sheet_name=paziente, index=False)
         
         
             tir_mean_dict['paziente'].append(k)
@@ -593,7 +598,7 @@ for training_n_steps in training_n_step_list:
             tir_mean_dict['start time'].append(start_time)
         
         
-            df_cap_mean = pd.DataFrame(tir_mean_dict)
+            df_res_mean = pd.DataFrame(tir_mean_dict)
             
-            df_cap_mean.to_excel(writer, sheet_name='risultati', index=False)
+            df_res_mean.to_excel(writer, sheet_name='risultati', index=False)
             
