@@ -325,7 +325,7 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
         ipo_s = v[3]
         
         dizionario = {'paziente': paziente,
-                      'ins_max': ipo+'/'+iper}
+                      'ins_max': iper}
         
         df_cap = pd.DataFrame(dizionario, index=[0])
         df_cap['timesteps'] = training_n_steps

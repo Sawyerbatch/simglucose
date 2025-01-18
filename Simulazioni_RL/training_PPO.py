@@ -32,9 +32,9 @@ cwd = os.getcwd()
 
 # PARAMETRI DA SETTARE
 
-patient_type = 'adolescent' # 'adult'
+patient_type = 'adult' # 'adult'
 
-reward_type = 'magni' # 'magni'
+reward_type = 'new' # 'magni'
 
 n_steps_list = [1024]
 tmstps_list = [1024]
@@ -48,7 +48,7 @@ if reward_type == 'new':
     
     print('using new function')
     
-    model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli'
+    model_path = 'C:\\Users\\utente\\Documents\\GitHub\\simglucose\\Simulazioni_RL\\modelli_new'
 
     def new_func(x):
         return -0.0417 * x**2 + 10.4167 * x - 525.0017
@@ -165,20 +165,31 @@ if not os.path.exists(strategy_path):
 
 
 
+# opt_dict = {
+#     patient_type+'#001': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#002': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#003': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#004': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#005': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#006': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#007': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#008': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#009': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+#     patient_type+'#010': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15]
+# }
+
 opt_dict = {
-    patient_type+'#001': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#002': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#003': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#004': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#005': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#006': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#007': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#008': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#009': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
-    patient_type+'#010': [0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15]
+    patient_type+'#001': [0.06, 0.08, 0.09],
+    patient_type+'#002': [0.08, 0.14],
+    patient_type+'#003': [0.06, 0.08, 0.11],
+    patient_type+'#004': [0.05, 0.07, 0.09],
+    patient_type+'#005': [0.08, 0.13],
+    patient_type+'#006': [0.07, 0.09, 0.15],
+    patient_type+'#007': [0.07, 0.11],
+    patient_type+'#008': [0.06, 0.07, 0.10],
+    patient_type+'#009': [0.06, 0.07, 0.14],
+    patient_type+'#010': [0.07, 0.14]
 }
-
-
 
 for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
     
@@ -240,7 +251,7 @@ for total_timesteps, n_steps in zip(tmstps_list, n_steps_list):
                 # end_time = time.perf_counter()
                 # execution_time = end_time - start_time
     
-                model.save(os.path.join(model_path, 'ppo_'+reward_type+'_reward_withcaps_'+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+'_lr_'+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
+                model.save(os.path.join(model_path, 'new_model_ppo_'+reward_type+'_reward_withcaps_'+p+'_nsteps_'+str(n_steps)+'_total_tmstp_'+str(total_timesteps)+'_lr_'+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.',''))) # single train
                 # model.save(os.path.join(model_path, "ppo_sim_mod_food_hour_"+p+'_tmstp'+str(total_timesteps)+"_lr"+str(learning_rate).replace('.','')+'_insmax'+str(c).replace('.','')+'_'+ppo_type+'_'+str(cho_daily)+'scen'))
     
                 # Close the environment
