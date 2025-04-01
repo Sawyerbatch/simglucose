@@ -57,13 +57,14 @@ start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
 # ma = 15
-ripetizioni = 100
+ripetizioni = 10
 
 
 
 if reward_type == 'new':
     
-    model_path = os.path.join(cwd, 'modelli')
+    # model_path = os.path.join(cwd, 'modelli')
+    model_path = os.path.join(cwd, 'modelli_new')
     
     print('using new function')
 
@@ -208,16 +209,16 @@ with open(os.path.join(strategy_path, 'scenarios_'+scenario_usato+'.json')) as j
 if patient_type == 'adult' and reward_type == 'new':
     
     opt_dict = {
-                # 'adult#001':('009','006',160,85),
+                'adult#001':('009','006',160,85),
                 'adult#002':('014','008',165,85),
-                # 'adult#003':('011','006',160,90),
-                # 'adult#004':('009','005',165,95),
-                # 'adult#005':('013','008',165,90),
-                # 'adult#006':('015','007',170,95),
-                # 'adult#007':('011','007',160,80),
-                # 'adult#008':('01','006',160,95),
-                # 'adult#009':('014','006',190,90),
-                # 'adult#010':('014','007',160,90)
+                'adult#003':('011','006',160,90),
+                'adult#004':('009','005',165,95),
+                'adult#005':('013','008',165,90),
+                'adult#006':('015','007',170,95),
+                'adult#007':('011','007',160,80),
+                'adult#008':('01','006',160,95),
+                'adult#009':('014','006',190,90),
+                'adult#010':('014','007',160,90)
                 }
 
 
@@ -340,7 +341,7 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
         tempistiche = []
         
         
-        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'performance_'+reward_type+'_reward_'+patient_type+'_double_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
+        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'new_performance_'+reward_type+'_reward_'+patient_type+'_double_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
         
                      
             print(paziente, iper, ipo, iper_s, ipo_s)
@@ -402,9 +403,14 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
                             'custom_scenario': scenario})
                 
                 if patient_type == 'adult' and reward_type == 'new':
-                    model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper)) # iper
-                    model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))  # ipo 
+                    # model_ppo_iper = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper)) # iper
+                    # model_ppo_ipo = PPO.load(os.path.join(model_path, 'ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))  # ipo 
                 
+                    model_ppo_iper = PPO.load(os.path.join(model_path, "new_model_ppo_new_reward_withcaps_"+paziente+'_nsteps_'+str(
+                        training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper))
+                    model_ppo_ipo = PPO.load(os.path.join(model_path, "new_model_ppo_new_reward_withcaps_"+paziente+'_nsteps_'+str(
+                        training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))
+                    
                 elif patient_type == 'adult' and reward_type == 'magni':
                     model_ppo_iper = PPO.load(os.path.join(model_path, 'magni_ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+iper)) # iper
                     model_ppo_ipo = PPO.load(os.path.join(model_path, 'magni_ppo_withcaps_'+paziente+'_nsteps_'+str(training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+ipo))  # ipo 

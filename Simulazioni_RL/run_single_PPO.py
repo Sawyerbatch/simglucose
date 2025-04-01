@@ -33,9 +33,9 @@ cwd = os.getcwd()
 
 # PARAMETRI DA SETTARE
 
-patient_type = 'adolescent'  # 'adult'
+patient_type = 'adult'  # 'adult'
 
-reward_type = 'magni'  # 'new'
+reward_type = 'new'  # 'new'
 
 n_days = 5
 n_hours = n_days*24
@@ -55,12 +55,13 @@ start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
 # ma = 15
-ripetizioni = 100
+ripetizioni = 10
 
 
 if reward_type == 'new':
 
     model_path = os.path.join(cwd, 'modelli')
+    model_path = os.path.join(cwd, 'modelli_new')
 
     print('using new function')
 
@@ -329,7 +330,7 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
 
         tempistiche = []
 
-        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'performance_'+reward_type+'_reward_'+patient_type+'_single_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
+        with pd.ExcelWriter(os.path.join(cwd, 'Risultati', 'new_performance_'+reward_type+'_reward_'+patient_type+'_single_ppo_test_'+paziente+'_timesteps_'+str(test_timesteps)+'_training_nsteps_'+str(training_n_steps)+'_training_tmstp_'+str(training_total_timesteps)+'_ripetizioni_'+str(ripetizioni)+'.xlsx')) as writer:
 
             print(paziente, cap)
 
@@ -385,7 +386,10 @@ for training_n_steps, training_total_timesteps in zip(training_n_step_list, trai
                             'custom_scenario': scenario})
 
                 if patient_type == 'adult' and reward_type == 'new':
-                    model_ppo = PPO.load(os.path.join(model_path, "ppo_withcaps_"+paziente+'_nsteps_'+str(
+                    # model_ppo = PPO.load(os.path.join(model_path, "ppo_withcaps_"+paziente+'_nsteps_'+str(
+                    #     training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+cap))
+                    
+                    model_ppo = PPO.load(os.path.join(model_path, "new_model_ppo_new_reward_withcaps_"+paziente+'_nsteps_'+str(
                         training_n_steps)+'_total_tmstp_'+str(training_total_timesteps)+'_lr_00003_insmax'+cap))
 
                 elif patient_type == 'adult' and reward_type == 'magni':

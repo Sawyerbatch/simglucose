@@ -39,7 +39,7 @@ patient_type = 'adult'  # 'adolescent'
 
 reward_type = 'new'  # 'magni'
 
-n_days = 5
+n_days = 10
 n_hours = n_days*24
 
 # training parameters
@@ -50,14 +50,14 @@ training_total_timesteps = [1024]
 
 # test parameters
 
-n_days = 5
+n_days = 10
 n_hours = n_days*24
 test_timesteps = 2400  # 5 giorni
 start_time = datetime.strptime('3/4/2022 12:00 AM', '%m/%d/%Y %I:%M %p')
 seed = 42
 ma = 1
 # ma = 15
-ripetizioni = 100
+ripetizioni = 50
 
 
 if reward_type == 'new':
@@ -218,16 +218,16 @@ ins_dict = {
 if patient_type == 'adult' and reward_type == 'new':
 
     opt_dict = {
-        'adult#001': ('008', 90),
-        'adult#002': ('008', 90),
-        'adult#003': ('008', 90),
-        'adult#004': ('007', 90),
-        'adult#005': ('008', 90),
-        'adult#006': ('009', 90),
-        'adult#007': ('007', 90),
-        'adult#008': ('007', 90),
-        'adult#009': ('007', 90),
-        'adult#010': ('007', 90),
+        'adult#001': ('014', 90),
+        'adult#002': ('014', 90),
+        'adult#003': ('014', 90),
+        'adult#004': ('014', 90),
+        'adult#005': ('014', 90),
+        'adult#006': ('014', 90),
+        'adult#007': ('014', 90),
+        'adult#008': ('014', 90),
+        'adult#009': ('014', 90),
+        'adult#010': ('014', 90),
     }
 
 
