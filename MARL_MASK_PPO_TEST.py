@@ -41,7 +41,8 @@ from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.ppo_mask import MaskablePPO
 from stable_baselines3.common.env_util import make_vec_env
 import time  # Assicurati che il modulo time sia importato se non lo è già
-
+import statistics
+from statistics import mean, stdev, StatisticsError
 
 # Disable all future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -53,6 +54,7 @@ warnings.filterwarnings("ignore")
 
 # def new_func(x):
 #     return -0.0417 * x**2 + 10.4167 * x - 525.0017
+
 
 def new_func(x):
     return -(x - 110) * (x - 140)
@@ -147,6 +149,22 @@ def mean_confidence_interval(data, confidence=0.95):
     return m, m-h, m+h
 
 
+# def safe_mean_std(valori):
+#     if not valori:
+#         return None
+#     return mean(valori)
+
+
+# def safe_mean(data):
+#     return mean(data) if data else None
+
+
+# def safe_stdev(data):
+#     try:
+#         return stdev(data)
+#     except StatisticsError:
+#         return None
+
 def mean_std(valori):
     n = len(valori)
     if n == 0:
@@ -239,7 +257,7 @@ def train_action_mask(env_fn, folder, paziente, train_timesteps, n_steps,
 
 
 def eval_action_mask(paziente, cho, scenarios, tir_mean_dict, time_suffix, test_folder,
-                     num_tests, learning_rate, batch_size, n_epochs, gamma, gae_lambda, clip_range, ent_coef,
+                     num_test, learning_rate, batch_size, n_epochs, gamma, gae_lambda, clip_range, ent_coef,
                      vf_coef, max_grad_norm, target_kl, test_timesteps,
                      render_mode=None, last_models=False, morty_cap=7, rick_cap=15,
                      soglia_ipo=85, soglia_iper=120, **env_kwargs):
@@ -293,7 +311,7 @@ def eval_action_mask(paziente, cho, scenarios, tir_mean_dict, time_suffix, test_
     if True:
         # with pd.ExcelWriter(os.path.join(test_patient_folder, f'history_{paziente}_{soglia_ipo}_{soglia_iper}_{morty_cap}_{rick_cap}_{time_suffix_Min}.xlsx')) as patient_writer:
 
-        for i, scen in zip(range(1, num_tests+1), scenarios.values()):
+        for i, scen in zip(range(1, num_test+1), scenarios.values()):
             # print(scen)
             lista_BG = []
 
@@ -554,7 +572,7 @@ def eval_action_mask(paziente, cho, scenarios, tir_mean_dict, time_suffix, test_
                     middle_writer, sheet_name='general_results', index=False)
                 # middle_writer.close()
 
-        # Calculate the mean of the 'time in range' column
+        # if 'df_result' in locals() and not df_result.empty:
         time_in_range_mean = df_result['time in range'].mean()
 
         # Create a new filename incorporating the mean value
@@ -651,33 +669,33 @@ if __name__ == "__main__":
 
     # cho_list = [180]
 
-    # diz = {
-    #     # soglia_ipo, soglia_iper, morty_cap, rick_cap
-    #     'adult#001': [100, 160, 7, 11],
-    #     'adult#002': [90, 160, 10, 11],
-    #     'adult#003': [90, 140, 8, 10],
-    #     'adult#004': [80, 190, 4, 5],
-    #     'adult#005': [80, 180, 10, 12],
-    #     'adult#006': [90, 160, 7, 10],
-    #     'adult#007': [80, 120, 4, 6],
-    #     'adult#008': [90, 140, 6, 10],
-    #     'adult#009': [90, 140, 7, 11],
-    #     'adult#010': [90, 160, 7, 10],
-    # }
-
     diz = {
         # soglia_ipo, soglia_iper, morty_cap, rick_cap
-        'adolescent#001': [80, 180, 5, 8],
-        'adolescent#002': [95, 180, 6, 7],
-        'adolescent#003': [90, 160, 4, 7],
-        'adolescent#004': [80, 180, 4, 7],
-        'adolescent#005': [90, 180, 4, 7],
-        'adolescent#006': [80, 160, 6, 7],
-        'adolescent#007': [95, 180, 6, 7],
-        'adolescent#008': [80, 140, 6, 7],
-        'adolescent#009': [80, 180, 4, 7],
-        'adolescent#010': [80, 180, 5, 7],
+        'adult#001': [100, 160, 7, 11],
+        'adult#002': [90, 160, 10, 11],
+        'adult#003': [90, 140, 8, 10],
+        'adult#004': [80, 190, 4, 5],
+        'adult#005': [80, 180, 10, 12],
+        'adult#006': [90, 160, 7, 10],
+        'adult#007': [80, 120, 4, 6],
+        'adult#008': [90, 140, 6, 10],
+        'adult#009': [90, 140, 7, 11],
+        'adult#010': [90, 160, 7, 10],
     }
+
+    # diz = {
+    #     # soglia_ipo, soglia_iper, morty_cap, rick_cap
+    #     'adolescent#001': [80, 180, 5, 8],
+    #     'adolescent#002': [95, 180, 6, 7],
+    #     'adolescent#003': [90, 160, 4, 7],
+    #     'adolescent#004': [80, 180, 4, 7],
+    #     'adolescent#005': [90, 180, 4, 7],
+    #     'adolescent#006': [80, 160, 6, 7],
+    #     'adolescent#007': [95, 180, 6, 7],
+    #     'adolescent#008': [80, 140, 6, 7],
+    #     'adolescent#009': [80, 180, 4, 7],
+    #     'adolescent#010': [80, 180, 5, 7],
+    # }
 
     for cho in cho_list:
 
@@ -856,6 +874,9 @@ if __name__ == "__main__":
 
                     start_test_time = time.time()
 
+                    # 100 tests instead of 1000 !!!!!!!
+                    num_test = int(num_test/10)
+
                     rewards, tir_dict = eval_action_mask(p,
                                                          cho,
                                                          test_scenarios,
@@ -904,7 +925,7 @@ if __name__ == "__main__":
                     with pd.ExcelWriter(os.path.join(test_folder, general_results_path)) as final_writer:
 
                         tir_mean_dict['paziente'].append(p)
-                        avg_reward = statistics.mean(rewards.values())
+                        avg_reward = mean(rewards.values())
                         tir_mean_dict['avg reward'].append(avg_reward)
                         tir_mean_dict['death hypo mean'].append(
                             mean(tir_dict['death hypo']))
@@ -967,6 +988,71 @@ if __name__ == "__main__":
                         tir_mean_dict['training time'].append(
                             elapsed_training_time)
                         tir_mean_dict['testing time'].append(elapsed_test_time)
+
+                        # tir_mean_dict['paziente'].append(p)
+                        # avg_reward = safe_mean(rewards.values())
+                        # tir_mean_dict['avg reward'].append(avg_reward)
+                        # tir_mean_dict['death hypo mean'].append(
+                        #     safe_mean(tir_dict['death hypo']))
+                        # tir_mean_dict['death hypo st dev'].append(
+                        #     safe_stdev(tir_dict['death hypo']))
+                        # tir_mean_dict['ultra hypo mean'].append(
+                        #     safe_mean(tir_dict['ultra hypo']))
+                        # tir_mean_dict['ultra hypo st dev'].append(
+                        #     safe_stdev(tir_dict['ultra hypo']))
+                        # tir_mean_dict['heavy hypo mean'].append(
+                        #     safe_mean(tir_dict['heavy hypo']))
+                        # tir_mean_dict['heavy hypo st dev'].append(
+                        #     safe_stdev(tir_dict['heavy hypo']))
+                        # tir_mean_dict['severe hypo mean'].append(
+                        #     safe_mean(tir_dict['severe hypo']))
+                        # tir_mean_dict['severe hypo st dev'].append(
+                        #     safe_stdev(tir_dict['severe hypo']))
+                        # tir_mean_dict['hypo mean'].append(
+                        #     safe_mean(tir_dict['hypo']))
+                        # tir_mean_dict['hypo st dev'].append(
+                        #     safe_stdev(tir_dict['hypo']))
+                        # tir_mean_dict['time in range mean'].append(
+                        #     safe_mean(tir_dict['time in range']))
+                        # tir_mean_dict['time in range st dev'].append(
+                        #     safe_stdev(tir_dict['time in range']))
+                        # tir_mean_dict['hyper mean'].append(
+                        #     safe_mean(tir_dict['hyper']))
+                        # tir_mean_dict['hyper st dev'].append(
+                        #     safe_stdev(tir_dict['hyper']))
+                        # tir_mean_dict['severe hyper mean'].append(
+                        #     safe_mean(tir_dict['severe hyper']))
+                        # tir_mean_dict['severe hyper st dev'].append(
+                        #     safe_stdev(tir_dict['severe hyper']))
+                        # tir_mean_dict['heavy hyper mean'].append(
+                        #     safe_mean(tir_dict['heavy hyper']))
+                        # tir_mean_dict['heavy hyper st dev'].append(
+                        #     safe_stdev(tir_dict['heavy hyper']))
+                        # tir_mean_dict['ultra hyper mean'].append(
+                        #     safe_mean(tir_dict['ultra hyper']))
+                        # tir_mean_dict['ultra hyper st dev'].append(
+                        #     safe_stdev(tir_dict['ultra hyper']))
+                        # tir_mean_dict['death hyper mean'].append(
+                        #     safe_mean(tir_dict['death hyper']))
+                        # tir_mean_dict['death hyper st dev'].append(
+                        #     safe_stdev(tir_dict['death hyper']))
+                        # tir_mean_dict['LBGI mean of means'].append(
+                        #     safe_mean(tir_dict['LBGI mean']))
+                        # tir_mean_dict['LBGI mean of std'].append(
+                        #     safe_mean_std(tir_dict['LBGI std']))
+                        # tir_mean_dict['HBGI mean of means'].append(
+                        #     safe_mean(tir_dict['HBGI mean']))
+                        # tir_mean_dict['HBGI mean of std'].append(
+                        #     safe_mean_std(tir_dict['HBGI std']))
+                        # tir_mean_dict['RI mean of means'].append(
+                        #     safe_mean(tir_dict['RI mean']))
+                        # tir_mean_dict['RI mean of std'].append(
+                        #     safe_mean_std(tir_dict['RI std']))
+                        # tir_mean_dict['ripetizioni'].append(num_test)
+                        # tir_mean_dict['training steps'].append(train_timesteps)
+                        # tir_mean_dict['training time'].append(
+                        #     elapsed_training_time)
+                        # tir_mean_dict['testing time'].append(elapsed_test_time)
 
                         df_cap_mean = pd.DataFrame(tir_mean_dict)
 
